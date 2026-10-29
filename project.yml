@@ -1,0 +1,115 @@
+name: TotalFactor
+options:
+  bundleIdPrefix: com.prerak
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  xcodeVersion: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+schemes:
+  TotalFactor:
+    build:
+      targets:
+        TotalFactor: all
+        TotalFactorWidgetsExtension: all
+        TotalFactorWatch: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: TotalFactorTests
+  TotalFactorWatch:
+    build:
+      targets:
+        TotalFactorWatch: all
+    run:
+      config: Debug
+targets:
+  TotalFactor:
+    type: application
+    platform: iOS
+    sources:
+      - path: Shared
+      - path: TotalFactor
+        excludes:
+          - "Resources/Info.plist"
+          - "Resources/*.entitlements"
+          - "Resources/IconAlternatives/**"
+          - "Resources/ExerciseMedia"
+          - "Resources/ExerciseMedia/**"
+      - path: TotalFactor/Resources/ExerciseMedia
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prerak.totalfactor
+        DEVELOPMENT_TEAM: 8MF8V7WZJB
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: TotalFactor/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TotalFactor/Resources/TotalFactor.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - target: TotalFactorWidgetsExtension
+        embed: true
+      - target: TotalFactorWatch
+        embed: true
+
+  TotalFactorWidgetsExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Shared
+      - path: TotalFactorWidgets
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prerak.totalfactor.widgets
+        DEVELOPMENT_TEAM: 8MF8V7WZJB
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: TotalFactorWidgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TotalFactorWidgets/TotalFactorWidgets.entitlements
+        SKIP_INSTALL: YES
+        SWIFT_VERSION: "5.10"
+
+  TotalFactorWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: TotalFactor/Core/WatchSyncModels.swift
+      - path: TotalFactorWatch
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prerak.totalfactor.watchkitapp
+        DEVELOPMENT_TEAM: 8MF8V7WZJB
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: TotalFactorWatch/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TotalFactorWatch/TotalFactorWatch.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SKIP_INSTALL: YES
+        SWIFT_VERSION: "5.10"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+
+  TotalFactorTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: TotalFactorTests
+    dependencies:
+      - target: TotalFactor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prerak.totalfactor.tests
+        DEVELOPMENT_TEAM: 8MF8V7WZJB
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES

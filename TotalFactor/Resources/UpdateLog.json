@@ -1,0 +1,436 @@
+[
+  {
+    "version": "1.5.0",
+    "build": "9",
+    "date": "2026-10-28",
+    "headline": "MacroFactor Workouts UI Revamp: Exercise Carousel, Custom Gym Keypad with RIR Strip & Anatomical Heatmap Celebration",
+    "sections": [
+      {
+        "title": "Top Exercise Switcher Carousel",
+        "icon": "rectangle.stack.fill",
+        "items": [
+          "Replaced long vertical scrolling with MacroFactor's top horizontal exercise switcher strip.",
+          "Browse exercises with movement thumbnails, titles, and completed set badges (e.g. 4/4 with green checkmark).",
+          "1-tap to switch between exercises with dedicated '+' tile at the end to add exercises on the fly.",
+          "Menu toggle between Carousel (Focused) mode and All Exercises (List) mode."
+        ]
+      },
+      {
+        "title": "MacroFactor Set Grid & Mini Colored RIR Badges",
+        "icon": "tablecells",
+        "items": [
+          "Crisp set table: Set | Previous \u2194 | Lb | Reps | Checkbox.",
+          "High-contrast active focus borders around the active weight or reps input box.",
+          "Mini colored circular RIR badges directly on the corner of the Reps box (0 red, 1 coral, 2 orange, 3 yellow, 4 mint, 5 green, 6+ blue).",
+          "Square completion checkboxes fill with haptic feedback upon logging."
+        ]
+      },
+      {
+        "title": "Docked Custom Gym Keypad",
+        "icon": "keyboard",
+        "items": [
+          "Docked custom gym keypad eliminates modal stepper sheets.",
+          "Top colored RIR rating strip (0 to 6+): 1-tap immediately stamps set RIR.",
+          "10-key numeric pad with first-digit overwrite for fast load and rep adjustments.",
+          "Prominent black checkmark button (\u2713) commits set, starts rest timer, and auto-focuses the next set or exercise."
+        ]
+      },
+      {
+        "title": "Workout Complete Anatomical Heatmap Celebration",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "Front & back anatomical humanoid figures in SwiftUI Canvas with worked muscles illuminated in MacroFactor royal blue (#2F7CF6).",
+          "PR milestone trophy cards for Volume Records, Reps Records, and Est. 1RM Records.",
+          "Summary metrics: total working volume, completed sets, elapsed duration, and live heart rate / calories.",
+          "MacroFactor 'Update Workout Plan' default switch to save modifications to your program routine template."
+        ]
+      },
+      {
+        "title": "Preserved Total Factor Advantages",
+        "icon": "shield.lefthalf.filled",
+        "items": [
+          "Preserved Progression Wand (\ud83e\ude84) with overload rationale and dynamic rep range expansion.",
+          "Preserved live Apple Watch heart rate corner badge (\u2764\ufe0f 142 BPM).",
+          "Preserved Rest Timer Live Activity & Dynamic Island with Apple Watch wrist haptics.",
+          "Preserved pre-workout fasted fuel warnings, unilateral L/R logging, equipment swaps, and plate calculator."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.4.1",
+    "build": "8",
+    "date": "2026-10-28",
+    "headline": "Siri AI & Apple Intelligence Spoken Food Logging, On-Device Apple Vision Plate Classification & Semantic Embeddings",
+    "sections": [
+      {
+        "title": "Siri AI & Apple Intelligence Spoken Food Logging",
+        "icon": "waveform.and.mic",
+        "items": [
+          "Hands-free conversational food logging: speak to Siri from iPhone, Apple Watch, AirPods, or CarPlay (\"Hey Siri, log 3 scrambled eggs and 2 slices toast in Total Factor\").",
+          "Powered by on-device Apple Intelligence and Siri App Intents (LogFoodIntent) with zero dependence on Google Gemini or external cloud APIs.",
+          "Resolves foods and exact gram portions instantly via the bundled ~8,156-item USDA database and responds with calories and protein.",
+          "Immediate widget update reflecting new calories and protein in under 50ms without opening the app."
+        ]
+      },
+      {
+        "title": "Siri Quick Calorie & Macro Logging",
+        "icon": "flame.fill",
+        "items": [
+          "1-sentence quick calorie logging: \"Hey Siri, log 450 calories in Total Factor\".",
+          "Immediately enqueues entry, increments daily targets, and syncs to Apple Health."
+        ]
+      },
+      {
+        "title": "On-Device Apple Vision Plate Classifier",
+        "icon": "camera.viewfinder",
+        "items": [
+          "100% offline meal photo recognition using Apple's Vision framework (VNClassifyImageRequest) running locally on the Neural Engine in <50ms.",
+          "Classifies common foods (grilled chicken, eggs, steak, salmon, pizza, burgers, salad, pasta, rice, oatmeal, etc.) without cloud AI.",
+          "Added \"Identify Plate On-Device (Apple Vision AI)\" button in DescribeMealView: snap or select a photo to generate USDA meal entries without a Gemini key."
+        ]
+      },
+      {
+        "title": "Apple NaturalLanguage Semantic Vector Matching",
+        "icon": "brain.head.profile",
+        "items": [
+          "Neural Engine word embeddings (NLEmbedding) map colloquial slang and synonyms (e.g., \"poultry\" \u2192 chicken, \"flapjack\" \u2192 pancake, \"espresso\" \u2192 coffee) to USDA whole foods."
+        ]
+      },
+      {
+        "title": "Instant Background & Lock Screen Widget Sync",
+        "icon": "gauge.with.needle.fill",
+        "items": [
+          "PendingQuickAction carries complete macro payloads (calories, protein, carbs, fat, grams, meal tag) directly to SwiftData and HealthKit upon app opening."
+        ]
+      },
+      {
+        "title": "SideStore IPA Packaging Cleanliness",
+        "icon": "shippingbox.fill",
+        "items": [
+          "Resolved \"The app's Info.plist could not be found\" error in SideStore.",
+          "Automatically strips test bundles (.xctest) and debug symbol folders (.dSYM) from PlugIns before packaging so SideStore's AltSign parser validates cleanly.",
+          "Removes companion watchOS targets from the standalone sideload archive for seamless personal-certificate sideloading."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.4.0",
+    "build": "7",
+    "date": "2026-10-28",
+    "headline": "Multi-Add Food Logging, Native Intermittent Fasting, Flexible Rolling Splits, Program Import/Export & Progress Photos Overhaul",
+    "sections": [
+      {
+        "title": "Multi-Add Food Logging (\"Multi-Select Staging Tray\")",
+        "icon": "plus.square.fill.on.square.fill",
+        "items": [
+          "Each search row features a dedicated \"+\" button that stages foods directly into a persistent bottom dock with haptic feedback without closing search.",
+          "Real-time staging dock displays selected food count, total calories, and protein (e.g., \"3 Items Staged \u2022 520 kcal \u2022 42g protein\").",
+          "Full Review Staged Meal sheet to adjust serving sizes, multiplier steppers (0.25\u00d7\u201320\u00d7), or remove items before committing.",
+          "1-tap \"Log All (N)\" commits all staged items into SwiftData and Apple Health in a single transaction."
+        ]
+      },
+      {
+        "title": "Native Intermittent Fasting (IF) Engine",
+        "icon": "timer",
+        "items": [
+          "Supported protocols: 16:8 LeanGains (Standard), 18:6 Deep Fast, 20:4 Warrior Diet, OMAD (23:1), 14:10 Moderate, and Circadian (13:11).",
+          "Today Dashboard Intermittent Fasting card displays active fast elapsed time, target countdown, and eating window progress.",
+          "Smart automatic calculation starting from yesterday\"s last logged food timestamp, plus 1-tap \"Start Fast\" / \"End Fast\" override controls.",
+          "Toggle and protocol selector in Settings \u2192 Intermittent Fasting."
+        ]
+      },
+      {
+        "title": "Flexible Rolling Split Workouts (\"Work Out Whatever Days You Want\")",
+        "icon": "arrow.triangle.2.circlepath",
+        "items": [
+          "Choose between Fixed Weekdays and Rolling Split (Any Day / Flexible) scheduling modes in Program Settings.",
+          "In Rolling Split mode, workouts are never locked to calendar days; routines cycle automatically (1 \u2192 2 \u2192 3 \u2192 4) whenever you train.",
+          "Today Dashboard dynamically displays \"Next Up: [Workout Name]\" and advances to the next routine upon workout completion.",
+          "Added \"Switch Workout\" menu on Today\"s training card to start any routine in your active program at any time with 1 tap.",
+          "Train Hub displays a bright green \"NEXT UP\" badge on the next scheduled routine."
+        ]
+      },
+      {
+        "title": "Complete Program Import & Export Engine",
+        "icon": "square.and.arrow.up.on.square",
+        "items": [
+          "Export complete programs to \".totalfactorprogram\" files via the iOS Share Sheet (AirDrop, Messages, Files) or copy JSON to clipboard.",
+          "Import Program File and Import from Clipboard in Program Builder and Train Hub.",
+          "Automatically matches routine movements against the 118 bundled exercise library and auto-creates custom exercises for new movements."
+        ]
+      },
+      {
+        "title": "Overhauled Progress Photos & Mirror Camera Capture",
+        "icon": "camera.viewfinder",
+        "items": [
+          "Fixed empty state bug where having 1 photo rendered ContentUnavailableView, making photos feel lost.",
+          "Single-photo showcase prominently displays your photo with date and weight badge.",
+          "Comparison mode for 2+ photos with Before & After photo picker menus, days-apart, and weight delta badges.",
+          "Supports both Split Slider and Side-by-Side comparison modes.",
+          "In-app \"Take Photo\" mirror camera capture alongside Photos library picker.",
+          "Thumbnail history gallery reel with tap-to-inspect and delete photo with confirmation.",
+          "Downsamples photos to clean 1600px JPEG to keep SQLite storage fast and lean."
+        ]
+      },
+      {
+        "title": "MacroFactor Visual Polish & Adaptive Expenditure (TDEE)",
+        "icon": "flame.fill",
+        "items": [
+          "Re-branded \"Metabolism\" card to \"Adaptive Expenditure (TDEE)\" with daily energy burn indicators and confidence pills.",
+          "Added Energy Balance (Intake vs. TDEE) card displaying net daily deficit or surplus with color-coded badges.",
+          "Clarified synergy between workout energy burn and dynamic TDEE adaptations."
+        ]
+      },
+      {
+        "title": "AI Food Logging & Precision Prompt Overhaul",
+        "icon": "sparkles",
+        "items": [
+          "Explicitly instructed Gemini schema that all calories and macros must represent the TOTAL portion weight in grams.",
+          "Multimodal coupling: synthesizes photo visual portions with user text notes for hidden ingredients and cooking oils.",
+          "Enriches Gemini meals with verified offline USDA micronutrients (potassium, iron, zinc, magnesium).",
+          "Added 20+ common everyday food aliases to offline parser (almond milk, steak, salmon, avocado, blueberries)."
+        ]
+      },
+      {
+        "title": "Fixed In-App Update Log Decoding",
+        "icon": "checkmark.seal.fill",
+        "items": [
+          "Repaired corrupted nested JSON in releases 1\u20135, restoring full update history under Settings \u2192 What's New & Update Log."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "build": "6",
+    "date": "2026-10-27",
+    "headline": "Un-Cramped Workout UI, Proactive Reminders, Apple Fitness Workouts Sync & Live Heart Rate Corner Badge",
+    "sections": [
+      {
+        "title": "Un-Cramped Workout UI & In-Session Custom Exercises",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "Spacious 44pt+ touch targets on set rows and weight/rep buttons separating load and reps (175 lb \u00d7 10 @2) for easy tapping with gym fingers.",
+          "Removed repetitive placeholder coaching text from cards; surfaces only real progression overload notes.",
+          "Added '+ Custom Exercise' button directly inside the in-workout Add Exercise sheet."
+        ]
+      },
+      {
+        "title": "Proactive Reminders & Notifications",
+        "icon": "bell.badge",
+        "items": [
+          "Configurable morning weigh-in reminder to maintain accurate weight trends before breakfast.",
+          "Customizable meal logging reminders for lunch, dinner, and evening missed food checks.",
+          "Pre-workout fueling and energy alerts on scheduled training days."
+        ]
+      },
+      {
+        "title": "Apple Watch Vibration & Rest Timer Fix",
+        "icon": "applewatch.radiowaves.left.and.right",
+        "items": [
+          "Fixed rest timer notification cancellation bug so timers trigger reliable wrist haptic vibrations on Apple Watch when iPhone is locked (no companion app needed).",
+          "Time-sensitive alert delivery breaking through lock screens and Focus modes."
+        ]
+      },
+      {
+        "title": "Live Heart Rate Badge & Apple Fitness Workouts Sync",
+        "icon": "heart.fill",
+        "items": [
+          "Prominent Live Heart Rate corner badge in Active Workout navigation bar streaming continuously from Apple Watch or HealthKit.",
+          "Syncs all external Apple Fitness workouts (Soccer, Running, Cycling, Swimming, HIIT) to Today's Dashboard and Food Timeline."
+        ]
+      },
+      {
+        "title": "Expanded Library (+22 New Exercises)",
+        "icon": "list.bullet.clipboard",
+        "items": [
+          "Added 22 missing strength, hypertrophy, and conditioning staples including Incline Cable Fly, Close-Grip Bench Press, Cable Y-Raise, Bulgarian Split Squats, Landmine Press/Row, Running, Soccer, Cycling, and Swimming."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "build": "5",
+    "date": "2026-10-27",
+    "headline": "MacroFactor Workouts Complete Feature Suite: Progression Wand, Bilateral Logging, In-Workout Swapping & Volume Landmarks",
+    "sections": [
+      {
+        "title": "Smart Progression Wand & Dynamic Rep Expansion",
+        "icon": "wand.and.stars",
+        "items": [
+          "Interactive Progression Wand (\ud83e\ude84) on exercise cards explaining why targets changed with \ud83d\udd35 Blue, \ud83d\udfe1 Yellow, and \ud83d\udd34 Orange diagnostics.",
+          "Dynamic Rep Range Expansion: Automatically detects when equipment jumps are >= 12.5% and widens rep ceilings (+3 reps) to build capacity before adding weight."
+        ]
+      },
+      {
+        "title": "Bilateral Tracking & Persistent Setup Notes",
+        "icon": "arrow.left.and.right",
+        "items": [
+          "Independent Left and Right logging (L: 35 lb x 10, R: 35 lb x 9) with 1-tap Bilateral/Unilateral toggle and Copy Left to Right shortcut.",
+          "Persistent machine & rack setup notes (seat height, pin settings, cable notches) pinned to exercises that automatically carry forward across workouts."
+        ]
+      },
+      {
+        "title": "In-Workout Swapping & Routine Commit",
+        "icon": "arrow.triangle.2.circlepath",
+        "items": [
+          "1-Tap Exercise Swapping: Find biomechanically matched replacements in the same movement pattern and muscle group when equipment is occupied.",
+          "Workout Change Log on finish: Prompts to commit session tweaks (added sets, swaps) back to your saved program routine or keep for today only."
+        ]
+      },
+      {
+        "title": "Hypertrophy Landmarks & Bodyweight Modes",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "Weekly Hypertrophy Volume Landmarks card in Train Hub tracking trailing 7-day hard sets against MV (<8), MEV (8-11), MAV (12-20), and MRV (21+).",
+          "Bodyweight training support with automatic morning weigh-in sync for weighted dips/pull-ups (+25 lb) and assisted counterweights (-40 lb).",
+          "Added Myo-rep (M) set type with Apple Watch wrist companion and history sync."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "build": "4",
+    "date": "2026-10-27",
+    "headline": "Apple Health & Fitness UI Redesign, Un-Cramped Layouts & SideStore Wireless Auto-Signing",
+    "sections": [
+      {
+        "title": "Apple Health & Apple Fitness Design",
+        "icon": "heart.text.square.fill",
+        "items": [
+          "Redesigned Total Factor with the spacious, un-cramped visual language of Apple Health and Apple Fitness, using native grouped background cards, generous padding, and floating frosted-glass toolbars.",
+          "Adopted bold San Francisco Rounded metric typography (.design: .rounded) and Apple's vibrant health palette: Flame Orange, Coral Pink, Electric Cyan, Gold, Purple, and Teal.",
+          "Transformed Today Dashboard with an Apple Fitness hero calorie card, side-by-side Trend & Metabolism cards, a clean 2x2 telemetry grid, and sleek Apple Fitness segmented macro bars.",
+          "Refined Food Diary and Progress Hub with clean line-item rows, micro-colored macro chips, and smart Goal Target Date projections."
+        ]
+      },
+      {
+        "title": "SideStore Wireless Auto-Signing Pipeline",
+        "icon": "arrow.triangle.2.circlepath.circle.fill",
+        "items": [
+          "Added Scripts/build_ipa.sh to compile and package TotalFactor.ipa directly into your iCloud Drive folder with all embedded Watch and Widget extensions.",
+          "Import TotalFactor.ipa into SideStore on your iPhone for perpetual, wireless background app re-signing every 3\u20135 days over Wi-Fi without needing a Mac."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "build": "3",
+    "date": "2026-10-27",
+    "headline": "8,156-Food Offline USDA Catalog, Voice & Photo Meal Logging, Apple Watch Companion & Full Spec Sweep",
+    "sections": [
+      {
+        "title": "Full 8,156-Food Offline USDA Database",
+        "icon": "externaldrive.fill.badge.checkmark",
+        "items": [
+          "Bundled 8,156 lab-verified USDA Foundation + SR Legacy whole foods (3.75 MB) with calories, macros, fiber, sugar, sodium, household serving weights, and full micronutrients.",
+          "Built a fast inverted token + singular/plural index (OfflineUSDACatalogService) that keeps SwiftData @Query lean for 120Hz scrolling and materializes Food rows lazily only when logged, favorited, or used in a recipe."
+        ]
+      },
+      {
+        "title": "Voice, Natural-Language & Meal-Photo Logging",
+        "icon": "waveform.and.mic",
+        "items": [
+          "Added 'Describe / Voice' mode in Quick Add plus a 1-tap mic button directly in the Search bar using live on-device Speech Recognition.",
+          "Built an instant 100% offline NaturalLanguageMealParser that splits multi-item meals (e.g. '3 eggs, 80g oats, 200g greek yogurt and 1.5 tbsp peanut butter') and resolves gram portions against your history + 8,156 USDA foods.",
+          "Added optional Gemini AI (gemini-2.5-flash / gemini-2.5-pro) multimodal text + meal-photo parsing (API key stored securely in Keychain in Settings) leading into a 1-tap Multi-Item Confirmation Sheet synced to Apple Health."
+        ]
+      },
+      {
+        "title": "Apple Watch Companion (watchOS 10+)",
+        "icon": "applewatch.watchface",
+        "items": [
+          "Added native TotalFactorWatch app signed for your Personal Team using bidirectional WatchConnectivity (zero paid App Groups needed).",
+          "Includes 1-tap wrist set logging, Digital Crown weight & rep dialing, wrist haptic rest timer countdowns (3-2-1-Go), remaining macros glance, and Digital Crown wrist weigh-ins.",
+          "Runs HKWorkoutSession on Apple Watch to stay active on wrist raise and stream live BPM + display-only active kcal to an isolated banner in ActiveWorkoutView."
+        ]
+      },
+      {
+        "title": "Phase 2\u20139 Spec Sweep & Interactive Widgets",
+        "icon": "checklist.checked",
+        "items": [
+          "Exercise Library: Chronological per-exercise Session & Set History cards showing every past session's volume, top e1RM, and individual sets.",
+          "Custom Nutrient Zones: Edit or reset Floor, Target, and Ceiling values for any macro or micronutrient (including Sugar, Vitamin C, and Cholesterol) from Micronutrient Details or Settings.",
+          "Food Timeline Upgrades: 'Copy From Any Date...' calendar picker with meal filter & macro preview, optional 'Grouped by Meal' view toggle + inline MealTag picker, and Daily Notes editor.",
+          "Body & Schedule: Lean Body Mass (FFM) HealthKit sync + Swift Charts card in Progress, visual Mon\u2013Sun schedule strip in Program Builder & Train Hub, and interactive +/-/\u2713 weigh-in buttons on the Home Screen Trend & Workout Widget."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "build": "2",
+    "date": "2026-10-27",
+    "headline": "120Hz Smooth Scrolling, Pre-Loaded Strong History, Offline Exercise Guides & Planet Fitness Setup",
+    "sections": [
+      {
+        "title": "Fixed Vertical Scroll Lag (120Hz Smooth Scrolling)",
+        "icon": "gauge.with.dots.needle.67percent",
+        "items": [
+          "Eliminated View.body database & IPC stalls: TodayDashboardView, FoodTimelineView, ProgressHubView, and ActiveWorkoutView now read CoachingCoordinator.cachedOrComputeDigest in O(1) without side effects instead of running 7 SwiftData fetches, mutating ExpenditureEstimate, and reloading WidgetKit over XPC mid-scroll.",
+          "SharedSnapshotStore now skips WidgetCenter XPC reloads when widget snapshots haven't changed.",
+          "Zero-allocation row rendering: added @Transient decoded caches on Exercise, GymProfile, and Food, direct arithmetic macro getters on FoodLogEntry, and a static DateFormatter in DayKey.displayTitle.",
+          "Isolated 500ms rest-timer updates into ActiveWorkoutMiniBar and ActiveRestTimerBanner, switched active workouts to LazyVStack with memoized ActiveExerciseCardView, and cached search rankings in QuickAddFoodSheet."
+        ]
+      },
+      {
+        "title": "Your Workouts & Full Strong History Pre-Loaded",
+        "icon": "clock.arrow.circlepath",
+        "items": [
+          "124 sessions & 1,214 sets imported automatically from BundledStrongWorkouts.csv on launch (safe and deduplicated for existing installs), fitting personal rep-endurance curves (k) per movement and computing chronological PRs (e1RM, Heaviest Load, Rep PR, Best Volume).",
+          "Automatically cleans Strong data quirks: converts lb loads, repairs swapped 7 lb \u00d7 140 reps typos on Seated Row, and normalizes runaway 93h/238h forgotten timers.",
+          "Activated your custom 4-day Planet Fitness Split (Push, Back and Biceps, Lower, Upper) with your real exercises, sets, and rep ranges, pre-filling next-session suggested weights from your history.",
+          "Added Import CSV buttons in TrainHubView and SettingsView plus searchable full workout history in WorkoutHistoryListView."
+        ]
+      },
+      {
+        "title": "Offline Exercise Pictures & Step-by-Step How-To Guides",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "Bundled 182 offline Start & Finish demo photos across 96 exercises in ExerciseMedia/ and BundledExercises.json, decoded off the main thread by ExerciseImageCache.",
+          "Built interactive ExerciseGuideContentView with Animated Start \u2194 Finish playback, side-by-side pose toggle, Front & Back TargetMuscleDiagramView, Planet Fitness & Machine Setup card, numbered steps, coaching cues, and common mistakes.",
+          "1-tap Guide access from TodayDashboardView, TrainHubView (WorkoutOverviewGuideSheet), ActiveWorkoutView (ExerciseGuideSheet), and ExerciseLibraryView."
+        ]
+      },
+      {
+        "title": "Planet Fitness Active Gym Profile",
+        "icon": "dumbbell.fill",
+        "items": [
+          "Configured Planet Fitness and set it as Active Gym automatically: Machines, Cables with 2.5 lb micro-stack jumps, counterbalanced 20 lb Smith Machine carriage, 5\u201375 lb Dumbbells in 5 lb jumps, EZ-Curl Bars, Kettlebells, Bodyweight, and Bands (excluding free Olympic barbells so unavailable barbell lifts auto-swap cleanly).",
+          "Updated GymProfileEditorView to display and edit equipment weights in lb (or kg based on your unit setting)."
+        ]
+      },
+      {
+        "title": "Running Update Log & Easy iPhone Updates",
+        "icon": "sparkles.rectangle.stack.fill",
+        "items": [
+          "Added What's New & Update Log right inside Settings (synced with UPDATES.md) plus live installed version/build display so you can always see every little tweak on your phone.",
+          "Added workspace rule (AGENTS.md) so every future update or small fix automatically logs here and bumps the build number, fixed Xcode Personal Team signing (8MF8V7WZJB) in project.yml, and added Scripts/update_iphone.sh for 1-step iPhone updates."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "build": "1",
+    "date": "2026-10-27",
+    "headline": "Initial Complete App (Phases 1\u20139)",
+    "sections": [
+      {
+        "title": "Adaptive Nutrition, Smart Training & Extensions",
+        "icon": "bolt.heart.fill",
+        "items": [
+          "21-entity SwiftData schema with local-first storage, optional CloudKit sync, 3-step onboarding, and Apple Health sync.",
+          "Chronological Food Timeline, Floor/Target/Ceiling MacroZoneBar, 2-tap Quick Add, inline kitchen-scale calculator, recipe builder, USDA + Open Food Facts search, and Vision OCR label scanner.",
+          "EMA weight trend (alpha = 0.1), rolling 14\u201328d dynamic expenditure engine, macro safety floors, and program-tied carb cycling.",
+          "1-tap Active Workout Logger, Lock Screen & Dynamic Island rest timer Live Activity, effort-adjusted e1RM + personal k-curve progression, Home/Lock Screen widgets, Siri Shortcuts, and CSV exports."
+        ]
+      }
+    ]
+  }
+]

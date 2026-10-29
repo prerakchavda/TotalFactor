@@ -1,0 +1,35 @@
+{
+  "name": "Total Factor Community",
+  "identifier": "com.prerak.totalfactor.source",
+  "subtitle": "Adaptive Nutrition Coach & Smart Strength Training Tracker",
+  "description": "Offline-first, native iOS adaptive nutrition coach and smart strength training tracker with on-device Apple Intelligence, Vision plate logging, and MacroFactor-style workout UI.",
+  "website": "https://github.com/prerakchavda/TotalFactor",
+  "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+  "apps": [
+    {
+      "name": "Total Factor",
+      "bundleIdentifier": "com.prerak.totalfactor",
+      "developerName": "Prerak Chavda",
+      "subtitle": "Adaptive Nutrition & Smart Gym Tracker",
+      "version": "1.5.0",
+      "versionDate": "2026-10-28",
+      "versionDescription": "MacroFactor Workouts UI Revamp: Top Exercise Carousel, Custom Gym Keypad with RIR Strip, and Front/Back Anatomical Humanoid Heatmap Celebration.",
+      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.0/TotalFactor.ipa",
+      "localizedDescription": "Total Factor is an offline-first, native iOS adaptive macro coach and smart strength training tracker built with SwiftUI, SwiftData, HealthKit, and Apple Intelligence.",
+      "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+      "tintColor": "FF5B00",
+      "size": 18194822,
+      "minOSVersion": "17.0",
+      "screenshotURLs": []
+    }
+  ],
+  "news": [
+    {
+      "title": "Total Factor v1.5.0 Released!",
+      "identifier": "v1.5.0-release",
+      "caption": "New MacroFactor-style workout UI, custom gym keypad with RIR pills, and anatomical celebration heatmap.",
+      "date": "2026-10-28",
+      "appID": "com.prerak.totalfactor"
+    }
+  ]
+}
