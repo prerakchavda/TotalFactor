@@ -1,5 +1,39 @@
 [
   {
+    "version": "1.6.0",
+    "build": "20",
+    "date": "2026-10-29",
+    "headline": "Instant Local Natural-Language Meal Description & 1-Tap Import Engine (\"Describe & Import\")",
+    "sections": [
+      {
+        "title": "Search Bar Live Meal Description & 1-Tap Import",
+        "icon": "sparkles",
+        "items": [
+          "Live Multi-Item Deconstruction: typing complex meal descriptions (e.g. 'apples with caramel dip and Heath candy in') directly in the Search bar deconstructs meals locally in < 5ms.",
+          "Described Meal Breakdown Card: review detected foods, realistic household servings, calories, and macros right above search results.",
+          "1-Tap Log Meal: log all detected foods to your day and sync to Apple Health with a single tap, or stage them onto The Plate dock."
+        ]
+      },
+      {
+        "title": "Dialed-In Offline Natural Language Matching",
+        "icon": "text.magnifyingglass",
+        "items": [
+          "Colloquial Preposition Cleansing: automatically strips trailing filler words like 'in', 'on', 'please', and 'too' so colloquial phrasing never breaks searches.",
+          "Bidirectional Inflection: connects singular and plural food forms (e.g. 'candy' <-> 'candies'), instantly matching items like Candies, HEATH BITES.",
+          "Auxiliary Descriptor Relaxation: relaxes modifiers like 'dip', 'sauce', and 'topping' to match primary food nouns in USDA whole foods."
+        ]
+      },
+      {
+        "title": "Verified Real-World Snacks & Treats",
+        "icon": "heart.fill",
+        "items": [
+          "New Snack Library Entries: added verified entries for Caramel Dip (2 tbsp), Heath English Toffee Bar, and Apple Slices with Dip.",
+          "Piece & Platter Portions: realistic default serving sizes so you never suffer manually looking up multi-component treats."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.9",
     "build": "19",
     "date": "2026-10-29",

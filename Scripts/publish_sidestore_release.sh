@@ -53,7 +53,14 @@ source_path = '$SOURCE_JSON'
 with open(source_path, 'r') as f:
     data = json.load(f)
 
-desc = 'Multi-Page MacroFactor Onboarding (Food & Workouts), Categorized Settings Hub, Workout Day Removal, and Program Export Sharing Fixes.'
+desc = 'Instant Local Natural-Language Meal Description & 1-Tap Import Engine (\"Describe & Import\")'
+try:
+    with open('$PROJECT_DIR/TotalFactor/Resources/UpdateLog.json', 'r') as uf:
+        u_data = json.load(uf)
+        if u_data and isinstance(u_data, list):
+            desc = u_data[0].get('headline', desc)
+except Exception:
+    pass
 
 for app in data.get('apps', []):
     if app.get('bundleIdentifier') == 'com.prerak.totalfactor':
@@ -119,11 +126,13 @@ echo " IPA:      $IPA_PATH ($((FILE_SIZE / 1024 / 1024)) MB)"
 echo "==============================================="
 
 if [[ "$DO_PUSH" == "true" ]]; then
+  HEADLINE="$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/TotalFactor/Resources/UpdateLog.json'))[0].get('headline', 'Update'))" 2>/dev/null || echo "Update")"
+
   echo ""
   echo "1. Staging and committing workspace changes to git..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub"
+    git commit -m "Total Factor v$VERSION (Build $BUILD) — $HEADLINE"
   else
     echo "No uncommitted git changes."
   fi
@@ -135,24 +144,16 @@ if [[ "$DO_PUSH" == "true" ]]; then
 
   echo ""
   echo "3. Creating GitHub Release v$VERSION and uploading TotalFactor.ipa..."
-  read -r -d '' RELEASE_NOTES << 'EOF' || true
-### Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub
-
-#### 1. MacroFactor-Style Multi-Page Onboarding Flow
-- **10-Step Guided Wizard**: Replaced the monolithic 3-step form with an elegant stepped setup with animated progress indicators, smooth transitions, and tactile selection cards.
-- **MacroFactor Food Setup**: Step-by-step guidance for Imperial vs Metric units, biological demographics, height & starting weight with morning weigh-in tips, baseline activity level cards, primary goal selection (Cut, Maintain, Bulk), dynamic rate of change slider with zone pills (*Conservative*, *Standard / Recommended*, *Aggressive*), and a Day-1 macro split preview bar with carb cycling.
-- **MacroFactor Workouts Setup**: Direct onboarding for lifting frequency (2–6 days/week), training focus (Hypertrophy, Strength, Both), gym setup selection, and automated Day-1 program generation via `ProgramGeneratorEngine`.
-- **Apple Health Integration & Launch**: Transparent permission breakdown with live connection status and program summary launch card.
-
-#### 2. Categorized Settings Hub Architecture
-- **Master Hub & Subpages**: Replaced the flat 538-line form with a clean, single-screen dashboard with SF Symbol badges and focused drill-down pages.
-- **Active Program Header Card**: Biological stats, active goal pill, check-in weekday, and a 1-tap **"Rerun Setup & Onboarding"** button.
-- **Focused Subpages**: Goals & Strategy, Intermittent Fasting, Workouts, Units & Schedule, Reminders & Notifications, Apple Health Sync, AI & Food Databases, and Data Management & Backup.
-
-#### 3. Workout Builder & Program Sharing Fixes
-- **Workout Day Removal**: Ellipsis action menu and destructive "Delete Day" button on each workout day in `ProgramBuilderView.swift` with cascade deletion, confirmation alert, and automatic order re-indexing.
-- **Program & Workout Export Fix**: `ShareSheetHelper` ensures `UIActivityViewController` presents reliably on top-most view controllers, fixing export failures for `.totalfactorprogram` and workout CSVs.
-EOF
+  RELEASE_NOTES="$(python3 -c "
+with open('$PROJECT_DIR/UPDATES.md') as f:
+    text = f.read()
+parts = text.split('## v')
+if len(parts) > 1:
+    section = '## v' + parts[1].split('\n---')[0]
+    print(section.strip())
+else:
+    print('Total Factor v$VERSION Release')
+" 2>/dev/null || echo "Total Factor v$VERSION (Build $BUILD)")"
 
   # Check if release already exists
   if gh release view "v$VERSION" >/dev/null 2>&1; then
@@ -161,7 +162,7 @@ EOF
   else
     echo "Creating GitHub Release v$VERSION..."
     gh release create "v$VERSION" \
-      --title "Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub" \
+      --title "Total Factor v$VERSION (Build $BUILD) — $HEADLINE" \
       --notes "$RELEASE_NOTES"
     echo "Uploading TotalFactor.ipa to v$VERSION..."
     gh release upload "v$VERSION" "$IPA_PATH" --clobber

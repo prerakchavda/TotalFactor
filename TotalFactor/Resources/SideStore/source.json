@@ -19,11 +19,11 @@
       "minOSVersion": "17.0",
       "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/icon.png",
       "headerURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
-      "version": "1.5.9",
+      "version": "1.6.0",
       "versionDate": "2026-10-29",
-      "versionDescription": "Multi-Page MacroFactor Onboarding (Food & Workouts), Categorized Settings Hub, Workout Day Removal, and Program Export Sharing Fixes.",
-      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.9/TotalFactor.ipa",
-      "size": 19948119,
+      "versionDescription": "Instant Local Natural-Language Meal Description & 1-Tap Import Engine (\"Describe & Import\")",
+      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.6.0/TotalFactor.ipa",
+      "size": 20008878,
       "permissions": [
         {
           "type": "camera",
@@ -50,6 +50,14 @@
       ],
       "localizedDescription": "### Total Factor \u2014 Adaptive Nutrition & Smart Strength Tracker\n\nTotal Factor is an offline-first, native iOS fitness powerhouse combining an **evidence-based adaptive nutrition coach** with a **MacroFactor-inspired smart gym tracker**.\n\nBuilt entirely in modern SwiftUI and SwiftData, Total Factor runs completely on-device with zero subscription fees, zero cloud locks, and zero advertisements.\n\n---\n\n#### \u26a1 Adaptive Energy Expenditure (TDEE)\n- **True Metabolic Trend Engine**: Dynamically calculates your real Total Daily Energy Expenditure from your daily calorie intake and weight trend without relying on inaccurate smartwatch burn estimates.\n- **Adherence-Neutral Weekly Check-Ins**: Guided coaching reviews adjust your macro targets automatically whether you ate over or under target\u2014no guilt, no penalties.\n- **Adaptive Rate of Loss / Gain**: Intelligently scales weekly caloric targets to maintain your chosen rate of body change.\n\n#### \ud83e\udd57 Frictionless Food Logging & The Plate\n- **The Plate Multi-Add Dock**: Stage multiple food items, barcode scans, custom recipes, and quick adds into a unified bottom tray before committing\u2014reducing logging time by 75%.\n- **Hour-by-Hour Nutrition Timeline**: View your food intake organized by hour with macro distribution charts and adherence rings.\n- **Zero-Scale Hand & Container Estimators**: Visual palm, fist, cupped hand, and thumb estimators plus standard takeout containers (deli pints, quarts, foil tins) for real-world dining.\n- **Street & Cultural Food Library**: Pre-configured composite foods with piece-count steppers for foods you cannot weigh raw (street tacos, samosas, momos, sushi rolls, biryani bowls).\n- **3-Second Ballpark Logger**: Rapid 1-tap logging for social dining, weddings, and buffets.\n- **Offline Voice & Vision Describe**: Speak meals naturally or take a photo; on-device Apple Intelligence parses foods into grams and macros.\n\n#### \ud83c\udfcb\ufe0f Smart Strength Tracker\n- **MacroFactor-Style Workout UI**: Dedicated gym interface with custom numeric keypad, instantaneous RIR selection, and automatic set completion.\n- **Rest Timer & Live Activities**: Interactive rest timers with Lock Screen, Dynamic Island, and Apple Watch notifications.\n- **Muscle Hypertrophy Target Zones**: Tracks weekly direct volume sets per muscle group to ensure optimal stimulus and avoid overtraining.\n- **Built-in Exercise Library**: 120+ strength movements with animated target diagrams, form cues, and historical PR tracking.\n\n#### \ud83d\udd12 Complete Privacy & Data Ownership\n- **100% On-Device**: All data stored locally in SwiftData. Works completely offline without internet or cellular reception.\n- **Two-Way Apple Health Sync**: Bidirectional sync for dietary calories, protein, carbs, fat, workouts, and scale weight.\n- **Universal Data Export**: 1-tap export in Settings provides complete CSV packages, structured JSON, and a pre-formatted Markdown AI coaching digest for ChatGPT, Claude, and Gemini.",
       "versions": [
+        {
+          "version": "1.6.0",
+          "date": "2026-10-29",
+          "localizedDescription": "Instant Local Natural-Language Meal Description & 1-Tap Import Engine (\"Describe & Import\")",
+          "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.6.0/TotalFactor.ipa",
+          "size": 20008878,
+          "minOSVersion": "17.0"
+        },
         {
           "version": "1.5.9",
           "date": "2026-10-29",
@@ -142,6 +150,16 @@
     }
   ],
   "news": [
+    {
+      "title": "Total Factor v1.6.0 Released!",
+      "identifier": "v1.6.0-release",
+      "caption": "Instant Local Natural-Language Meal Description & 1-Tap Import Engine (\"Describe & Import\")",
+      "date": "2026-10-29",
+      "tintColor": "FF5B00",
+      "imageURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
+      "notify": true,
+      "appID": "com.prerak.totalfactor"
+    },
     {
       "title": "Total Factor v1.5.9 Released!",
       "identifier": "v1.5.9-release",

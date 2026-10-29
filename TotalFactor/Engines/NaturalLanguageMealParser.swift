@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 #if canImport(NaturalLanguage)
 import NaturalLanguage
 #endif
@@ -223,7 +224,25 @@ public enum NaturalLanguageMealParser {
         ("deli pint of curry", "deli pint"),
         ("deli quart of soup", "deli quart"),
         ("deli quart of curry", "deli quart"),
-        ("takeout box", "3 compartment takeout")
+        ("takeout box", "3 compartment takeout"),
+        // Real-world snacks, sweets & dips
+        ("caramel apple dip", "caramel dip"),
+        ("caramel dip", "caramel dip"),
+        ("caramel sauce", "toppings butterscotch or caramel"),
+        ("caramel topping", "toppings butterscotch or caramel"),
+        ("caramels", "candies caramels"),
+        ("caramel", "toppings butterscotch or caramel"),
+        ("heath candy bar", "candies heath bites"),
+        ("heath candy", "candies heath bites"),
+        ("heath bar", "candies heath bites"),
+        ("heath toffee bar", "candies heath bites"),
+        ("heath toffee", "candies heath bites"),
+        ("heath bites", "candies heath bites"),
+        ("heath", "candies heath bites"),
+        ("toffee bar", "candies heath bites"),
+        ("apple slices", "apple raw"),
+        ("apples", "apple raw"),
+        ("apple", "apple raw")
     ]
 
     public static func parse(
@@ -461,6 +480,14 @@ public enum NaturalLanguageMealParser {
             }
         }
 
+        // Strip trailing conversational prepositions & fillers (e.g. "in", "on", "inside", "please", "too", "as well", "for me", "total")
+        let trailingStopwords: Set<String> = [
+            "in", "on", "inside", "please", "too", "well", "total", "also", "with", "and", "plus"
+        ]
+        while tokens.count > idx, let last = tokens.last?.lowercased(), trailingStopwords.contains(last) {
+            tokens.removeLast()
+        }
+
         guard idx < tokens.count else { return nil }
         let rawFoodPhrase = tokens[idx...].joined(separator: " ")
         let cleaned = normalizeFoodPhrase(rawFoodPhrase)
@@ -595,7 +622,9 @@ public enum NaturalLanguageMealParser {
     }
 
     private static func normalizeFoodPhrase(_ raw: String) -> String {
-        let fillerWords: Set<String> = ["fresh", "some", "my", "about", "approx", "around"]
+        let fillerWords: Set<String> = [
+            "fresh", "some", "my", "about", "approx", "around", "a", "an", "the", "in", "on", "into", "it"
+        ]
         let words = raw
             .lowercased()
             .split(whereSeparator: \.isWhitespace)
@@ -669,11 +698,15 @@ public enum NaturalLanguageMealParser {
             }
         }
 
-        // Final fallback 1: drop non-noun cooking modifiers ("grilled", "steamed", "pan", "seared", "baked")
+        // Final fallback 1: drop non-noun cooking modifiers or auxiliary descriptors ("dip", "sauce", "grilled", "steamed")
         if bestCandidate == nil {
             let cookingAdjectives: Set<String> = [
                 "grilled", "baked", "steamed", "roasted", "fried", "boiled", "poached",
                 "pan", "seared", "air", "sauteed", "lightly", "organic", "homemade"
+            ]
+            let auxiliaryDescriptors: Set<String> = [
+                "dip", "sauce", "topping", "toppings", "spread", "dressing", "bites", "bite",
+                "bar", "bars", "snack", "snacks", "candy", "candies", "piece", "pieces", "cup", "cups"
             ]
             let coreTokens = FoodSearchTokenizer.tokenize(item.cleanedFoodQuery)
                 .filter { !cookingAdjectives.contains($0) }
@@ -685,6 +718,19 @@ public enum NaturalLanguageMealParser {
                     query: fallbackQuery,
                     limit: 5
                 ).first
+            }
+
+            if bestCandidate == nil {
+                let primaryTokens = coreTokens.filter { !auxiliaryDescriptors.contains($0) }
+                if !primaryTokens.isEmpty {
+                    let primaryQuery = primaryTokens.joined(separator: " ")
+                    bestCandidate = FoodSearchRanker.rankWithOfflineCatalog(
+                        persistedCandidates: persistedCandidates,
+                        offlineCatalog: offlineCatalog,
+                        query: primaryQuery,
+                        limit: 5
+                    ).first
+                }
             }
         }
 
@@ -977,5 +1023,41 @@ public enum NaturalLanguageMealParser {
             return val
         }
         return nil
+    }
+
+    /// Materializes or resolves a persistent SwiftData `Food` entity for a parsed meal draft item.
+    @MainActor
+    public static func materializeFood(
+        for draft: ParsedMealDraftItem,
+        persistedFoods: [Food],
+        context: ModelContext
+    ) -> Food {
+        let persistedByID = Dictionary(persistedFoods.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let catalog = OfflineUSDACatalogService.shared.index
+
+        if let fid = draft.matchedPersistedFoodID, let existing = persistedByID[fid] {
+            return existing
+        }
+        if let sid = draft.matchedOfflineUSDASourceID {
+            if sid.hasPrefix("composite-") {
+                if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
+                    return CompositeFoodLibrary.materialize(comp, in: context)
+                }
+            } else if let entry = catalog.entry(forSourceID: sid) {
+                return OfflineUSDACatalogService.shared.materialize(entry, in: context)
+            }
+        }
+        if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
+            return CompositeFoodLibrary.materialize(comp, in: context)
+        }
+        let fallbackComp = CompositeFoodEntry(
+            name: draft.foodName,
+            aliases: [],
+            category: .takeout,
+            defaultServingLabel: draft.servingLabel,
+            servingGrams: draft.grams,
+            nutrientsPer100g: draft.nutrientsPer100g
+        )
+        return CompositeFoodLibrary.materialize(fallbackComp, in: context)
     }
 }

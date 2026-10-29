@@ -9,6 +9,7 @@ public struct CompositeFoodEntry: Identifiable, Sendable, Equatable {
         case culturalStaple = "Home-Cooked Staples"
         case takeout = "Takeout & Diner"
         case handPortion = "Hand-Size Estimates"
+        case snackAndTreat = "Snacks, Dips & Treats"
     }
 
     public var id: UUID
@@ -562,6 +563,71 @@ public enum CompositeFoodLibrary {
                 sugar: 2.0,
                 sodiumMg: 380.0
             )
+        ),
+
+        // MARK: - Snacks, Dips & Real-World Treats
+        CompositeFoodEntry(
+            name: "Caramel Dip (Single-Serve / 2 tbsp)",
+            aliases: ["caramel dip", "caramel apple dip", "marzetti caramel dip", "caramel dipping sauce", "caramel cup"],
+            category: .snackAndTreat,
+            defaultServingLabel: "2 tbsp (38g)",
+            servingGrams: 38.0,
+            defaultQuantity: 1.0,
+            pieceUnitName: "serving",
+            // 2 tbsp (38g): 140 kcal, 0.5g P, 30g C, 2.5g F (Per 100g: 368 kcal, 1.3g P, 78.9g C, 6.6g F)
+            nutrientsPer100g: NutrientsPer100g(
+                calories: 368.0,
+                protein: 1.3,
+                carbs: 78.9,
+                fat: 6.6,
+                fiber: 0.0,
+                sugar: 52.6,
+                sodiumMg: 210.0
+            )
+        ),
+        CompositeFoodEntry(
+            name: "Heath English Toffee Candy Bar",
+            aliases: ["heath candy", "heath bar", "heath toffee", "heath candy bar", "heath bites", "heath toffee bar", "heath"],
+            category: .snackAndTreat,
+            defaultServingLabel: "1 bar / serving (39g)",
+            servingGrams: 39.0,
+            defaultQuantity: 1.0,
+            pieceUnitName: "bar",
+            // 1 bar (39g): 210 kcal, 1.5g P, 25g C, 12g F (Per 100g: 538 kcal, 3.8g P, 64.1g C, 30.8g F)
+            nutrientsPer100g: NutrientsPer100g(
+                calories: 538.0,
+                protein: 3.8,
+                carbs: 64.1,
+                fat: 30.8,
+                fiber: 1.5,
+                sugar: 61.5,
+                sodiumMg: 245.0
+            )
+        ),
+        CompositeFoodEntry(
+            name: "Apple Slices with Caramel Dip & Heath Candy",
+            aliases: [
+                "apples with caramel dip and heath candy",
+                "apples with caramel dip and heath",
+                "apples with caramel and heath candy",
+                "apple with caramel dip and heath candy",
+                "apple slices with caramel and heath"
+            ],
+            category: .snackAndTreat,
+            defaultServingLabel: "1 platter (~260g)",
+            servingGrams: 260.0,
+            defaultQuantity: 1.0,
+            pieceUnitName: "platter",
+            // 1 platter (260g: 1 medium apple 182g + 2 tbsp caramel 39g + 1 toffee bar 39g): 445 kcal, 2.8g P, 80.1g C, 14.8g F
+            nutrientsPer100g: NutrientsPer100g(
+                calories: 171.0,
+                protein: 1.1,
+                carbs: 30.8,
+                fat: 5.7,
+                fiber: 2.1,
+                sugar: 27.5,
+                sodiumMg: 125.0
+            )
         )
     ]
 
@@ -581,11 +647,11 @@ public enum CompositeFoodLibrary {
         // Substring match
         for entry in entries {
             for alias in entry.aliases {
-                if clean.contains(alias) || alias.contains(clean) {
+                if clean.contains(alias) || (alias.contains(clean) && Double(clean.count) >= Double(alias.count) * 0.8) {
                     return entry
                 }
             }
-            if entry.name.lowercased().contains(clean) {
+            if clean.contains(entry.name.lowercased()) {
                 return entry
             }
         }

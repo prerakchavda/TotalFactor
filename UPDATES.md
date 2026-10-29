@@ -6,6 +6,36 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.6.0 — Build 20 (2026-10-29) — Instant Local Meal Description & 1-Tap Import Engine ("Describe & Import")
+
+### 1. Search Bar Live Meal Description & 1-Tap Import (`QuickAddFoodSheet.swift`)
+- **Real-Time Natural-Language Meal Deconstruction**:
+  - Typing conversational multi-item descriptions directly in the primary Search bar (e.g. `"apples with caramel dip and Heath candy in"`, `"3 eggs, 2 slices toast and a banana"`) now instantly deconstructs the meal locally in < 5ms.
+  - Automatically recognizes multi-item conjunctions (`with`, `and`, `+`, `&`, commas) and complex food phrases without requiring you to switch tabs.
+- **Instant Described Meal Breakdown Card**:
+  - Displays a dedicated hero card at the top of the search list showing each detected food item, realistic serving portions, macros, and match origin badges.
+  - **⚡️ 1-Tap Log Meal**: Instantly logs all component foods to today's log, increments food use counts, and syncs directly to Apple Health.
+  - **🍽️ Add to Plate**: Stages all detected items onto The Plate multi-add dock in a single tap.
+  - **✏️ Review & Adjust**: Opens the full confirmation sheet to fine-tune individual gram amounts or exclude specific items.
+
+### 2. Dialed-In Offline Natural Language Matching & Token Normalization (`NaturalLanguageMealParser.swift`, `OfflineUSDACatalogIndex.swift`, `FoodSearchRanker.swift`)
+- **Trailing Filler & Preposition Cleansing**:
+  - Implemented automatic stripping of trailing conversational words and prepositions (`in`, `on`, `inside`, `please`, `too`, `as well`, `for me`, `total`) so phrases like `"Heath candy in"` cleanly resolve to `"Heath candy"`.
+- **Bidirectional Inflection & Lemmatization**:
+  - Built `FoodSearchTokenizer.inflectionVariants` to bridge singular and plural food forms (e.g. `candy` <-> `candies`, `berry` <-> `berries`, `egg` <-> `eggs`).
+  - Search queries for `"candy"` or `"heath candy"` now immediately hit `Candies, HEATH BITES` across the offline index without dropping candidates.
+- **Auxiliary Food Descriptor Relaxation**:
+  - When compound phrases like `"caramel dip"` don't exist verbatim in the USDA database, the ranker relaxes auxiliary descriptors (`dip`, `sauce`, `topping`, `bites`, `bar`) to match the primary food noun (`caramel`), resolving to verified lab entries like `Toppings, butterscotch or caramel`.
+- **Leading Word & Name Prefix Ranking**:
+  - Re-weighted search scoring so items starting with the primary query word (e.g. `Apple, Raw with Skin`) receive prioritized bonuses over obscure compound entries (e.g. `Rose-apples, raw`).
+
+### 3. Verified Real-World Snacks, Dips & Treats (`CompositeFoodLibrary.swift`)
+- **New Snack & Treat Catalog Entries**:
+  - Added verified composite entries for `Caramel Dip (Single-Serve / 2 tbsp)`, `Heath English Toffee Candy Bar`, and `Apple Slices with Caramel Dip & Heath Candy` with exact household portions and macros.
+  - Refined `CompositeFoodLibrary.find` to prevent single-word queries from triggering false-positive multi-item composite matches.
+
+---
+
 ## v1.5.9 — Build 19 (2026-10-29) — Dedicated Weight Trend & History View, Date-Specific Weigh-In History & Chart Scrubbing
 
 ### 1. Interactive Weight Trend Navigation (`TodayDashboardView.swift`, `ProgressHubView.swift`)

@@ -103,15 +103,36 @@ public enum FoodSearchRanker {
         calendar: Calendar = .current
     ) -> [RankableFoodCandidate] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let queryTokens = FoodSearchTokenizer.tokenize(trimmed)
-        let singularTokens = queryTokens.map { FoodSearchTokenizer.singularize($0) }
+        let allTokens = FoodSearchTokenizer.tokenize(trimmed)
+        let stopwords: Set<String> = ["in", "on", "at", "into", "the", "a", "an", "and", "with", "of", "some", "my"]
+        let queryTokens = allTokens.filter { !stopwords.contains($0) }.isEmpty ? allTokens : allTokens.filter { !stopwords.contains($0) }
+        let tokenVariants = queryTokens.map { FoodSearchTokenizer.inflectionVariants($0) }
         let currentHour = calendar.component(.hour, from: now)
 
-        let matched = candidates.filter { item in
+        var matched = candidates.filter { item in
             guard !queryTokens.isEmpty else { return true }
             let haystack = "\(item.name) \(item.brand ?? "")".lowercased()
-            return zip(queryTokens, singularTokens).allSatisfy { rawTok, singTok in
-                haystack.contains(rawTok) || (singTok != rawTok && haystack.contains(singTok))
+            return tokenVariants.allSatisfy { variants in
+                variants.contains { haystack.contains($0) }
+            }
+        }
+
+        // Auxiliary descriptor relaxation fallback
+        if matched.isEmpty && queryTokens.count > 1 {
+            let auxiliaryDescriptors: Set<String> = [
+                "dip", "sauce", "topping", "toppings", "spread", "dressing", "bites", "bite",
+                "bar", "bars", "snack", "snacks", "candy", "candies", "piece", "pieces", "cup", "cups"
+            ]
+            let coreVariants = zip(queryTokens, tokenVariants).compactMap { tok, vars in
+                auxiliaryDescriptors.contains(tok) ? nil : vars
+            }
+            if !coreVariants.isEmpty {
+                matched = candidates.filter { item in
+                    let haystack = "\(item.name) \(item.brand ?? "")".lowercased()
+                    return coreVariants.allSatisfy { vars in
+                        vars.contains { haystack.contains($0) }
+                    }
+                }
             }
         }
 
@@ -213,8 +234,17 @@ public enum FoodSearchRanker {
 
         if !query.isEmpty {
             let lowerName = item.name.lowercased()
-            if lowerName == query { bonus += 300 }
-            else if lowerName.hasPrefix(query) { bonus += 150 }
+            let cleanName = lowerName.replacingOccurrences(of: ",", with: " ")
+            let queryFirst = query.split(whereSeparator: \.isWhitespace).first.map(String.init) ?? query
+            let nameFirst = cleanName.split(whereSeparator: \.isWhitespace).first.map(String.init) ?? cleanName
+
+            if lowerName == query || cleanName == query {
+                bonus += 300
+            } else if lowerName.hasPrefix(query) || cleanName.hasPrefix(query) {
+                bonus += 200
+            } else if nameFirst == queryFirst || FoodSearchTokenizer.singularize(nameFirst) == FoodSearchTokenizer.singularize(queryFirst) {
+                bonus += 150
+            }
         }
 
         return tierBase + bonus

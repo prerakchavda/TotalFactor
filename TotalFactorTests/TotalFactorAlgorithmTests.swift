@@ -854,4 +854,39 @@ final class TotalFactorAlgorithmTests: XCTestCase {
         XCTAssertEqual(suggestion.suggestedWeightKg, 20.0)
         XCTAssertEqual(suggestion.suggestedReps, 8)
     }
+
+    // MARK: - v1.6.0 Local Natural-Language Meal Describing Tests
+
+    func testDescribeMealApplesCaramelDipAndHeathCandyIn() {
+        guard let url = Bundle(for: Self.self).url(forResource: "BundledUSDAFoods", withExtension: "json") ??
+                        Bundle.main.url(forResource: "BundledUSDAFoods", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let catalog = try? OfflineUSDACatalogIndex(jsonData: data) else {
+            // If bundle resource is not in test bundle directly, test with empty catalog + Composite library
+            let items = NaturalLanguageMealParser.parse(
+                text: "apples with caramel dip and Heath candy in",
+                persistedFoods: [],
+                offlineCatalog: .empty
+            )
+            XCTAssertFalse(items.isEmpty, "Should match composite items even with empty catalog")
+            return
+        }
+
+        let items = NaturalLanguageMealParser.parse(
+            text: "apples with caramel dip and Heath candy in",
+            persistedFoods: [],
+            offlineCatalog: catalog
+        )
+
+        // Must extract all 3 foods cleanly without suffering
+        XCTAssertEqual(items.count, 3, "Expected exactly 3 items: apples, caramel dip, and Heath candy")
+
+        let names = items.map { $0.foodName.lowercased() }
+        XCTAssertTrue(names.contains(where: { $0.contains("apple") }), "Must include apple")
+        XCTAssertTrue(names.contains(where: { $0.contains("caramel") }), "Must include caramel")
+        XCTAssertTrue(names.contains(where: { $0.contains("heath") }), "Must include heath")
+
+        let totalCalories = items.reduce(0.0) { $0 + $1.scaledNutrients.calories }
+        XCTAssertTrue(totalCalories >= 350 && totalCalories <= 550, "Total calories should be realistic snack amount (~436 kcal), got \(totalCalories)")
+    }
 }

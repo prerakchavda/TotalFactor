@@ -31,7 +31,7 @@ struct NoScaleEstimatorSheet: View {
     }
 
     private var streetEntries: [CompositeFoodEntry] {
-        allEntries.filter { $0.category == .streetFood || $0.category == .culturalStaple || $0.category == .takeout }
+        allEntries.filter { $0.category == .streetFood || $0.category == .culturalStaple || $0.category == .takeout || $0.category == .snackAndTreat }
     }
 
     private var currentCategoryEntries: [CompositeFoodEntry] {
@@ -321,6 +321,8 @@ struct NoScaleEstimatorSheet: View {
             return "fork.knife"
         case .takeout:
             return "bag.fill"
+        case .snackAndTreat:
+            return "heart.fill"
         }
     }
 

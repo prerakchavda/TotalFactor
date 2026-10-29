@@ -41,6 +41,7 @@ struct DescribeMealView: View {
     @FocusState private var textEditorFocused: Bool
 
     private let examplePrompts: [String] = [
+        "apples with caramel dip and Heath candy in",
         "10 panipuri and 2 samosas",
         "1 palm of chicken, 1 fist of white rice, and 1 thumb of olive oil",
         "3 eggs, 2 slices sourdough toast with 1 tbsp butter, and 200g greek yogurt",
@@ -236,7 +237,7 @@ struct DescribeMealView: View {
                     )
 
                 if mealText.isEmpty {
-                    Text("e.g. 3 eggs, 2 slices sourdough toast with 1 tbsp butter, and 200g greek yogurt...")
+                    Text("e.g. apples with caramel dip and Heath candy, or 3 eggs and sourdough toast...")
                         .font(.subheadline)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 14)
@@ -843,53 +844,13 @@ struct MultiItemMealConfirmationSheet: View {
         let selected = includedItems
         guard !selected.isEmpty else { return }
 
-        let persistedByID = Dictionary(persistedFoods.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let catalog = OfflineUSDACatalogService.shared.index
-
         var staged: [StagedFoodItem] = []
         for draft in selected {
-            let food: Food
-            if let fid = draft.matchedPersistedFoodID, let existing = persistedByID[fid] {
-                food = existing
-            } else if let sid = draft.matchedOfflineUSDASourceID {
-                if sid.hasPrefix("composite-") {
-                    if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
-                        food = CompositeFoodLibrary.materialize(comp, in: modelContext)
-                    } else {
-                        let comp = CompositeFoodEntry(
-                            name: draft.foodName,
-                            aliases: [],
-                            category: .streetFood,
-                            defaultServingLabel: draft.servingLabel,
-                            servingGrams: draft.grams,
-                            nutrientsPer100g: draft.nutrientsPer100g
-                        )
-                        food = CompositeFoodLibrary.materialize(comp, in: modelContext)
-                    }
-                } else if let entry = catalog.entry(forSourceID: sid) {
-                    food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
-                } else {
-                    let comp = CompositeFoodEntry(
-                        name: draft.foodName,
-                        aliases: [],
-                        category: .takeout,
-                        defaultServingLabel: draft.servingLabel,
-                        servingGrams: draft.grams,
-                        nutrientsPer100g: draft.nutrientsPer100g
-                    )
-                    food = CompositeFoodLibrary.materialize(comp, in: modelContext)
-                }
-            } else {
-                let comp = CompositeFoodEntry(
-                    name: draft.foodName,
-                    aliases: [],
-                    category: .takeout,
-                    defaultServingLabel: draft.servingLabel,
-                    servingGrams: draft.grams,
-                    nutrientsPer100g: draft.nutrientsPer100g
-                )
-                food = CompositeFoodLibrary.materialize(comp, in: modelContext)
-            }
+            let food = NaturalLanguageMealParser.materializeFood(
+                for: draft,
+                persistedFoods: persistedFoods,
+                context: modelContext
+            )
 
             staged.append(
                 StagedFoodItem(
@@ -909,63 +870,32 @@ struct MultiItemMealConfirmationSheet: View {
         let selected = includedItems
         guard !selected.isEmpty else { return }
 
-        let persistedByID = Dictionary(persistedFoods.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let catalog = OfflineUSDACatalogService.shared.index
         let timestamp = (dayKey == DayKey.today) ? Date.now : (DayKey.date(from: dayKey) ?? .now)
         let currentHour = Calendar.current.component(.hour, from: .now)
 
         var createdEntries: [FoodLogEntry] = []
 
         for draft in selected {
-            var resolvedFood: Food? = nil
-            if let fid = draft.matchedPersistedFoodID, let existing = persistedByID[fid] {
-                resolvedFood = existing
-            } else if let sid = draft.matchedOfflineUSDASourceID {
-                if sid.hasPrefix("composite-") {
-                    if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
-                        resolvedFood = CompositeFoodLibrary.materialize(comp, in: modelContext)
-                    }
-                } else if let entry = catalog.entry(forSourceID: sid) {
-                    resolvedFood = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
-                }
-            }
+            let food = NaturalLanguageMealParser.materializeFood(
+                for: draft,
+                persistedFoods: persistedFoods,
+                context: modelContext
+            )
 
-            let logEntry: FoodLogEntry
-            if let food = resolvedFood {
-                food.lastLoggedGrams = draft.grams
-                food.lastLoggedServingLabel = draft.servingLabel
-                food.useCount += 1
-                food.lastUsed = .now
-                food.typicalHourOfDay = currentHour
+            food.lastLoggedGrams = draft.grams
+            food.lastLoggedServingLabel = draft.servingLabel
+            food.useCount += 1
+            food.lastUsed = .now
+            food.typicalHourOfDay = currentHour
 
-                logEntry = FoodLogEntry(
-                    food: food,
-                    grams: draft.grams,
-                    servingLabel: draft.servingLabel,
-                    mealTag: mealTag,
-                    timestamp: timestamp,
-                    dayKey: dayKey
-                )
-            } else {
-                // Direct AI-parsed dish entry (preserves per-100g macros + fiber + sugar + sodium + portion grams)
-                let entry = FoodLogEntry(
-                    quickTitle: draft.foodName,
-                    calories: draft.nutrientsPer100g.calories,
-                    protein: draft.nutrientsPer100g.protein,
-                    carbs: draft.nutrientsPer100g.carbs,
-                    fat: draft.nutrientsPer100g.fat,
-                    mealTag: mealTag,
-                    timestamp: timestamp,
-                    dayKey: dayKey
-                )
-                entry.foodBrand = draft.brand
-                entry.snapshotFiberPer100g = draft.nutrientsPer100g.fiber
-                entry.snapshotSugarPer100g = draft.nutrientsPer100g.sugar
-                entry.snapshotSodiumMgPer100g = draft.nutrientsPer100g.sodiumMg
-                entry.grams = draft.grams
-                entry.servingLabel = draft.servingLabel
-                logEntry = entry
-            }
+            let logEntry = FoodLogEntry(
+                food: food,
+                grams: draft.grams,
+                servingLabel: draft.servingLabel,
+                mealTag: mealTag,
+                timestamp: timestamp,
+                dayKey: dayKey
+            )
 
             modelContext.insert(logEntry)
             createdEntries.append(logEntry)

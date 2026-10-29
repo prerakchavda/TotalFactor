@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.6.0] - 2026-10-29
+
+### Added — Instant Local Natural-Language Meal Description & 1-Tap Import Engine ("Describe & Import") (Build 20)
+
+#### Added
+- **Search Bar Live Meal Description & 1-Tap Import (`QuickAddFoodSheet.swift`)**:
+  - Typing conversational multi-item descriptions directly in the primary Search bar (e.g. `"apples with caramel dip and Heath candy in"`, `"3 eggs, 2 slices toast and a banana"`) now instantly deconstructs the meal locally in < 5ms.
+  - Displays a dedicated hero card at the top of the search list showing each detected food item, realistic serving portions, macros, and match origin badges.
+  - 1-tap **"⚡️ Log Meal Now"** button commits all component foods directly to today's log and syncs to Apple Health.
+  - **"🍽️ Add to Plate"** stages all detected items onto The Plate dock for multi-add workflows.
+  - **"✏️ Review & Adjust"** opens the full confirmation sheet to fine-tune individual gram amounts or exclude specific items.
+- **Dialed-In Offline Natural Language Matching & Token Normalization (`NaturalLanguageMealParser.swift`, `OfflineUSDACatalogIndex.swift`, `FoodSearchRanker.swift`)**:
+  - Trailing conversational prepositions and filler words (`in`, `on`, `inside`, `please`, `too`, `as well`, `for me`, `total`) are automatically stripped.
+  - Built `FoodSearchTokenizer.inflectionVariants` bridging singular and plural food forms (e.g. `candy` <-> `candies`, `berry` <-> `berries`), allowing queries like `"heath candy"` to immediately hit `Candies, HEATH BITES`.
+  - Automatic relaxation of auxiliary descriptors (`dip`, `sauce`, `topping`, `bites`, `bar`) to match primary food nouns in USDA whole foods.
+  - Leading word bonus in `FoodSearchRanker` prioritizes foods starting with the query word (e.g. `Apple, Raw with Skin` over `Rose-apples, raw`).
+- **Verified Real-World Snacks, Dips & Treats (`CompositeFoodLibrary.swift`)**:
+  - Added verified entries for `Caramel Dip (Single-Serve / 2 tbsp)`, `Heath English Toffee Candy Bar`, and `Apple Slices with Caramel Dip & Heath Candy`.
+
+---
+
 ## [1.5.9] - 2026-10-29
 
 ### Added — Weight Trend & History Detail View, Date-Specific Weigh-In History & Interactive Chart Scrubbing (Build 19)

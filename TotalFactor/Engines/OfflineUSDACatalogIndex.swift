@@ -242,7 +242,10 @@ public final class OfflineUSDACatalogIndex: Sendable {
         excludingSourceIDs: Set<String> = [],
         limit: Int = 80
     ) -> [OfflineUSDAFoodEntry] {
-        let rawTokens = Self.tokenize(query)
+        let allRawTokens = Self.tokenize(query)
+        let stopwords: Set<String> = ["in", "on", "at", "into", "the", "a", "an", "and", "with", "of", "some", "my"]
+        let rawTokens = allRawTokens.filter { !stopwords.contains($0) }.isEmpty ? allRawTokens : allRawTokens.filter { !stopwords.contains($0) }
+
         guard !rawTokens.isEmpty else {
             var browse: [OfflineUSDAFoodEntry] = []
             browse.reserveCapacity(min(limit, 40))
@@ -255,23 +258,47 @@ public final class OfflineUSDACatalogIndex: Sendable {
             return browse
         }
 
-        var tokenPostingSets: [[Int]] = []
+        var tokenPostingSets: [(token: String, matches: [Int])] = []
         tokenPostingSets.reserveCapacity(rawTokens.count)
 
         for rawTok in rawTokens {
             let matches = matchingDocIndices(forQueryToken: rawTok)
-            if matches.isEmpty {
-                return []
+            if !matches.isEmpty {
+                tokenPostingSets.append((token: rawTok, matches: matches))
             }
-            tokenPostingSets.append(matches)
         }
 
-        // Intersect from smallest posting list to largest
-        tokenPostingSets.sort { $0.count < $1.count }
-        var current = tokenPostingSets[0]
+        // If no tokens matched anything at all, return empty
+        if tokenPostingSets.isEmpty {
+            return []
+        }
+
+        // Attempt full intersection of all matching tokens
+        tokenPostingSets.sort { $0.matches.count < $1.matches.count }
+        var current = tokenPostingSets[0].matches
         for i in 1..<tokenPostingSets.count {
-            current = Self.intersectSorted(current, tokenPostingSets[i])
-            if current.isEmpty { return [] }
+            let intersected = Self.intersectSorted(current, tokenPostingSets[i].matches)
+            if intersected.isEmpty {
+                // If intersection died, check if relaxing auxiliary tokens lets core tokens match!
+                let auxiliaryDescriptors: Set<String> = [
+                    "dip", "sauce", "topping", "toppings", "spread", "dressing", "bites", "bite",
+                    "bar", "bars", "snack", "snacks", "candy", "candies", "piece", "pieces", "cup", "cups"
+                ]
+                let coreSets = tokenPostingSets.filter { !auxiliaryDescriptors.contains($0.token) }
+                if !coreSets.isEmpty && coreSets.count < tokenPostingSets.count {
+                    var coreCurrent = coreSets[0].matches
+                    for j in 1..<coreSets.count {
+                        coreCurrent = Self.intersectSorted(coreCurrent, coreSets[j].matches)
+                    }
+                    if !coreCurrent.isEmpty {
+                        current = coreCurrent
+                        break
+                    }
+                }
+                return []
+            } else {
+                current = intersected
+            }
         }
 
         // Score matched offline entries quickly so the top `limit` passed to FoodSearchRanker include exact/short names first
@@ -308,19 +335,18 @@ public final class OfflineUSDACatalogIndex: Sendable {
     }
 
     private func matchingDocIndices(forQueryToken token: String) -> [Int] {
-        let normalized = FoodSearchTokenizer.singularize(token)
+        let variants = FoodSearchTokenizer.inflectionVariants(token)
         var unionLists: [[Int]] = []
 
-        if let exact = postingsByToken[token] {
-            unionLists.append(exact)
-        }
-        if normalized != token, let sing = postingsByToken[normalized] {
-            unionLists.append(sing)
+        for v in variants {
+            if let exact = postingsByToken[v] {
+                unionLists.append(exact)
+            }
         }
 
         if let first = token.first, let bucket = vocabByFirstChar[first] {
-            for word in bucket where word != token && word != normalized {
-                if word.hasPrefix(token) || (normalized.count >= 3 && word.hasPrefix(normalized)) {
+            for word in bucket where !variants.contains(word) {
+                if word.hasPrefix(token) || variants.contains(where: { word.hasPrefix($0) }) {
                     if let list = postingsByToken[word] {
                         unionLists.append(list)
                     }
@@ -401,5 +427,34 @@ public enum FoodSearchTokenizer {
             return String(word.dropLast())
         }
         return word
+    }
+
+    /// Bidirectional English food inflection variants (e.g. "candy" -> ["candy", "candies"], "candies" -> ["candies", "candy"], "egg" -> ["egg", "eggs"]).
+    public static func inflectionVariants(_ word: String) -> [String] {
+        var variants = Set<String>()
+        variants.insert(word)
+        let singular = singularize(word)
+        variants.insert(singular)
+
+        // Consonant + "y" (e.g. "candy", "berry", "cherry", "pastry") -> "ies"
+        if word.hasSuffix("y") && word.count >= 4 {
+            let base = String(word.dropLast())
+            if let lastChar = base.last, !"aeiou".contains(lastChar) {
+                variants.insert(base + "ies")
+            }
+        }
+        // "ies" -> "y"
+        if word.hasSuffix("ies") && word.count >= 5 {
+            variants.insert(String(word.dropLast(3)) + "y")
+        }
+        // "es" endings
+        if word.hasSuffix("ch") || word.hasSuffix("sh") || word.hasSuffix("x") || word.hasSuffix("o") {
+            variants.insert(word + "es")
+        }
+        // Standard English plural
+        if !word.hasSuffix("s") {
+            variants.insert(word + "s")
+        }
+        return Array(variants)
     }
 }

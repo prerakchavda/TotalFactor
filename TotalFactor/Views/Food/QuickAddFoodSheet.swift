@@ -41,6 +41,8 @@ struct QuickAddFoodSheet: View {
     @State private var showingKitchenHub: Bool = false
     @State private var showingBallparkSheet: Bool = false
     @State private var showingNoScaleEstimatorSheet: Bool = false
+    @State private var realTimeDescribedDrafts: [ParsedMealDraftItem] = []
+    @State private var showingConfirmationSheet: Bool = false
 
     // MacroFactor Search Filters
     public enum SearchFilterCategory: String, CaseIterable, Identifiable {
@@ -76,7 +78,7 @@ struct QuickAddFoodSheet: View {
 
     private let modeTabs: [ModeTab] = [
         ModeTab(tag: 0, title: "Search", icon: "magnifyingglass"),
-        ModeTab(tag: 5, title: "Describe / Voice", icon: "waveform.and.mic"),
+        ModeTab(tag: 5, title: "Describe Meal", icon: "waveform.and.mic"),
         ModeTab(tag: 1, title: "Scan", icon: "barcode.viewfinder"),
         ModeTab(tag: 2, title: "Label", icon: "doc.text.viewfinder"),
         ModeTab(tag: 3, title: "Quick", icon: "bolt.fill"),
@@ -271,6 +273,22 @@ struct QuickAddFoodSheet: View {
                     }
                 )
             }
+            .sheet(isPresented: $showingConfirmationSheet) {
+                MultiItemMealConfirmationSheet(
+                    initialItems: realTimeDescribedDrafts,
+                    dayKey: dayKey,
+                    initialMealTag: activeMealTag,
+                    persistedFoods: foods,
+                    onAddToPlate: { staged in
+                        stagedItems.append(contentsOf: staged)
+                        searchQuery = ""
+                        realTimeDescribedDrafts = []
+                    },
+                    onConfirmed: {
+                        dismiss()
+                    }
+                )
+            }
         }
     }
 
@@ -319,7 +337,7 @@ struct QuickAddFoodSheet: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search 8,100+ offline USDA foods or brand...", text: $searchQuery)
+                TextField("Search foods, or describe meal (e.g. apples with caramel dip)...", text: $searchQuery)
                     .focused($searchFocused)
                     .submitLabel(.search)
                     .onSubmit {
@@ -377,6 +395,10 @@ struct QuickAddFoodSheet: View {
             }
 
             List {
+                if !realTimeDescribedDrafts.isEmpty {
+                    describedMealSection
+                }
+
                 if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && !cachedUsualSuggestions.isEmpty && (selectedSearchFilter == .all || selectedSearchFilter == .history) {
                     Section("Usually at This Time (1-Tap Log)") {
                         ForEach(cachedUsualSuggestions) { food in
@@ -692,11 +714,100 @@ struct QuickAddFoodSheet: View {
 
     // MARK: - Helpers
 
+    private var describedMealSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(realTimeDescribedDrafts) { draft in
+                    let sc = draft.scaledNutrients
+                    HStack(alignment: .center, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(draft.foodName)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(1)
+                                Text(draft.matchOriginBadge)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            Text("\(draft.servingLabel) · \(Int(sc.calories.rounded())) kcal (P: \(Int(sc.protein.rounded()))g · C: \(Int(sc.carbs.rounded()))g · F: \(Int(sc.fat.rounded()))g)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Divider()
+
+                let totalKcal = realTimeDescribedDrafts.reduce(0.0) { $0 + $1.scaledNutrients.calories }
+
+                HStack(spacing: 8) {
+                    Button {
+                        logDescribedMealNow()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "bolt.fill")
+                            Text("Log Meal (\(Int(totalKcal.rounded())) kcal)")
+                                .fontWeight(.bold)
+                        }
+                        .font(.caption)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+
+                    Button {
+                        stageDescribedMealToPlate()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "fork.knife")
+                            Text("To Plate")
+                                .fontWeight(.semibold)
+                        }
+                        .font(.caption)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 10)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        showingConfirmationSheet = true
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.caption.weight(.semibold))
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("Review and Adjust Meal Portions")
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            HStack {
+                Label("Instant Described Meal (\(realTimeDescribedDrafts.count) items)", systemImage: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
+                Spacer()
+                let totalKcal = realTimeDescribedDrafts.reduce(0.0) { $0 + $1.scaledNutrients.calories }
+                Text("\(Int(totalKcal.rounded())) kcal")
+                    .font(.caption.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
     private func refreshRankedFoods() {
         let foodByID = Dictionary(foods.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let rankables = foods.map(\.asRankableCandidate)
+        let trimmedQ = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+        if trimmedQ.isEmpty {
             var logHoursByFoodID: [UUID: [Int]] = [:]
             let cal = Calendar.current
             for e in recentEntries {
@@ -707,8 +818,28 @@ struct QuickAddFoodSheet: View {
                 candidates: rankables,
                 historicalFoodLogHours: logHoursByFoodID
             ).compactMap { foodByID[$0.id] }
+            realTimeDescribedDrafts = []
         } else {
             cachedUsualSuggestions = []
+
+            // Detect natural-language meal descriptions:
+            // Checks for conjunctions ("and", "with", "plus", "+", "&", ",") or 3+ words or composite matches
+            let lower = trimmedQ.lowercased()
+            let hasMultiIndicator = lower.contains(" and ") || lower.contains(" with ") || lower.contains(",") || lower.contains(" + ") || lower.contains(" & ") || lower.contains(" w/ ")
+            let wordCount = trimmedQ.split(whereSeparator: \.isWhitespace).count
+
+            if hasMultiIndicator || wordCount >= 3 || CompositeFoodLibrary.find(matching: trimmedQ) != nil {
+                let matcherFoods = foods.map(\.asPersistedFoodMatcherItem)
+                let catalog = OfflineUSDACatalogService.shared.index
+                let parsed = NaturalLanguageMealParser.parse(
+                    text: trimmedQ,
+                    persistedFoods: matcherFoods,
+                    offlineCatalog: catalog
+                )
+                realTimeDescribedDrafts = parsed
+            } else {
+                realTimeDescribedDrafts = []
+            }
         }
 
         cachedCatalogResults = OfflineUSDACatalogService.shared.rankedResults(
@@ -716,6 +847,66 @@ struct QuickAddFoodSheet: View {
             persistedFoods: foods,
             limit: 60
         )
+    }
+
+    private func logDescribedMealNow() {
+        guard !realTimeDescribedDrafts.isEmpty else { return }
+        let currentHour = Calendar.current.component(.hour, from: .now)
+
+        for draft in realTimeDescribedDrafts {
+            let food = NaturalLanguageMealParser.materializeFood(
+                for: draft,
+                persistedFoods: foods,
+                context: modelContext
+            )
+            food.lastLoggedGrams = draft.grams
+            food.lastLoggedServingLabel = draft.servingLabel
+            food.useCount += 1
+            food.lastUsed = .now
+            food.typicalHourOfDay = currentHour
+
+            let entry = FoodLogEntry(
+                food: food,
+                grams: draft.grams,
+                servingLabel: draft.servingLabel,
+                mealTag: activeMealTag,
+                timestamp: logTimestamp(),
+                dayKey: dayKey
+            )
+            modelContext.insert(entry)
+            Task { await healthService.syncFoodEntry(entry) }
+        }
+
+        try? modelContext.save()
+        _ = CoachingCoordinator.evaluate(forDayKey: dayKey, context: modelContext)
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
+        dismiss()
+    }
+
+    private func stageDescribedMealToPlate() {
+        guard !realTimeDescribedDrafts.isEmpty else { return }
+        for draft in realTimeDescribedDrafts {
+            let food = NaturalLanguageMealParser.materializeFood(
+                for: draft,
+                persistedFoods: foods,
+                context: modelContext
+            )
+            stagedItems.append(
+                StagedFoodItem(
+                    item: .persisted(food),
+                    quantity: 1.0,
+                    selectedServing: ServingSize(label: draft.servingLabel, grams: draft.grams),
+                    mealTag: activeMealTag
+                )
+            )
+        }
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+        searchQuery = ""
+        realTimeDescribedDrafts = []
     }
 
     private func quickRepeatLog(food: Food) {
