@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.6.5] - 2026-10-29
+
+### Added — Direct MacroFactor CSV Importer, Deterministic Fingerprint Deduplication & Apple Health Loop Protection (Build 16)
+
+#### Added
+- **Direct MacroFactor Data Importer (`MacroFactorImportService.swift`, `SettingsView.swift`)**:
+  - Added 1-tap "Import MacroFactor Nutrition Data (CSV)..." in Settings using native iOS file picker.
+  - Flexible CSV header parser mapping foods, serving sizes, gram weights, calories, protein, carbs, fat, fiber, sugar, sodium, and scale weigh-ins without third-party cloud APIs.
+- **Deterministic Fingerprinting Deduplication**:
+  - Generates composite row signatures (`DayKey_Time_Name_Calories_Protein`).
+  - Ensures re-importing the same CSV or overlapping export periods skips existing items and produces 0 duplicates.
+- **Apple Health Re-Export Protection (`HealthKitService.swift`)**:
+  - Tags imported MacroFactor foods and strictly skips re-exporting them to Apple Health, preserving outward sync for native Total Factor foods while preventing double-counted calories in Apple Health.
+- **Dynamic Alert Title**:
+  - Replaced hardcoded `"CSV Import"` alert header with dynamic context titles (`"MacroFactor Import"`, `"Apple Health Sync"`, `"CSV Import"`).
+
+---
+
 ## [1.5.6] - 2026-10-29
 
 ### Fixed — HealthKit Auto-Authorization & Apple Health Sources Instant Registration (Build 15)

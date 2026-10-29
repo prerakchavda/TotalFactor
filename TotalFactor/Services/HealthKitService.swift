@@ -83,6 +83,7 @@ public final class HealthKitService {
     public static let shared = HealthKitService()
 
     public var isAuthorized: Bool = false
+    public var lastAuthError: String? = nil
     public var todayStats = HealthDisplayDashboardStats()
     public var todayExternalWorkouts: [ExternalFitnessWorkout] = []
     public var currentLiveHeartRateBPM: Double? = nil
@@ -170,8 +171,11 @@ public final class HealthKitService {
         do {
             try await store.requestAuthorization(toShare: toShare, read: toRead)
             isAuthorized = true
+            lastAuthError = nil
             return true
         } catch {
+            lastAuthError = error.localizedDescription
+            print("[HealthKitService] requestAuthorization failed: \(error)")
             return false
         }
         #else
@@ -494,8 +498,9 @@ public final class HealthKitService {
     public func syncFoodEntry(_ entry: FoodLogEntry) async {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else { return }
-        // Ground Rule: Never export entries that were imported from HealthKit/third-party apps
+        // Ground Rule: Never export entries that were imported from HealthKit/third-party apps or MacroFactor
         guard entry.foodSourceRaw != FoodSource.healthKit.rawValue else { return }
+        guard entry.foodBrand?.localizedCaseInsensitiveContains("MacroFactor") != true else { return }
         if !entry.healthKitSampleIDs.isEmpty {
             await deleteSamples(uuids: entry.healthKitSampleIDs)
             entry.healthKitSampleIDs = []
@@ -668,9 +673,9 @@ public final class HealthKitService {
         var weighInCount = 0
         var workoutCount = 0
 
-        // 1. Food entries without HK sample IDs (skipping third-party imported meals)
+        // 1. Food entries without HK sample IDs (skipping third-party imported meals & MacroFactor imports)
         let foodEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
-        for entry in foodEntries where entry.foodSourceRaw != FoodSource.healthKit.rawValue && entry.healthKitSampleIDs.isEmpty {
+        for entry in foodEntries where entry.foodSourceRaw != FoodSource.healthKit.rawValue && entry.foodBrand?.localizedCaseInsensitiveContains("MacroFactor") != true && entry.healthKitSampleIDs.isEmpty {
             await syncFoodEntry(entry)
             if !entry.healthKitSampleIDs.isEmpty {
                 foodCount += 1
@@ -707,8 +712,15 @@ public final class HealthKitService {
 
     public func importExternalDietaryIntake(context: ModelContext, daysBack: Int = 30) async -> Int {
         #if canImport(HealthKit)
-        guard HKHealthStore.isHealthDataAvailable() else { return 0 }
-        _ = await requestPermissions()
+        guard HKHealthStore.isHealthDataAvailable() else {
+            lastAuthError = "HealthKit is not available on this device."
+            return 0
+        }
+        let authGranted = await requestPermissions()
+        guard authGranted else {
+            print("[HealthKitService] importExternalDietaryIntake aborted: permissions not granted (\(lastAuthError ?? "unknown"))")
+            return 0
+        }
         let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: .now) ?? .distantPast
         let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: .now, options: .strictStartDate)
         let myBundleID = Bundle.main.bundleIdentifier ?? "com.prerak.totalfactor"

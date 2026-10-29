@@ -62,6 +62,7 @@
 		6C2CFCBC14F5B4DE3F685DF2 /* TotalFactorWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659FA507ADB6FF124EDF2EF3 /* TotalFactorWidgetsBundle.swift */; };
 		6C3CE2A993C07E4F755F6F5E /* RestTimerLiveIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E08379DE67F61B9072109877 /* RestTimerLiveIntents.swift */; };
 		6F16B82ECFBC0D821DD8C597 /* TotalFactorAlgorithmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3687FEA4C778554C86051B2B /* TotalFactorAlgorithmTests.swift */; };
+		6F18D3495A8361A458FA621C /* MacroFactorImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D76F47D9BBF7D15737105EA /* MacroFactorImportService.swift */; };
 		7053B80F659B1DDDC7188DDA /* AppleVisionFoodClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE72A1FA750178EF5383CEA7 /* AppleVisionFoodClassifier.swift */; };
 		70605950110813D522D1DDF5 /* TotalFactorWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 643B1CE3D9AD379672E19B4B /* TotalFactorWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		70AE90C438409CE8D6FB84BD /* BundledUSDAFoods.json in Resources */ = {isa = PBXBuildFile; fileRef = B5D968EA2A07C65E93A7B728 /* BundledUSDAFoods.json */; };
@@ -243,6 +244,7 @@
 		89475BB1D9EFE179669BDFA4 /* HourByHourTimelineSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourByHourTimelineSection.swift; sourceTree = "<group>"; };
 		8F9D46380428F5B3BA3B8E1B /* OfflineUSDACatalogIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineUSDACatalogIndex.swift; sourceTree = "<group>"; };
 		998117B7351E96454715B9B8 /* DateDayKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDayKey.swift; sourceTree = "<group>"; };
+		9D76F47D9BBF7D15737105EA /* MacroFactorImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroFactorImportService.swift; sourceTree = "<group>"; };
 		9E084BA63845D69D3E41187E /* WeekAdherenceCalendarStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekAdherenceCalendarStrip.swift; sourceTree = "<group>"; };
 		A65E13184332777BFF385AB7 /* PhotoCompareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCompareView.swift; sourceTree = "<group>"; };
 		AB55675B74CFED8B6E99F915 /* ThePlateWorkspaceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePlateWorkspaceSheet.swift; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 				415AEB1E7D9731BE8E0A214E /* ExportAllArchiveService.swift */,
 				B7BEFD3366E0D1D423178314 /* GeminiMealParserService.swift */,
 				34782B3D7709BBB6151783CD /* HealthKitService.swift */,
+				9D76F47D9BBF7D15737105EA /* MacroFactorImportService.swift */,
 				0D19D914AD25E33ABCFF1DEE /* NotificationService.swift */,
 				03D563B4EEF68D7E90765DDB /* OfflineUSDACatalogService.swift */,
 				7F53D62F3A5E6D647E39C418 /* OpenFoodFactsClient.swift */,
@@ -785,6 +788,7 @@
 				E698379DF0A32ACC42C658E2 /* LabelScannerView.swift in Sources */,
 				7C510928ACFCF599FF518DC2 /* MachineSetupNotesSheet.swift in Sources */,
 				2A252BFD5D6A1D4ECED7BED0 /* MacroFactorGymKeypad.swift in Sources */,
+				6F18D3495A8361A458FA621C /* MacroFactorImportService.swift in Sources */,
 				4C34E6CC66BDE58B80243A55 /* MacroTargetEngine.swift in Sources */,
 				2F9BF6C36A0342BAFDE93375 /* MacroZoneBar.swift in Sources */,
 				49A75A15F91535E88B0B599F /* MealBallparkSheet.swift in Sources */,

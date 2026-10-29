@@ -12,7 +12,9 @@ struct SettingsView: View {
 
     @State private var exportedFileURL: URL? = nil
     @State private var showingStrongImporter: Bool = false
+    @State private var showingMacroFactorImporter: Bool = false
     @State private var importStatusMessage: String? = nil
+    @State private var importStatusTitle: String = "Status"
     @State private var exportPackage: ExportAllArchiveService.ExportPackage? = nil
     @State private var showingExportSheet: Bool = false
     @State private var isGeneratingExport: Bool = false
@@ -264,9 +266,14 @@ struct SettingsView: View {
 
                     Button {
                         Task {
+                            importStatusTitle = "Apple Health Sync"
                             let res = await healthService.syncAllHistoryToAppleHealth(context: modelContext)
                             await MainActor.run {
-                                importStatusMessage = "Synced to Apple Health:\n• \(res.foodSynced) meals\n• \(res.weighInsSynced) weigh-ins\n• \(res.workoutsSynced) completed workouts\n\nOther fitness & health apps on your iPhone can now access this data."
+                                if let authErr = healthService.lastAuthError {
+                                    importStatusMessage = "Apple Health Authorization Failed:\n\(authErr)\n\nIf installed via SideStore on a free Apple ID, iOS may strip HealthKit entitlements. Use './Scripts/update_iphone.sh' to install with full entitlements."
+                                } else {
+                                    importStatusMessage = "Synced to Apple Health:\n• \(res.foodSynced) meals\n• \(res.weighInsSynced) weigh-ins\n• \(res.workoutsSynced) completed workouts\n\nOther fitness & health apps on your iPhone can now access this data."
+                                }
                             }
                         }
                     } label: {
@@ -275,11 +282,16 @@ struct SettingsView: View {
 
                     Button {
                         Task {
+                            importStatusTitle = "Apple Health Sync"
                             let imported = await healthService.importExternalDietaryIntake(context: modelContext)
                             await MainActor.run {
-                                importStatusMessage = imported > 0
-                                    ? "Imported \(imported) external meals from Apple Health into your daily nutrition log."
-                                    : "No new external meals found in Apple Health."
+                                if let authErr = healthService.lastAuthError {
+                                    importStatusMessage = "Apple Health Authorization Failed:\n\(authErr)\n\nIf installed via SideStore on a free Apple ID, iOS may strip HealthKit entitlements. Use './Scripts/update_iphone.sh' to install with full entitlements."
+                                } else {
+                                    importStatusMessage = imported > 0
+                                        ? "Imported \(imported) external meals from Apple Health into your daily nutrition log."
+                                        : "No new external meals found in Apple Health."
+                                }
                             }
                         }
                     } label: {
@@ -297,6 +309,7 @@ struct SettingsView: View {
                         titleVisibility: .visible
                     ) {
                         Button("Remove All Imported Meals", role: .destructive) {
+                            importStatusTitle = "Apple Health Sync"
                             let count = healthService.clearAllExternalDietaryIntake(context: modelContext)
                             importStatusMessage = "Removed \(count) external meals previously imported from Apple Health."
                         }
@@ -428,6 +441,12 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
 
                     Button {
+                        showingMacroFactorImporter = true
+                    } label: {
+                        Label("Import MacroFactor Nutrition Data (CSV)...", systemImage: "fork.knife.circle.fill")
+                    }
+
+                    Button {
                         showingStrongImporter = true
                     } label: {
                         Label("Import Strong / Workout CSV...", systemImage: "square.and.arrow.down")
@@ -466,6 +485,26 @@ struct SettingsView: View {
                 geminiApiKeyDraft = GeminiConfigStore.loadAPIKey()
             }
             .fileImporter(
+                isPresented: $showingMacroFactorImporter,
+                allowedContentTypes: [.commaSeparatedText, .plainText],
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    let accessed = url.startAccessingSecurityScopedResource()
+                    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                    if let content = try? String(contentsOf: url, encoding: .utf8) {
+                        let summary = MacroFactorImportService.importCSV(
+                            content: content,
+                            context: modelContext
+                        )
+                        importStatusTitle = "MacroFactor Import"
+                        importStatusMessage = summary.foodsImported > 0 || summary.weighInsImported > 0
+                            ? "Imported \(summary.foodsImported) foods and \(summary.weighInsImported) weigh-ins across \(summary.daysTouched) days.\n(\(summary.foodsSkipped) existing entries skipped to prevent duplicates)."
+                            : "All \(summary.foodsSkipped) food entries in this file are already logged (0 duplicates created)."
+                    }
+                }
+            }
+            .fileImporter(
                 isPresented: $showingStrongImporter,
                 allowedContentTypes: [.commaSeparatedText, .plainText],
                 allowsMultipleSelection: false
@@ -479,6 +518,7 @@ struct SettingsView: View {
                             context: modelContext,
                             sourceUnitSystem: bindableProfile.unitSystem
                         )
+                        importStatusTitle = "CSV Import"
                         importStatusMessage = summary.sessionsImported > 0
                             ? "Imported \(summary.sessionsImported) new sessions (\(summary.setsImported) sets)."
                             : "All workouts in this CSV are already imported."
@@ -486,7 +526,7 @@ struct SettingsView: View {
                 }
             }
             .alert(
-                "CSV Import",
+                importStatusTitle,
                 isPresented: Binding(
                     get: { importStatusMessage != nil },
                     set: { if !$0 { importStatusMessage = nil } }

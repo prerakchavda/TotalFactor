@@ -53,7 +53,7 @@ source_path = '$SOURCE_JSON'
 with open(source_path, 'r') as f:
     data = json.load(f)
 
-desc = 'HealthKit External Nutrition Sync Engine: Zero-duplicate ingestion, multi-app attribution (MacroFactor, MyFitnessPal, Cronometer), bi-directional deletion reconciliation, and auto meal slotting.'
+desc = 'Direct MacroFactor CSV Importer: 1-tap import for MacroFactor food logs and weigh-ins with deterministic zero-duplicate fingerprinting and Apple Health loop protection.'
 
 for app in data.get('apps', []):
     if app.get('bundleIdentifier') == 'com.prerak.totalfactor':

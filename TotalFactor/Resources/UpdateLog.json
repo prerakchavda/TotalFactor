@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.5.6.5",
+    "build": "16",
+    "date": "2026-10-29",
+    "headline": "Direct MacroFactor CSV Importer & Zero-Duplicate Protection: High-Fidelity Data Ingestion without HealthKit Entitlement Limits",
+    "sections": [
+      {
+        "title": "Direct MacroFactor Importer",
+        "icon": "fork.knife.circle.fill",
+        "items": [
+          "1-Tap File Import: dedicated 'Import MacroFactor Nutrition Data (CSV)' in Settings reads granular food logs directly from MacroFactor exports.",
+          "Zero-Duplicate Fingerprinting: deterministic composite signatures ensure re-importing the same export or overlapping date ranges produces 0 duplicate records.",
+          "Flexible Header Parsing: extracts food names, serving sizes, gram portions, full macros (calories, protein, carbs, fat, fiber, sugar, sodium), and scale body weights.",
+          "Anti-Echo Protection: imported items are brand-tagged so Total Factor never re-exports them back to Apple Health, completely avoiding double-counting."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.6",
     "build": "15",
     "date": "2026-10-29",

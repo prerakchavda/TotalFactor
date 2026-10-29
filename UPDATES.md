@@ -6,6 +6,25 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.6.5 — Build 16 (2026-10-29) — Direct MacroFactor CSV Importer & Zero-Duplicate Protection
+
+### 1. Direct MacroFactor Data Importer (`MacroFactorImportService.swift`, `SettingsView.swift`)
+- **1-Tap Direct Nutrition Import**:
+  - Added a dedicated **"Import MacroFactor Nutrition Data (CSV)..."** button under **Settings → Data Management** using native iOS file picker (`.commaSeparatedText`).
+  - Supports flexible header parsing across granular food logs and daily summaries (`Date`, `Time`, `Food Name`, `Serving Size`, `Calories`, `Protein`, `Carbs`, `Fat`, `Fiber`, `Sugar`, `Sodium`).
+  - Automatically imports scale body weights if present in the CSV file into `WeighIn`.
+- **Deterministic Fingerprint Deduplication (Zero Duplicates)**:
+  - Generates a unique signature for each row (`[DayKey]_[Time]_[FoodName]_[Kcal]_[Protein]`).
+  - Idempotent import: re-importing the same CSV or overlapping date ranges checks existing diary signatures and skips duplicates completely (0 duplicate entries guaranteed).
+- **Apple Health Anti-Echo Safeguard (`HealthKitService.swift`)**:
+  - Imported MacroFactor items are tagged with `foodBrand = "MacroFactor"`.
+  - Added strict guards to `syncFoodEntry` and `syncAllHistoryToAppleHealth` ensuring Total Factor never re-exports imported MacroFactor food logs back to Apple Health.
+  - Native food logs and recipes logged in Total Factor continue syncing normally without echo loops or double-counting.
+- **Alert Title Polish**:
+  - Replaced the hardcoded `"CSV Import"` modal alert header with dynamic context-aware titles (`"MacroFactor Import"`, `"Apple Health Sync"`, and `"CSV Import"`).
+
+---
+
 ## v1.5.6 — Build 15 (2026-10-29) — HealthKit Auto-Authorization & Apple Health Sources Fix
 
 ### 1. Automatic HealthKit Authorization on Demand (`HealthKitService.swift`)
