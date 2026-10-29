@@ -760,8 +760,9 @@ struct OnboardingFlowView: View {
         unitSystem = profile.unitSystem
         sex = profile.biologicalSex
         age = profile.ageYears
-        heightFeet = Int(profile.heightCm / 30.48)
-        heightInches = Int(((profile.heightCm / 2.54).truncatingRemainder(dividingBy: 12)).rounded())
+        let (ft, inch) = UnitsFormatter.cmToFeetInches(profile.heightCm)
+        heightFeet = ft
+        heightInches = inch
         heightCmInput = profile.heightCm
         weightInput = UnitsFormatter.displayWeight(profile.startingWeightKg, system: profile.unitSystem)
         activityLevel = profile.activityLevel
@@ -770,6 +771,10 @@ struct OnboardingFlowView: View {
         if let g = goals.first(where: \.isActive) ?? goals.first {
             goalType = g.type
             ratePercent = g.ratePercentPerWeek
+        }
+
+        if programs.contains(where: \.isActive) {
+            setupWorkoutProgram = false
         }
     }
 
@@ -810,8 +815,16 @@ struct OnboardingFlowView: View {
         goal.startWeightKg = computedWeightKg
         goal.startDate = .now
 
-        let initialWeighIn = WeighIn(date: .now, weightKg: computedWeightKg, source: .manual)
-        modelContext.insert(initialWeighIn)
+        let allWeighIns = (try? modelContext.fetch(FetchDescriptor<WeighIn>())) ?? []
+        let initialWeighIn: WeighIn
+        if let existingToday = allWeighIns.first(where: { $0.dayKey == DayKey.today }) {
+            existingToday.weightKg = computedWeightKg
+            initialWeighIn = existingToday
+        } else {
+            let fresh = WeighIn(date: .now, weightKg: computedWeightKg, source: .manual)
+            modelContext.insert(fresh)
+            initialWeighIn = fresh
+        }
 
         // Generate and activate workout routine if requested
         if setupWorkoutProgram && !exercises.isEmpty {

@@ -1,5 +1,42 @@
 [
   {
+    "version": "1.5.8",
+    "build": "18",
+    "date": "2026-10-29",
+    "headline": "Comprehensive Bug Fixes & Reliability Overhaul: MacroFactor Imports, Watch Sync, Rest Timers & Onboarding Polish",
+    "sections": [
+      {
+        "title": "MacroFactor CSV Importer & Units Correctness",
+        "icon": "scalemass.fill",
+        "items": [
+          "Direct Weight Header Detection: replaced the >90 threshold heuristic with explicit column header inspection (kg vs lbs) and user unit system fallback.",
+          "Weight Integrity Protection: guarantees metric users >90 kg (e.g. 95 kg = 209 lbs) never have their weight halved to pounds on CSV import."
+        ]
+      },
+      {
+        "title": "Apple Watch Workout & Weigh-In Sync",
+        "icon": "applewatch",
+        "items": [
+          "Rolling Split Advance: finishing a workout from Apple Watch now advances lastCompletedWorkoutOrder to seamlessly rotate rolling schedules.",
+          "Instant Wrist Weigh-In Refresh: logging a weigh-in from Apple Watch immediately updates the watch face and trend charts with the new scale entry.",
+          "Active Workout Live Mutation Sync: deleting sets, deleting exercises, or changing set badges on iPhone immediately pushes the updated state to the Watch."
+        ]
+      },
+      {
+        "title": "Workout Rest Timers & Nutrition Polish",
+        "icon": "timer",
+        "items": [
+          "Program Slot Rest Honors: workout rest timers now dynamically honor each exercise slot's configured rest seconds rather than hardcoding 120s.",
+          "Food Deletion Race Safeguard: HealthKit sample UUIDs are captured before deleting SwiftData objects to avoid concurrent deleted-model access.",
+          "Imperial Height 12-Inch Rollover Fix: eliminated 5 ft 12 in display bugs near 6-foot boundaries.",
+          "Safe Setup Rerun: updating today's weigh-in in-place and preserving existing active routines.",
+          "Full Weekday Check-Ins: enabled Tuesday, Wednesday, and Thursday in check-in day pickers.",
+          "New User Check-In Shield: requires at least 7 days of tracking history before prompting first weekly check-in."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.7",
     "build": "17",
     "date": "2026-10-29",

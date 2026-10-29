@@ -6,7 +6,6 @@ struct WorkoutPreferencesSettingsView: View {
     @Query private var gymProfiles: [GymProfile]
 
     @State private var notifService = NotificationService.shared
-    @State private var showingGymProfiles: Bool = false
 
     var body: some View {
         Form {

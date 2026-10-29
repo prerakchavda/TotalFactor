@@ -87,7 +87,14 @@ struct GoalStrategySettingsView: View {
             try? modelContext.save()
             _ = CoachingCoordinator.evaluate(context: modelContext)
         }
-        .onChange(of: bindableGoal.typeRaw) { _, _ in
+        .onChange(of: bindableGoal.typeRaw) { _, newRaw in
+            if let newType = GoalType(rawValue: newRaw) {
+                if newType == .maintain {
+                    bindableGoal.ratePercentPerWeek = 0.0
+                } else if !newType.suggestedRateRangePercent.contains(bindableGoal.ratePercentPerWeek) {
+                    bindableGoal.ratePercentPerWeek = newType.defaultRatePercent
+                }
+            }
             try? modelContext.save()
             _ = CoachingCoordinator.evaluate(context: modelContext)
         }

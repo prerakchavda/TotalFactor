@@ -565,6 +565,7 @@ public struct ActiveWorkoutView: View {
                             Button(role: .destructive) {
                                 for s in block.sets { modelContext.delete(s) }
                                 try? modelContext.save()
+                                PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
                             } label: {
                                 Label("Delete Exercise", systemImage: "trash")
                             }
@@ -609,7 +610,8 @@ public struct ActiveWorkoutView: View {
                             isFirstDigit = true
                         },
                         onToggleCompleted: {
-                            toggleSetCompleted(setLog, in: block, restSeconds: 120, scrollProxy: scrollProxy)
+                            let restSec = effectiveRestSeconds(for: setLog, exercise: ex)
+                            toggleSetCompleted(setLog, in: block, restSeconds: restSec, scrollProxy: scrollProxy)
                         }
                     )
                 }
@@ -654,12 +656,14 @@ public struct ActiveWorkoutView: View {
                     Button(st.displayName) {
                         setLog.type = st
                         try? modelContext.save()
+                        PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
                     }
                 }
                 Divider()
                 Button(role: .destructive) {
                     modelContext.delete(setLog)
                     try? modelContext.save()
+                    PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
                 } label: {
                     Label("Delete Set", systemImage: "trash")
                 }
@@ -811,6 +815,7 @@ public struct ActiveWorkoutView: View {
             onCycleSetType: {
                 targetSet.type = nextSetType(targetSet.type)
                 try? modelContext.save()
+                PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
             },
             onOpenPlatesOrNotes: {
                 if let ex = targetSet.exercise, ex.equipment.usesBarbellPlates {
@@ -890,6 +895,12 @@ public struct ActiveWorkoutView: View {
         try? modelContext.save()
     }
 
+    private func effectiveRestSeconds(for setLog: SetLog, exercise: Exercise) -> Int {
+        let slot = session.programWorkout?.sortedSlots.first { $0.exercise?.id == exercise.id }
+        let configured = slot?.restSeconds ?? 120
+        return setLog.type == .warmup ? min(60, configured) : configured
+    }
+
     private func commitFocusedSet(_ targetSet: SetLog) {
         guard let currentBlock = groupedBlocks.first(where: { $0.sets.contains(where: { $0.id == targetSet.id }) }) else { return }
 
@@ -901,7 +912,7 @@ public struct ActiveWorkoutView: View {
         checkLiveSetPR(for: targetSet, exercise: currentBlock.exercise)
 
         // 2. Start Rest Timer
-        let restSec = 120
+        let restSec = effectiveRestSeconds(for: targetSet, exercise: currentBlock.exercise)
         RestTimerService.shared.start(
             seconds: restSec,
             workoutName: session.title,

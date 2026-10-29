@@ -17,13 +17,14 @@ public struct OnboardingHeader: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            let safeTotal = max(1, Double(totalSteps))
             HStack {
                 Text("Step \(currentStep) of \(totalSteps)")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Spacer()
-                Text("\(Int((Double(currentStep) / Double(totalSteps)) * 100))%")
+                Text("\(Int((Double(currentStep) / safeTotal * 100).rounded()))%")
                     .font(.caption2.weight(.bold).monospacedDigit())
                     .foregroundStyle(Color.accentColor)
                     .padding(.horizontal, 8)
@@ -39,7 +40,7 @@ public struct OnboardingHeader: View {
 
                     Capsule()
                         .fill(Color.accentColor)
-                        .frame(width: max(12, geo.size.width * CGFloat(Double(currentStep) / Double(totalSteps))), height: 6)
+                        .frame(width: max(12, geo.size.width * CGFloat(Double(currentStep) / safeTotal)), height: 6)
                         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
                 }
             }

@@ -6,6 +6,45 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.8 — Build 18 (2026-10-29) — Comprehensive Bug Fixes & Reliability Overhaul
+
+### 1. MacroFactor CSV Importer & Units Correctness (`MacroFactorImportService.swift`)
+- **Direct Weight Unit Header Detection**:
+  - Replaced the brittle `> 90` threshold heuristic (which halved body weights to pounds for metric users weighing >90 kg and treated <90 lb entries as kg) with explicit column header inspection (`kg` vs `lbs` / `pound`).
+  - Added seamless fallback to the active `UserProfile.unitSystem`, guaranteeing zero body weight distortion when importing external data archives.
+
+### 2. Apple Watch Bi-Directional Workout & Weigh-In Synchronization (`PhoneWatchSyncService.swift`, `ActiveWorkoutView.swift`)
+- **Rolling Split Advance on Apple Watch Finish**:
+  - Finishing a workout directly on Apple Watch via `finishActiveWorkoutFromWatch` now properly updates `prog.lastCompletedWorkoutOrder = pw.order`, allowing rolling training routines to advance to the next scheduled day seamlessly.
+- **Instant Wrist Weigh-In Refresh**:
+  - Tapping to log a morning weigh-in from Apple Watch now immediately triggers `pushCurrentState(context: ctx)`, refreshing the watch's display and trend charts with the latest scale entry without requiring an app relaunch.
+- **Active Workout Live Watch Mutation Sync**:
+  - Deleting an exercise block, deleting a set, or switching a set badge (warmup, drop, failure) during an active session on iPhone now immediately pushes the updated state to Apple Watch via `pushCurrentState()`, preventing dangling set logs and desync issues.
+
+### 3. Workout Rest Timer Customization (`ActiveWorkoutView.swift`)
+- **Dynamic Program Slot Rest Honors**:
+  - Fixed hardcoded 120-second rest timers in `commitFocusedSet` and row completion toggles. The workout runner now dynamically inspects each exercise slot's configured `restSeconds` (capping warmup sets at 60s), ensuring heavy compounds (180s) and isolation movements (60s) use their designated rest times.
+
+### 4. Food Log Concurrency & SwiftData Deletion Race (`FoodTimelineView.swift`)
+- **Main-Thread Model Deletion Safeguard**:
+  - Extracted HealthKit sample UUIDs synchronously before invoking `modelContext.delete(entry)`, eliminating a race condition where the background `Task` attempted to access properties on a deleted SwiftData `@Model` across thread boundaries.
+
+### 5. Onboarding & Settings Refinements (`OnboardingFlowView.swift`, `OnboardingCardComponents.swift`, `GoalStrategySettingsView.swift`, `UnitsScheduleSettingsView.swift`, `SettingsView.swift`, `TodayDashboardView.swift`)
+- **Imperial Height 12-Inch Rollover Fix**:
+  - Switched onboarding height decomposition to `UnitsFormatter.cmToFeetInches()`, preventing fractional rounding bugs that generated `5 ft 12 in` instead of `6 ft 0 in`.
+- **Safe Rerun Setup**:
+  - Rerunning onboarding now updates today's existing weigh-in rather than creating duplicate records, and automatically preserves existing active workout programs by defaulting program generation to disabled when routines are already active.
+- **Goal Strategy Slider Bounds**:
+  - Added an `onChange` handler on `GoalType` that dynamically clamps or resets `ratePercentPerWeek` to the new goal's valid range when switching between Cut, Maintain, and Bulk.
+- **Full 7-Day Check-In Selection**:
+  - Added Tuesday (3), Wednesday (4), and Thursday (5) to `UnitsScheduleSettingsView` and `SettingsView`, allowing check-ins on any day of the week.
+- **Day-1 New User Check-In Shield**:
+  - Guarded `isCheckInDue` in `TodayDashboardView` to require at least 7 days of tracking history since starting a program/goal before prompting the first weekly check-in.
+- **Locale-Aware Quick Add**:
+  - Normalized comma decimals in `QuickAddFoodSheet` so users in European and Latin American locales can log decimal macros without values being truncated to zero.
+
+---
+
 ## v1.5.7 — Build 17 (2026-10-29) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub
 
 ### 1. MacroFactor-Style Multi-Page Onboarding Flow (`OnboardingFlowView.swift`, `OnboardingCardComponents.swift`)

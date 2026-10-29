@@ -930,7 +930,10 @@ struct FoodTimelineView: View {
     }
 
     private func deleteEntry(_ entry: FoodLogEntry) {
-        Task { await healthService.deleteFoodEntrySamples(entry) }
+        let sampleIDs = entry.healthKitSampleIDs
+        if !sampleIDs.isEmpty {
+            Task { await healthService.deleteSamples(uuids: sampleIDs) }
+        }
         modelContext.delete(entry)
         try? modelContext.save()
         _ = CoachingCoordinator.evaluate(forDayKey: activeDayKey, context: modelContext)

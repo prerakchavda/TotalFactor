@@ -821,4 +821,37 @@ final class TotalFactorAlgorithmTests: XCTestCase {
         XCTAssertEqual(candidates[1].name, "Parallel Bar Dips") // Muscle overlap next
         XCTAssertEqual(candidates.last?.name, "Barbell Back Squat") // Unrelated last
     }
+
+    // MARK: - v1.5.8 Bug Fix Tests
+
+    func testUnitsFormatterCmToFeetInchesNo12InchRollover() {
+        // Heights near 6 feet: 182.88 cm = 72.0 inches (6 ft 0 in)
+        // 182.6 cm is ~71.89 in -> 5 ft 12 in if buggy truncatingRemainder used
+        let (ft1, in1) = UnitsFormatter.cmToFeetInches(182.88)
+        XCTAssertEqual(ft1, 6)
+        XCTAssertEqual(in1, 0)
+
+        let (ft2, in2) = UnitsFormatter.cmToFeetInches(182.6)
+        XCTAssertEqual(ft2, 6)
+        XCTAssertEqual(in2, 0)
+        XCTAssertTrue(in2 < 12, "Inches must never equal or exceed 12")
+
+        let (ft3, in3) = UnitsFormatter.cmToFeetInches(179.9)
+        XCTAssertEqual(ft3, 5)
+        XCTAssertEqual(in3, 11)
+        XCTAssertTrue(in3 < 12)
+    }
+
+    func testProgressionEngineEmptyHistoryDefense() {
+        let suggestion = ProgressionEngine.suggestNextSession(
+            history: [],
+            repRangeLow: 8,
+            repRangeHigh: 12,
+            targetRIR: 2,
+            loadIncrementKg: 2.5
+        )
+        XCTAssertEqual(suggestion.action, .establishBaseline)
+        XCTAssertEqual(suggestion.suggestedWeightKg, 20.0)
+        XCTAssertEqual(suggestion.suggestedReps, 8)
+    }
 }

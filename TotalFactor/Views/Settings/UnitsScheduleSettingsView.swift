@@ -43,6 +43,9 @@ struct UnitsScheduleSettingsView: View {
                 Picker("Weekly Check-In Day", selection: $bindableProfile.checkInWeekday) {
                     Text("Sunday").tag(1)
                     Text("Monday").tag(2)
+                    Text("Tuesday").tag(3)
+                    Text("Wednesday").tag(4)
+                    Text("Thursday").tag(5)
                     Text("Friday").tag(6)
                     Text("Saturday").tag(7)
                 }

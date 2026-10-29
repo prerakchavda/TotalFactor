@@ -13,6 +13,7 @@ struct TodayDashboardView: View {
     @Query private var programs: [Program]
     @Query private var gymProfiles: [GymProfile]
     @Query private var customNutrientTargets: [NutrientTarget]
+    @Query private var goals: [Goal]
 
     @State private var showingMicronutrients: Bool = false
     @State private var previewGuideWorkout: ProgramWorkout? = nil
@@ -46,10 +47,13 @@ struct TodayDashboardView: View {
     private var isCheckInDue: Bool {
         let todayWeekday = DayKey.weekday(for: DayKey.today)
         guard let latest = checkIns.first else {
-            return todayWeekday == profile.checkInWeekday
+            let activeGoal = goals.first(where: \.isActive)
+            let start = activeGoal?.startDate ?? profile.createdAt
+            let daysSinceStart = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: start), to: Calendar.current.startOfDay(for: .now)).day ?? 0
+            return daysSinceStart >= 7 && todayWeekday == profile.checkInWeekday
         }
         let daysSince = DayKey.daysBetween(latest.dayKey, DayKey.today)
-        return daysSince >= 7 || (todayWeekday == profile.checkInWeekday && latest.dayKey != DayKey.today)
+        return (daysSince >= 7 && todayWeekday == profile.checkInWeekday && latest.dayKey != DayKey.today) || daysSince >= 10
     }
 
     var body: some View {

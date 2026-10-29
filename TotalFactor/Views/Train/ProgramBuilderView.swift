@@ -569,15 +569,20 @@ private struct ProgramDetailEditorView: View {
     }
 
     private func deleteWorkoutDay(_ workout: ProgramWorkout) {
+        let deletedID = workout.id
+        workout.program = nil
         modelContext.delete(workout)
         try? modelContext.save()
 
         // Re-index remaining workouts consecutively
-        let remaining = program.sortedWorkouts
+        let remaining = program.sortedWorkouts.filter { $0.id != deletedID }
         for (index, w) in remaining.enumerated() {
             w.order = index
         }
         program.daysPerWeek = max(1, remaining.count)
+        if program.lastCompletedWorkoutOrder >= remaining.count {
+            program.lastCompletedWorkoutOrder = -1
+        }
         try? modelContext.save()
         _ = CoachingCoordinator.evaluate(context: modelContext)
     }

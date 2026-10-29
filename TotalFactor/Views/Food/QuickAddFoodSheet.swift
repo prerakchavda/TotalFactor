@@ -613,10 +613,10 @@ struct QuickAddFoodSheet: View {
 
             Section {
                 Button {
-                    let p = Double(quickProtein) ?? 0
-                    let c = Double(quickCarbs) ?? 0
-                    let f = Double(quickFat) ?? 0
-                    let explicitCals = Double(quickCalories) ?? 0
+                    let p = Double(quickProtein.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    let c = Double(quickCarbs.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    let f = Double(quickFat.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    let explicitCals = Double(quickCalories.replacingOccurrences(of: ",", with: ".")) ?? 0
                     let finalCals = explicitCals > 0 ? explicitCals : (p * 4 + c * 4 + f * 9)
                     guard finalCals > 0 else { return }
 

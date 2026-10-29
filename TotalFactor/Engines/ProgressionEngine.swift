@@ -281,7 +281,20 @@ public enum ProgressionEngine {
         }()
 
         let lastSets = lastSession.sets
-        let primaryLastSet = lastSets.max(by: { $0.weightKg < $1.weightKg }) ?? lastSets[0]
+        guard let primaryLastSet = lastSets.max(by: { $0.weightKg < $1.weightKg }) ?? lastSets.first,
+              !lastSets.isEmpty else {
+            return NextSessionSuggestion(
+                action: .establishBaseline,
+                suggestedWeightKg: roundToIncrement(20.0, increment: loadIncrementKg),
+                suggestedReps: repRangeLow,
+                targetRIR: targetRIR,
+                estimated1RMKg: 0,
+                personalK: fittedK,
+                coachingNote: "First time logging — pick a comfortable load that leaves ~\(targetRIR) reps in reserve.",
+                isProteinGated: isProteinUnderFloor,
+                isCutAdjusted: isAggressiveCut
+            )
+        }
         let lastWeight = primaryLastSet.weightKg
         let lastAvgReps = Int((Double(lastSets.reduce(0) { $0 + $1.reps }) / Double(lastSets.count)).rounded())
         let lastBestReps = lastSets.map(\.reps).max() ?? primaryLastSet.reps

@@ -96,6 +96,12 @@ public enum MacroFactorImportService {
             return MacroFactorImportSummary()
         }
 
+        let userUnitSystem = ((try? context.fetch(FetchDescriptor<UserProfile>()))?.first)?.unitSystem ?? .imperial
+        let weightHeader = (weightIdx != nil && headers.indices.contains(weightIdx!)) ? headers[weightIdx!] : ""
+        let isWeightMetric = weightHeader.contains("kg") || weightHeader.contains("kilo")
+        let isWeightImperial = weightHeader.contains("lb") || weightHeader.contains("pound")
+        let effectiveWeightUnits: UnitSystem = isWeightMetric ? .metric : (isWeightImperial ? .imperial : userUnitSystem)
+
         // Build existing database fingerprint cache for 100% duplicate protection
         let existingFoods = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
         var existingFoodSignatures = Set<String>()
@@ -132,8 +138,7 @@ public enum MacroFactorImportService {
             if let wCol = weightIdx, cols.indices.contains(wCol),
                let rawW = Double(cols[wCol].replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)),
                rawW > 20.0 {
-                // If value is > 90, assume pounds and convert to kg, else assume kg
-                let weightKg = rawW > 90.0 ? (rawW * 0.45359237) : rawW
+                let weightKg = UnitsFormatter.internalKg(fromDisplay: rawW, system: effectiveWeightUnits)
                 if existingWeighInDays.contains(dayKey) {
                     summary.weighInsSkipped += 1
                 } else {

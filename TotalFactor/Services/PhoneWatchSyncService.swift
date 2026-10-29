@@ -282,6 +282,7 @@ public final class PhoneWatchSyncService: NSObject {
                 await HealthKitService.shared.saveManualWeighIn(entry)
             }
             _ = CoachingCoordinator.evaluate(context: ctx)
+            pushCurrentState(context: ctx)
         }
     }
 
@@ -453,6 +454,10 @@ public final class PhoneWatchSyncService: NSObject {
                     )
                 }
             }
+        }
+
+        if let pw = session.programWorkout, let prog = pw.program {
+            prog.lastCompletedWorkoutOrder = pw.order
         }
 
         try? context.save()

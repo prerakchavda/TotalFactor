@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.8] - 2026-10-29
+
+### Fixed — Comprehensive Bug Fixes & Reliability Overhaul (Build 18)
+
+#### Fixed
+- **MacroFactor CSV Import Weight Parsing (`MacroFactorImportService.swift`)**:
+  - Replaced the arbitrary `> 90` threshold heuristic with explicit column header inspection (`kg` vs `lbs`), falling back to the user's unit system. Completely prevents metric users > 90 kg from having their weights halved on import.
+- **Apple Watch Rolling Split Advance (`PhoneWatchSyncService.swift`)**:
+  - Updating `prog.lastCompletedWorkoutOrder = pw.order` when finishing workouts on Apple Watch, ensuring rolling splits advance to the next scheduled day.
+- **Apple Watch Weigh-In Instant Sync (`PhoneWatchSyncService.swift`)**:
+  - Added missing `pushCurrentState(context: ctx)` call in `.logWeighIn`, updating the wrist display and trend widgets immediately.
+- **Workout Rest Timer Slot Honors (`ActiveWorkoutView.swift`)**:
+  - Fixed hardcoded 120-second rest timers, now dynamically reading each exercise slot's configured `restSeconds` (with a 60-second cap on warmup sets).
+- **Apple Watch Live Workout Mutation Sync (`ActiveWorkoutView.swift`)**:
+  - Pushing state to Apple Watch immediately when deleting an exercise block, deleting a set, or toggling set badges during an active session on iPhone.
+- **Food Log Deletion Race Condition (`FoodTimelineView.swift`)**:
+  - Extracted HealthKit sample UUIDs synchronously prior to deleting the SwiftData model object, avoiding race conditions and cross-thread access on deleted managed objects.
+- **Onboarding Imperial Height Rollover (`OnboardingFlowView.swift`)**:
+  - Using `UnitsFormatter.cmToFeetInches()` to eliminate the `5 ft 12 in` rollover bug on heights near 6 feet.
+- **Onboarding Rerun Safe Mode (`OnboardingFlowView.swift`)**:
+  - Updating today's weigh-in in-place if one already exists and defaulting routine generation to disabled when programs are already active.
+- **Goal Strategy Slider Clamping (`GoalStrategySettingsView.swift`)**:
+  - Dynamically clamping or resetting `ratePercentPerWeek` to the selected goal type's valid range when switching between Cut, Maintain, and Bulk.
+- **Full Weekday Check-In Support (`UnitsScheduleSettingsView.swift`, `SettingsView.swift`)**:
+  - Added Tuesday, Wednesday, and Thursday to the check-in day pickers and dashboard text formatters.
+- **Day-1 Check-In Prompt Shield (`TodayDashboardView.swift`)**:
+  - Requiring at least 7 days of app history since starting a program/goal before prompting new users for a weekly check-in.
+- **Locale-Aware Number Parsing (`QuickAddFoodSheet.swift`)**:
+  - Sanitizing comma decimals to dots to support European and Latin American decimal entries.
+
+---
+
 ## [1.5.7] - 2026-10-29
 
 ### Added — MacroFactor-Style Multi-Page Onboarding, Categorized Settings Hub & Workout Builder Fixes (Build 17)
