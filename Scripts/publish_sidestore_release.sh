@@ -99,6 +99,7 @@ if [[ "$DO_PUSH" == "true" ]]; then
 
   echo ""
   echo "2. Pushing main branch to GitHub..."
+  git config http.postBuffer 524288000
   git push origin main
 
   echo ""
