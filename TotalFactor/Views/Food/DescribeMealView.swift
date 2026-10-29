@@ -18,6 +18,7 @@ struct DescribeMealView: View {
     let defaultMealTag: MealTag
     let autoStartDictation: Bool
     let persistedFoods: [Food]
+    var onAddToPlate: (([StagedFoodItem]) -> Void)? = nil
     let onLoggedAll: () -> Void
 
     @State private var dictation = SpeechDictationService()
@@ -40,8 +41,10 @@ struct DescribeMealView: View {
     @FocusState private var textEditorFocused: Bool
 
     private let examplePrompts: [String] = [
+        "10 panipuri and 2 samosas",
+        "1 palm of chicken, 1 fist of white rice, and 1 thumb of olive oil",
         "3 eggs, 2 slices sourdough toast with 1 tbsp butter, and 200g greek yogurt",
-        "200g grilled chicken breast, 1.5 cups white rice, and 1 tbsp olive oil",
+        "2 street tacos and a handful of tortilla chips",
         "1 cup oats, 1 scoop whey protein, 1 tbsp peanut butter, and 1 medium banana"
     ]
 
@@ -141,6 +144,11 @@ struct DescribeMealView: View {
                 dayKey: dayKey,
                 initialMealTag: selectedMealTag,
                 persistedFoods: persistedFoods,
+                onAddToPlate: onAddToPlate != nil ? { staged in
+                    onAddToPlate?(staged)
+                    showingConfirmation = false
+                    onLoggedAll()
+                } : nil,
                 onConfirmed: {
                     onLoggedAll()
                 }
@@ -574,6 +582,7 @@ struct MultiItemMealConfirmationSheet: View {
     let dayKey: String
     @State private var mealTag: MealTag
     let persistedFoods: [Food]
+    var onAddToPlate: (([StagedFoodItem]) -> Void)? = nil
     let onConfirmed: () -> Void
 
     init(
@@ -581,12 +590,14 @@ struct MultiItemMealConfirmationSheet: View {
         dayKey: String,
         initialMealTag: MealTag,
         persistedFoods: [Food],
+        onAddToPlate: (([StagedFoodItem]) -> Void)? = nil,
         onConfirmed: @escaping () -> Void
     ) {
         self._items = State(initialValue: initialItems)
         self.dayKey = dayKey
         self._mealTag = State(initialValue: initialMealTag)
         self.persistedFoods = persistedFoods
+        self.onAddToPlate = onAddToPlate
         self.onConfirmed = onConfirmed
     }
 
@@ -627,13 +638,31 @@ struct MultiItemMealConfirmationSheet: View {
 
                 Divider()
 
-                VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    if onAddToPlate != nil {
+                        Button {
+                            stageConfirmedItemsOntoPlate()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "fork.knife")
+                                Text("Add to Plate (\(includedItems.count))")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(includedItems.isEmpty)
+                    }
+
                     Button {
                         logConfirmedItems()
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                            Text("Log \(includedItems.count) \(includedItems.count == 1 ? "Item" : "Items") (\(Int(totalNutrients.calories.rounded())) kcal)")
+                            Text("Log \(Int(totalNutrients.calories.rounded())) kcal")
                                 .fontWeight(.bold)
                         }
                         .font(.headline)
@@ -809,6 +838,73 @@ struct MultiItemMealConfirmationSheet: View {
         items[index].servingLabel = "\(Int(updated)) g"
     }
 
+    private func stageConfirmedItemsOntoPlate() {
+        guard let onAddToPlate else { return }
+        let selected = includedItems
+        guard !selected.isEmpty else { return }
+
+        let persistedByID = Dictionary(persistedFoods.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let catalog = OfflineUSDACatalogService.shared.index
+
+        var staged: [StagedFoodItem] = []
+        for draft in selected {
+            let food: Food
+            if let fid = draft.matchedPersistedFoodID, let existing = persistedByID[fid] {
+                food = existing
+            } else if let sid = draft.matchedOfflineUSDASourceID {
+                if sid.hasPrefix("composite-") {
+                    if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
+                        food = CompositeFoodLibrary.materialize(comp, in: modelContext)
+                    } else {
+                        let comp = CompositeFoodEntry(
+                            name: draft.foodName,
+                            aliases: [],
+                            category: .streetFood,
+                            defaultServingLabel: draft.servingLabel,
+                            servingGrams: draft.grams,
+                            nutrientsPer100g: draft.nutrientsPer100g
+                        )
+                        food = CompositeFoodLibrary.materialize(comp, in: modelContext)
+                    }
+                } else if let entry = catalog.entry(forSourceID: sid) {
+                    food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+                } else {
+                    let comp = CompositeFoodEntry(
+                        name: draft.foodName,
+                        aliases: [],
+                        category: .takeout,
+                        defaultServingLabel: draft.servingLabel,
+                        servingGrams: draft.grams,
+                        nutrientsPer100g: draft.nutrientsPer100g
+                    )
+                    food = CompositeFoodLibrary.materialize(comp, in: modelContext)
+                }
+            } else {
+                let comp = CompositeFoodEntry(
+                    name: draft.foodName,
+                    aliases: [],
+                    category: .takeout,
+                    defaultServingLabel: draft.servingLabel,
+                    servingGrams: draft.grams,
+                    nutrientsPer100g: draft.nutrientsPer100g
+                )
+                food = CompositeFoodLibrary.materialize(comp, in: modelContext)
+            }
+
+            staged.append(
+                StagedFoodItem(
+                    item: .persisted(food),
+                    quantity: 1.0,
+                    selectedServing: ServingSize(label: draft.servingLabel, grams: draft.grams),
+                    mealTag: mealTag
+                )
+            )
+        }
+
+        onAddToPlate(staged)
+        dismiss()
+    }
+
     private func logConfirmedItems() {
         let selected = includedItems
         guard !selected.isEmpty else { return }
@@ -824,8 +920,14 @@ struct MultiItemMealConfirmationSheet: View {
             var resolvedFood: Food? = nil
             if let fid = draft.matchedPersistedFoodID, let existing = persistedByID[fid] {
                 resolvedFood = existing
-            } else if let sid = draft.matchedOfflineUSDASourceID, let entry = catalog.entry(forSourceID: sid) {
-                resolvedFood = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            } else if let sid = draft.matchedOfflineUSDASourceID {
+                if sid.hasPrefix("composite-") {
+                    if let comp = CompositeFoodLibrary.find(matching: draft.foodName) {
+                        resolvedFood = CompositeFoodLibrary.materialize(comp, in: modelContext)
+                    }
+                } else if let entry = catalog.entry(forSourceID: sid) {
+                    resolvedFood = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+                }
             }
 
             let logEntry: FoodLogEntry

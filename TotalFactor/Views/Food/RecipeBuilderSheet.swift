@@ -181,6 +181,8 @@ struct RecipeBuilderSheet: View {
                                 resolvedFood = f
                             case .offlineUSDA(let entry):
                                 resolvedFood = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+                            case .composite(let entry):
+                                resolvedFood = CompositeFoodLibrary.materialize(entry, in: modelContext)
                             }
                             draftIngredients.append((UUID(), resolvedFood, resolvedFood.lastLoggedGrams))
                             totalCookedGrams = draftIngredients.reduce(0.0) { $0 + $1.grams }
@@ -225,6 +227,8 @@ struct RecipeBuilderSheet: View {
                             food = f
                         case .offlineUSDA(let entry):
                             food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+                        case .composite(let entry):
+                            food = CompositeFoodLibrary.materialize(entry, in: modelContext)
                         }
                         draftIngredients.append((id: UUID(), food: food, grams: staged.grams))
                     }

@@ -114,6 +114,20 @@ struct RootTabView: View {
         ) {
             OnboardingFlowView(profile: profile)
         }
+        .onAppear {
+            for arg in ProcessInfo.processInfo.arguments {
+                if arg.starts(with: "--tab="), let tab = AppTab(rawValue: String(arg.dropFirst("--tab=".count))) {
+                    state.selectedTab = tab
+                }
+            }
+        }
+        .onOpenURL { url in
+            guard url.scheme == "totalfactor" else { return }
+            let tabKey = url.host ?? url.pathComponents.dropFirst().first ?? ""
+            if let tab = AppTab(rawValue: tabKey) {
+                state.selectedTab = tab
+            }
+        }
     }
 }
 

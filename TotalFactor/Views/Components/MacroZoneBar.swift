@@ -137,6 +137,7 @@ struct FoodSourceBadge: View {
         case .off: return .orange
         case .custom: return .blue
         case .recipe: return .purple
+        case .healthKit: return .pink
         }
     }
 

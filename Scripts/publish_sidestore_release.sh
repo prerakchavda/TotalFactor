@@ -53,7 +53,7 @@ source_path = '$SOURCE_JSON'
 with open(source_path, 'r') as f:
     data = json.load(f)
 
-desc = 'Kitchen Rehaul & Workout UI Bug Fixes: The Plate multi-add dock, hourly timeline, adherence strip, recipe explosion, and workout pause/discard fixes.'
+desc = 'Apple Health Bi-Directional Sync, Universal CSV & AI Digest Export, Zero-Scale Hand Estimators, Street Food Composites & 3-Sec Ballpark Logger.'
 
 for app in data.get('apps', []):
     if app.get('bundleIdentifier') == 'com.prerak.totalfactor':
@@ -92,7 +92,7 @@ if [[ "$DO_PUSH" == "true" ]]; then
   echo "1. Staging and committing workspace changes to git..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Total Factor v$VERSION (Build $BUILD) — Kitchen Rehaul & Workout UI Bug Fixes"
+    git commit -m "Total Factor v$VERSION (Build $BUILD) — Real-World & Zero-Scale Food Logging"
   else
     echo "No uncommitted git changes."
   fi
@@ -103,25 +103,24 @@ if [[ "$DO_PUSH" == "true" ]]; then
 
   echo ""
   echo "3. Creating GitHub Release v$VERSION and uploading TotalFactor.ipa..."
-  RELEASE_NOTES=$(cat << 'EOF'
-### Total Factor v1.5.1 (Build 10) — Kitchen Rehaul & Workout UI Bug Fixes
+  read -r -d '' RELEASE_NOTES << 'EOF' || true
+### Total Factor v1.5.3 (Build 12) — Apple Health Bi-Directional Sync & Real-World Food Logging
 
-#### Kitchen Rehaul & Food Logging
-- **The Plate Multi-Add Workspace**: Persistent floating dock to stage multiple foods while searching or browsing without logging one-by-one. Dedicated workspace sheet for batch gram adjustments, unit conversions, and bulk committing.
-- **Hour-by-Hour Timeline Mode**: Hourly food logging view mode with macro subtotals, inline '+' buttons, left-handed mode, and collapsible empty hours.
-- **7-Day Adherence Calendar Strip**: Weekly circular calorie target rings atop the food log with 1-tap fast day switching.
-- **Remaining vs. Consumed Budget Toggle**: 1-tap switcher between consumed intake and remaining daily allowance.
-- **Kitchen Hub**: Centralized manager consolidating Recipes, Saved Meals, and Custom Foods, with moisture loss & water absorption yields.
-- **Explode Recipe to Ingredients**: Unpack logged recipes from the timeline into constituent items scaled to portion eaten.
-- **Food Detail Polish**: Macro Calorie Ratio Donut, Daily Goal Impact Bar, subtractive kitchen-scale tare math (245 - 65 = 180 g), and micronutrient accordion preview.
+#### Apple Health Sync & Data Ownership
+- **Bidirectional Apple Health Sync**: Full 2-way sync for dietary calories, protein, carbs, and fat with automatic deduplication.
+- **Push Complete History**: 1-tap historical sync pushing past food logs, weigh-ins, and workouts to Apple Health.
+- **Universal Data Export**: Prominent 1-tap "Export All App Data" bundle in Settings with pre-formatted Markdown AI coaching digest, full structured JSON, and universal CSVs.
 
-#### Workout UI & Stability Bug Fixes
-- **Action Pill Typography Fix**: Replaced cramped horizontal container with a smooth scrollable strip, preventing labels like Wand, Warm Up, and Note from breaking awkwardly into two lines.
-- **Exercise Carousel Polish**: Expanded exercise title labels from 58pt to 72pt with 2-line wrapping to eliminate aggressive ellipsis truncation.
-- **Pause & Resume Workout**: Freeze elapsed workout duration with live amber PAUSED badge across the header and RootTabView mini-bar.
-- **Confirmed Discard Session**: Cascade deletion of draft sets, session state, rest timer Live Activities, and active session reset.
+#### Zero-Scale & Real-World Food Logging
+- **No-Scale & Container Estimator Sheet**: Biological hand rulers (Palm of Protein ~30g P, Fist of Carbs ~1 cup, Cupped Hand of Snacks ~½ cup, Thumb of Fat ~1 tbsp) and standardized takeout container presets (Deli Pint 16 oz, Deli Quart 32 oz, 3-Compartment Box, Foil Round Tin).
+- **Cultural & Street Food Composite Library**: Verified offline composite library with natural piece-count steppers for foods you cannot weigh raw: Panipuri/Golgappa (~28 kcal/pc, default 10 pieces = 280 kcal), Samosas (Standard 260 kcal vs Cocktail 90 kcal), Street Tacos (180 kcal), Steamed Dumplings/Momos (45 kcal), Sushi Rolls (320 kcal), Plain Roti (80 kcal), Roti with Ghee (110 kcal), Dal Tadka Katori (150 kcal), Chicken Biryani (320 kcal/cup), Pizza Slices (285 kcal), Chicken Wings (85 kcal), Falafel (60 kcal), Masala Dosa Set (380 kcal), Pav Bhaji (450 kcal), Chole Bhature (620 kcal), Burrito Bowl (720 kcal), and Pad Thai (650 kcal).
+- **Ballpark My Meal 3-Second Quick Logger**: 3-second rapid logger for buffets, weddings, dining out, and unmeasured restaurant meals without tracking friction or diet guilt. 4 size tiers (Light Snack 300 kcal, Standard Meal 650 kcal, Hearty Restaurant 950 kcal, Feast/Buffet 1,350 kcal) + vibe modifiers (High Protein, Fried/Oily, Carb Heavy) and fine-tuning calorie stepper.
+
+#### Voice NLP & Workflow Polish
+- **Street Food & Hand-Size Offline Voice Aliases**: 2ms deterministic offline natural language parser now resolves street foods and hand proportions ("10 panipuri and 2 samosas", "2 street tacos and a handful of chips", "1 palm chicken, 1 fist rice, and 1 thumb olive oil", "deli pint of soup", "takeout container of biryani") with zero cloud API keys.
+- **Unified AI Describe with The Plate**: 1-tap Add to Plate button in multi-item confirmation sheet to drop voice-described or AI-analyzed items directly into the persistent Plate tray and combine with barcode scans before logging.
+- **Quick Add & Kitchen Hub Integration**: Mode 3 features prominent 1-tap launcher cards for Ballpark My Meal and No-Scale Estimator, new "Street & Bites" filter in Search, and "Composites" segment tab in Kitchen Hub.
 EOF
-)
 
   # Check if release already exists
   if gh release view "v$VERSION" >/dev/null 2>&1; then
@@ -129,7 +128,7 @@ EOF
     gh release upload "v$VERSION" "$IPA_PATH" --clobber
   else
     gh release create "v$VERSION" "$IPA_PATH" \
-      --title "Total Factor v$VERSION (Build $BUILD) — Kitchen Rehaul & Workout UI Fixes" \
+      --title "Total Factor v$VERSION (Build $BUILD) — Real-World & Zero-Scale Food Logging" \
       --notes "$RELEASE_NOTES"
   fi
 

@@ -39,11 +39,14 @@ struct QuickAddFoodSheet: View {
     @State private var showingStagedReviewSheet: Bool = false
     @State private var showingPlateWorkspace: Bool = false
     @State private var showingKitchenHub: Bool = false
+    @State private var showingBallparkSheet: Bool = false
+    @State private var showingNoScaleEstimatorSheet: Bool = false
 
     // MacroFactor Search Filters
     public enum SearchFilterCategory: String, CaseIterable, Identifiable {
         case all = "All"
         case history = "History"
+        case street = "Street & Bites"
         case favorites = "Favorites"
         case custom = "Custom"
         case recipes = "Recipes"
@@ -98,7 +101,10 @@ struct QuickAddFoodSheet: View {
                             dayKey: dayKey,
                             defaultMealTag: activeMealTag,
                             autoStartDictation: triggerVoiceOnDescribeOpen,
-                            persistedFoods: foods
+                            persistedFoods: foods,
+                            onAddToPlate: { staged in
+                                stagedItems.append(contentsOf: staged)
+                            }
                         ) {
                             dismiss()
                         }
@@ -240,6 +246,30 @@ struct QuickAddFoodSheet: View {
             }
             .sheet(isPresented: $showingKitchenHub) {
                 KitchenHubView()
+            }
+            .sheet(isPresented: $showingBallparkSheet) {
+                MealBallparkSheet(
+                    dayKey: dayKey,
+                    initialMealTag: activeMealTag,
+                    onAddToPlate: { staged in
+                        stagedItems.append(staged)
+                    },
+                    onLoggedDirectly: {
+                        dismiss()
+                    }
+                )
+            }
+            .sheet(isPresented: $showingNoScaleEstimatorSheet) {
+                NoScaleEstimatorSheet(
+                    dayKey: dayKey,
+                    initialMealTag: activeMealTag,
+                    onAddToPlate: { staged in
+                        stagedItems.append(contentsOf: staged)
+                    },
+                    onLoggedDirectly: {
+                        dismiss()
+                    }
+                )
             }
         }
     }
@@ -419,6 +449,9 @@ struct QuickAddFoodSheet: View {
             switch selectedSearchFilter {
             case .all: return true
             case .history: return item.allowOneTapRepeat
+            case .street:
+                if case .composite = item { return true }
+                return item.brand?.contains("Street") == true || item.brand?.contains("Composite") == true
             case .favorites: return item.isFavorite
             case .custom: return item.source == .custom
             case .recipes: return item.source == .recipe
@@ -511,7 +544,57 @@ struct QuickAddFoodSheet: View {
 
     private var quickRawEntryView: some View {
         Form {
-            Section("Quick Calorie / Macro Entry") {
+            Section("Zero-Scale & Real-World Estimators") {
+                Button {
+                    showingBallparkSheet = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "flame.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ballpark My Meal (3-Sec)")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                            Text("Instant estimation for buffets, weddings, dining out & cheat meals")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showingNoScaleEstimatorSheet = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.raised.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No-Scale & Container Estimator")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.primary)
+                            Text("Hand proportions (palm, fist, thumb) & takeout containers (pint, box)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Section("Manual Calorie & Macro Override") {
                 TextField("Label (optional, e.g. Restaurant Dinner)", text: $quickTitle)
                 TextField("Calories (kcal)", text: $quickCalories)
                     .keyboardType(.decimalPad)
@@ -744,6 +827,8 @@ struct QuickAddFoodSheet: View {
                 food = p
             case .offlineUSDA(let entry):
                 food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            case .composite(let entry):
+                food = CompositeFoodLibrary.materialize(entry, in: modelContext)
             }
 
             let grams = max(0.5, staged.grams)

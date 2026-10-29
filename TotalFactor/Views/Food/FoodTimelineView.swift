@@ -633,6 +633,8 @@ struct FoodTimelineView: View {
                 food = p
             case .offlineUSDA(let entry):
                 food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            case .composite(let entry):
+                food = CompositeFoodLibrary.materialize(entry, in: modelContext)
             }
 
             let grams = max(0.5, staged.grams)

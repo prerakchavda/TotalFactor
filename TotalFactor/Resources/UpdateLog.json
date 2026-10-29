@@ -1,5 +1,93 @@
 [
   {
+    "version": "1.5.3",
+    "build": "12",
+    "date": "2026-10-29",
+    "headline": "Apple Health Two-Way Sync & History Push, Photo Tracker Pose Pill Bar, EXIF Past Photo Import, and Universal Export All App Data",
+    "sections": [
+      {
+        "title": "Apple Health Two-Way Sync & History Push",
+        "icon": "heart.text.square.fill",
+        "items": [
+          "Two-way Apple Health synchronization engine with live synced events summary.",
+          "Push Complete History to Apple Health: 1-tap historical sync for past meals, manual weigh-ins, and strength workouts so third-party apps (Apple Fitness, MyFitnessPal, MacroFactor, RP Diet, LoseIt) share all data.",
+          "Import Nutrition from Apple Health: pulls external meals logged in other apps into Total Factor with bundle ID exclusion and zero duplicates."
+        ]
+      },
+      {
+        "title": "Photo Tracker Polishing & Drop Zones",
+        "icon": "photo.stack.fill",
+        "items": [
+          "Replaced native segmented control with haptic-enabled Segmented Pill Bar displaying live photo counters (Front, Side, Back).",
+          "Interactive empty state drop zone: tap anywhere on the 'No Photos Yet' card to quickly capture or choose photos.",
+          "Instant picker reset ensures subsequent photo choices always re-trigger."
+        ]
+      },
+      {
+        "title": "Past Photo Import & EXIF Metadata",
+        "icon": "clock.arrow.circlepath",
+        "items": [
+          "Automatic extraction of original camera capture dates from embedded EXIF/TIFF metadata without extra photo library permissions.",
+          "Automatic matching of historical weigh-in weight closest to capture date.",
+          "Full screen photo viewer now supports interactive pose switching, date adjustments, and scale weight editing."
+        ]
+      },
+      {
+        "title": "Export All App Data (Compatible & AI-Ready)",
+        "icon": "arrow.up.doc.fill",
+        "items": [
+          "Universal 1-tap 'Export All App Data' button in Settings with native iOS Share Sheet.",
+          "Generates TotalFactor_AI_Digest.md: comprehensive Markdown matrix with 60-day nutrition adherence, strength PRs, and AI coaching prompt for ChatGPT, Claude, and Gemini.",
+          "Generates TotalFactor_AllData.json and all 4 universal CSVs (FoodLog, WeighIns, Workouts, BodyMetrics)."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.2",
+    "build": "11",
+    "date": "2026-10-29",
+    "headline": "Real-World & Zero-Scale Food Logging: No-Scale Hand & Container Estimators, 3-Second Ballpark Logger, Street Food Composites & Unified Plate",
+    "sections": [
+      {
+        "title": "Zero-Scale & Container Estimators",
+        "icon": "hand.raised.fill",
+        "items": [
+          "No-Scale Estimator sheet with biological hand rulers: Palm of Protein (~30g P), Fist of Carbs (~1 cup), Cupped Hand of Snacks, and Thumb of Fat (~1 tbsp).",
+          "Standard takeout container presets: Deli Pint (2 cups curry/soup), Deli Quart (4 cups), 3-Compartment Box, and Foil Round Tin.",
+          "Live aggregated macro calculations with 1-tap options to Add to Plate or Log Directly."
+        ]
+      },
+      {
+        "title": "Street & Cultural Food Composites",
+        "icon": "takeoutbag.and.cup.and.straw.fill",
+        "items": [
+          "Curated composite library for unmeasured real-world foods with natural piece-count steppers.",
+          "Piece-count presets for Panipuri / Golgappa (28 kcal/pc, default 10 pieces = 280 kcal), Samosas, Street Tacos, Dumplings/Momos, Sushi Rolls, Roti, Dal, and Biryani.",
+          "Searchable directly from Quick Add and Kitchen Hub with 1-tap staging onto The Plate."
+        ]
+      },
+      {
+        "title": "Ballpark My Meal (3-Second Quick Log)",
+        "icon": "flame.circle.fill",
+        "items": [
+          "Instant 3-second meal logger for buffets, weddings, dining out, and unmeasured restaurant meals.",
+          "4 size tiers: Light Snack (300 kcal), Standard Meal (650 kcal), Hearty Restaurant (950 kcal), and Feast/Buffet (1,350 kcal).",
+          "Meal vibe modifiers for High Protein, Fried/Oily, and Carb Heavy with a fine-tune calorie stepper."
+        ]
+      },
+      {
+        "title": "Offline Voice NLP & Unified Plate",
+        "icon": "waveform.and.mic",
+        "items": [
+          "2ms offline natural language parser now resolves street foods and hand proportions with zero cloud API keys.",
+          "Multi-item confirmation sheet now features 1-tap 'Add to Plate' button to combine voice meals with barcode scans before logging.",
+          "Quick Add Mode 3 features prominent 1-tap cards for both Ballpark My Meal and the No-Scale Estimator."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.1",
     "build": "10",
     "date": "2026-10-29",

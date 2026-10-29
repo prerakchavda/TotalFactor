@@ -114,6 +114,13 @@ public enum ConfidenceLevel: String, Codable, CaseIterable, Identifiable, Sendab
 public enum ExpenditureMethod: String, Codable, CaseIterable, Sendable {
     case formula
     case adaptive
+
+    public var displayName: String {
+        switch self {
+        case .formula: return "Formula Baseline"
+        case .adaptive: return "Adaptive Feedback"
+        }
+    }
 }
 
 // MARK: - Nutrition Enums & Value Structs
@@ -123,6 +130,7 @@ public enum FoodSource: String, Codable, CaseIterable, Identifiable, Sendable {
     case off
     case custom
     case recipe
+    case healthKit
 
     public var id: String { rawValue }
 
@@ -132,6 +140,7 @@ public enum FoodSource: String, Codable, CaseIterable, Identifiable, Sendable {
         case .off: return "Open Food Facts (Crowdsourced)"
         case .custom: return "Custom"
         case .recipe: return "Recipe"
+        case .healthKit: return "Apple Health (External)"
         }
     }
 
@@ -141,13 +150,14 @@ public enum FoodSource: String, Codable, CaseIterable, Identifiable, Sendable {
         case .off: return "OFF"
         case .custom: return "Custom"
         case .recipe: return "Recipe"
+        case .healthKit: return "Health"
         }
     }
 
     public var trustScore: Int {
         switch self {
         case .usda: return 3
-        case .custom, .recipe: return 2
+        case .custom, .recipe, .healthKit: return 2
         case .off: return 1
         }
     }

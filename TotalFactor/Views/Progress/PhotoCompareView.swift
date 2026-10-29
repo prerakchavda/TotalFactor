@@ -23,12 +23,14 @@ struct PhotoCompareView: View {
     @State private var compareMode: CompareDisplayMode = .slider
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var showingCamera: Bool = false
+    @State private var showingImportActionSheet: Bool = false
     @State private var sliderPosition: CGFloat = 0.5
     @State private var leftPhotoID: UUID? = nil
     @State private var rightPhotoID: UUID? = nil
     @State private var photoToDelete: ProgressPhoto? = nil
     @State private var showingDeleteConfirmation: Bool = false
     @State private var fullScreenPhoto: ProgressPhoto? = nil
+    @State private var importNotice: String? = nil
 
     private enum CompareDisplayMode: String, CaseIterable, Identifiable {
         case slider = "Split Slider"
@@ -58,14 +60,32 @@ struct PhotoCompareView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    // Pose Selector
-                    Picker("Pose", selection: $selectedPose) {
-                        ForEach(PhotoPose.allCases) { p in
-                            Text(p.displayName).tag(p)
+                    // Custom Haptic-Enabled Pose Selector Pill Bar (v1.5.3)
+                    poseSelectorBar
+
+                    // Metadata import notification banner
+                    if let notice = importNotice {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Color.accentColor)
+                            Text(notice)
+                                .font(.caption.weight(.medium))
+                            Spacer()
+                            Button {
+                                withAnimation { importNotice = nil }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
 
                     // Main Comparison / Single Photo Area
                     if posePhotos.count >= 2, let before = beforePhoto, let after = afterPhoto {
@@ -341,28 +361,105 @@ struct PhotoCompareView: View {
         }
     }
 
-    // MARK: - Empty State (0 photos)
+    // MARK: - Pose Selector Pill Bar (v1.5.3)
+
+    private var poseSelectorBar: some View {
+        HStack(spacing: 6) {
+            ForEach(PhotoPose.allCases) { pose in
+                let count = allPhotos.filter { $0.pose == pose }.count
+                let isSelected = selectedPose == pose
+                Button {
+                    #if canImport(UIKit)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    #endif
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                        selectedPose = pose
+                        leftPhotoID = nil
+                        rightPhotoID = nil
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Text(pose.displayName)
+                            .font(.subheadline.weight(isSelected ? .bold : .medium))
+                        Text("\(count)")
+                            .font(.caption2.weight(.semibold).monospacedDigit())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                isSelected ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.15),
+                                in: Capsule()
+                            )
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        isSelected ? Color(.secondarySystemGroupedBackground) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal)
+    }
+
+    // MARK: - Empty State (0 photos) — Interactive Drop Zone (v1.5.3)
 
     private var emptyStateSection: some View {
         VStack(spacing: 16) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
-                .padding(.top, 24)
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.12))
+                    .frame(width: 72, height: 72)
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .padding(.top, 16)
 
             VStack(spacing: 6) {
                 Text("No \(selectedPose.displayName) Photos Yet")
                     .font(.headline)
-                Text("Capture or choose your first \(selectedPose.displayName.lowercased()) pose photo to track physique changes over time.")
+                    .foregroundStyle(Color.primary)
+                Text("Tap below to capture or choose your first \(selectedPose.displayName.lowercased()) pose photo.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
             }
+
+            HStack(spacing: 12) {
+                #if canImport(UIKit)
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button {
+                        showingCamera = true
+                    } label: {
+                        Label("Take Photo", systemImage: "camera.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                #endif
+
+                PhotosPicker(selection: $pickerItem, matching: .images) {
+                    Label("Choose Photo", systemImage: "photo.badge.plus")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.25), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+        )
         .padding(.horizontal)
     }
 
@@ -491,23 +588,30 @@ struct PhotoCompareView: View {
         guard let item else { return }
         Task {
             if let data = try? await item.loadTransferable(type: Data.self) {
+                let captureDate = PhotoMetadataHelper.extractCaptureDate(from: data)
                 #if canImport(UIKit)
                 if let uiImg = UIImage(data: data) {
                     await MainActor.run {
-                        saveCapturedImage(uiImg)
+                        saveCapturedImage(uiImg, captureDate: captureDate)
+                        pickerItem = nil
                     }
                     return
                 }
                 #endif
                 await MainActor.run {
-                    insertPhoto(data: data)
+                    insertPhoto(data: data, captureDate: captureDate)
+                    pickerItem = nil
+                }
+            } else {
+                await MainActor.run {
+                    pickerItem = nil
                 }
             }
         }
     }
 
     #if canImport(UIKit)
-    private func saveCapturedImage(_ image: UIImage) {
+    private func saveCapturedImage(_ image: UIImage, captureDate: Date? = nil) {
         // Downsample to max 1600px dimension and compress to JPEG 0.8
         let maxDim: CGFloat = 1600
         let size = image.size
@@ -520,20 +624,31 @@ struct PhotoCompareView: View {
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
         if let jpeg = resized.jpegData(compressionQuality: 0.8) {
-            insertPhoto(data: jpeg)
+            insertPhoto(data: jpeg, captureDate: captureDate)
         }
     }
     #endif
 
-    private func insertPhoto(data: Data) {
+    private func insertPhoto(data: Data, captureDate: Date? = nil) {
+        let finalDate = captureDate ?? .now
+        let matchedWeight = PhotoMetadataHelper.findClosestWeighInWeightKg(to: finalDate, in: modelContext) ?? currentWeightKg
+
         let p = ProgressPhoto(
+            date: finalDate,
+            dayKey: DayKey.from(finalDate),
             pose: selectedPose,
             imageData: data,
-            weightKgAtCapture: currentWeightKg
+            weightKgAtCapture: matchedWeight
         )
         modelContext.insert(p)
         try? modelContext.save()
         rightPhotoID = p.id
+
+        if let captureDate, Calendar.current.isDate(captureDate, inSameDayAs: .now) == false {
+            withAnimation {
+                importNotice = "Imported past photo from \(DayKey.from(captureDate))\(matchedWeight.map { " • \(UnitsFormatter.formatWeight($0, system: unitSystem))" } ?? "")"
+            }
+        }
     }
 
     private func deletePhoto(_ photo: ProgressPhoto) {
@@ -545,12 +660,19 @@ struct PhotoCompareView: View {
     }
 }
 
-// MARK: - Full Screen Viewer
+// MARK: - Full Screen Viewer (v1.5.3: Interactive Pose Switcher & Metadata Editor)
 
 private struct FullScreenPhotoViewer: View {
     @Environment(\.dismiss) private var dismiss
-    let photo: ProgressPhoto
+    @Environment(\.modelContext) private var modelContext
+
+    @Bindable var photo: ProgressPhoto
     let unitSystem: UnitSystem
+
+    @State private var showingEditSheet: Bool = false
+    @State private var editDate: Date = .now
+    @State private var editWeightDisplay: Double = 0
+    @State private var showingDeleteAlert: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -565,6 +687,64 @@ private struct FullScreenPhotoViewer: View {
                         .padding()
                 }
                 #endif
+
+                VStack {
+                    Spacer()
+                    // Bottom metadata badge & interactive pose switcher
+                    HStack(spacing: 12) {
+                        Menu {
+                            ForEach(PhotoPose.allCases) { pose in
+                                Button {
+                                    photo.pose = pose
+                                    try? modelContext.save()
+                                } label: {
+                                    HStack {
+                                        Text(pose.displayName)
+                                        if photo.pose == pose { Image(systemName: "checkmark") }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(photo.pose.displayName)
+                                    .font(.subheadline.weight(.bold))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .foregroundStyle(.white)
+                        }
+
+                        Button {
+                            editDate = photo.date
+                            editWeightDisplay = photo.weightKgAtCapture.map {
+                                unitSystem == .metric ? $0 : UnitsFormatter.kgToLb($0)
+                            } ?? 0
+                            showingEditSheet = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                Text(photo.dayKey)
+                                if let w = photo.weightKgAtCapture {
+                                    Text("• \(UnitsFormatter.formatWeight(w, system: unitSystem))")
+                                }
+                                Image(systemName: "pencil")
+                                    .font(.caption2)
+                            }
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .foregroundStyle(.white)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                }
             }
             .navigationTitle("\(photo.pose.displayName) • \(photo.dayKey)")
             .navigationBarTitleDisplayMode(.inline)
@@ -573,9 +753,74 @@ private struct FullScreenPhotoViewer: View {
                     Button("Close") { dismiss() }
                         .foregroundStyle(.white)
                 }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
+                }
             }
             .toolbarBackground(.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .sheet(isPresented: $showingEditSheet) {
+                NavigationStack {
+                    Form {
+                        Section("Photo Date & Day") {
+                            DatePicker("Capture Date", selection: $editDate, displayedComponents: [.date, .hourAndMinute])
+                        }
+                        Section("Body Weight at Capture") {
+                            HStack {
+                                Text("Weight (\(unitSystem.weightSymbol))")
+                                Spacer()
+                                TextField("0.0", value: $editWeightDisplay, format: .number)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
+                        Section("Assigned Pose") {
+                            Picker("Pose", selection: $photo.poseRaw) {
+                                ForEach(PhotoPose.allCases) { p in
+                                    Text(p.displayName).tag(p.rawValue)
+                                }
+                            }
+                        }
+                    }
+                    .navigationTitle("Edit Photo Details")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showingEditSheet = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Save") {
+                                photo.date = editDate
+                                photo.dayKey = DayKey.from(editDate)
+                                if editWeightDisplay > 0 {
+                                    photo.weightKgAtCapture = unitSystem == .metric
+                                        ? editWeightDisplay
+                                        : UnitsFormatter.lbToKg(editWeightDisplay)
+                                }
+                                try? modelContext.save()
+                                showingEditSheet = false
+                            }
+                        }
+                    }
+                }
+            }
+            .confirmationDialog(
+                "Delete Photo?",
+                isPresented: $showingDeleteAlert,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Photo", role: .destructive) {
+                    modelContext.delete(photo)
+                    try? modelContext.save()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 }

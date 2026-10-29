@@ -15,10 +15,11 @@ struct KitchenHubView: View {
     @Query(sort: \SavedMeal.name) private var savedMeals: [SavedMeal]
     @Query(sort: \Food.name) private var allFoods: [Food]
 
-    @State private var selectedSegment: Int = 0 // 0: Recipes, 1: Saved Meals, 2: Custom Foods
+    @State private var selectedSegment: Int = 0 // 0: Recipes, 1: Saved Meals, 2: Custom Foods, 3: Composites
     @State private var searchText: String = ""
     @State private var showingRecipeBuilder: Bool = false
     @State private var showingCustomFoodCreator: Bool = false
+    @State private var showingNoScaleSheet: Bool = false
     @State private var editingRecipe: Recipe? = nil
     @State private var editingFood: Food? = nil
     @State private var selectedFoodForDetail: CatalogSearchItem? = nil
@@ -45,14 +46,21 @@ struct KitchenHubView: View {
         return customFoods.filter { $0.name.lowercased().contains(q) }
     }
 
+    private var filteredComposites: [CompositeFoodEntry] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return CompositeFoodLibrary.entries }
+        return CompositeFoodLibrary.search(query: q, limit: 30)
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Segment Picker
                 Picker("Kitchen Category", selection: $selectedSegment) {
                     Text("Recipes (\(recipes.count))").tag(0)
-                    Text("Saved Meals (\(savedMeals.count))").tag(1)
-                    Text("Custom Foods (\(customFoods.count))").tag(2)
+                    Text("Saved (\(savedMeals.count))").tag(1)
+                    Text("Custom (\(customFoods.count))").tag(2)
+                    Text("Composites (\(CompositeFoodLibrary.entries.count))").tag(3)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
@@ -83,8 +91,10 @@ struct KitchenHubView: View {
                     recipesList
                 case 1:
                     savedMealsList
-                default:
+                case 2:
                     customFoodsList
+                default:
+                    compositesList
                 }
             }
             .navigationTitle("Kitchen")
@@ -101,8 +111,10 @@ struct KitchenHubView: View {
                             // Prompt to stage from search
                             appState.openQuickAdd(tab: 0)
                             dismiss()
-                        } else {
+                        } else if selectedSegment == 2 {
                             showingCustomFoodCreator = true
+                        } else {
+                            showingNoScaleSheet = true
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -117,6 +129,15 @@ struct KitchenHubView: View {
                 CustomFoodEditorSheet(existingFood: nil, prefilledBarcode: nil, parsedLabel: nil) { created in
                     selectedFoodForDetail = .persisted(created)
                 }
+            }
+            .sheet(isPresented: $showingNoScaleSheet) {
+                NoScaleEstimatorSheet(
+                    dayKey: appState.selectedDayKey,
+                    initialMealTag: .none,
+                    onLoggedDirectly: {
+                        dismiss()
+                    }
+                )
             }
             .sheet(item: $editingFood) { food in
                 CustomFoodEditorSheet(existingFood: food, prefilledBarcode: food.barcode, parsedLabel: nil) { _ in }
@@ -377,5 +398,62 @@ struct KitchenHubView: View {
         try? modelContext.save()
         _ = CoachingCoordinator.evaluate(forDayKey: dayKey, context: modelContext)
         dismiss()
+    }
+
+    // MARK: - 4. Composites & Street Food Tab
+
+    private var compositesList: some View {
+        List {
+            Section {
+                Button {
+                    showingNoScaleSheet = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.raised.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color.accentColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Open No-Scale & Container Estimator")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                            Text("Visual palm, fist, thumb proportions & standardized takeout containers")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Section("Street Foods & Hand Benchmarks (\(filteredComposites.count))") {
+                ForEach(filteredComposites) { entry in
+                    Button {
+                        selectedFoodForDetail = .composite(entry)
+                    } label: {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(entry.name)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+
+                                Text("\(entry.category.rawValue) • \(entry.defaultServingLabel)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+
+                                Text("\(Int(entry.perServingNutrients.protein.rounded()))g P • \(Int(entry.perServingNutrients.carbs.rounded()))g C • \(Int(entry.perServingNutrients.fat.rounded()))g F")
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text("\(Int(entry.perServingNutrients.calories.rounded())) kcal")
+                                .font(.caption.weight(.bold).monospacedDigit())
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.vertical, 3)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }

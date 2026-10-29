@@ -13,6 +13,11 @@ struct SettingsView: View {
     @State private var exportedFileURL: URL? = nil
     @State private var showingStrongImporter: Bool = false
     @State private var importStatusMessage: String? = nil
+    @State private var exportPackage: ExportAllArchiveService.ExportPackage? = nil
+    @State private var showingExportSheet: Bool = false
+    @State private var isGeneratingExport: Bool = false
+    @State private var healthSyncSummary: HealthSyncSummary? = nil
+    @State private var isHealthSyncing: Bool = false
 
     // Optional Gemini API configuration (Keychain-backed via GeminiConfigStore)
     @State private var geminiEnabled: Bool = GeminiConfigStore.isEnabled
@@ -219,15 +224,75 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Apple Health & Cloud Sync") {
+                Section("Apple Health Bi-Directional Sync (v1.5.3)") {
                     Button {
+                        isHealthSyncing = true
                         Task {
-                            _ = await healthService.requestPermissions()
-                            await healthService.importExternalBodyMetrics(context: modelContext)
-                            await healthService.refreshTodayDashboardTelemetry()
+                            let summary = await healthService.performFullTwoWaySync(context: modelContext)
+                            await MainActor.run {
+                                healthSyncSummary = summary
+                                isHealthSyncing = false
+                            }
                         }
                     } label: {
-                        Label("Sync Apple Health Now", systemImage: "arrow.triangle.2.circlepath")
+                        HStack {
+                            Label("Two-Way Apple Health Sync", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            if isHealthSyncing {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
+                    .disabled(isHealthSyncing)
+
+                    if let summary = healthSyncSummary {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Last Sync: \(summary.totalEvents) events processed")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                            Text("• Pushed to Health: \(summary.foodExported) meals, \(summary.weighInsExported) weigh-ins, \(summary.workoutsExported) workouts")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text("• Pulled from Health: \(summary.foodImported) external meals, \(summary.weighInsImported) weigh-ins")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+
+                    Button {
+                        Task {
+                            let res = await healthService.syncAllHistoryToAppleHealth(context: modelContext)
+                            await MainActor.run {
+                                importStatusMessage = "Synced to Apple Health:\n• \(res.foodSynced) meals\n• \(res.weighInsSynced) weigh-ins\n• \(res.workoutsSynced) completed workouts\n\nOther fitness & health apps on your iPhone can now access this data."
+                            }
+                        }
+                    } label: {
+                        Label("Sync All History to Apple Health", systemImage: "arrow.up.heart")
+                    }
+
+                    Button {
+                        Task {
+                            let imported = await healthService.importExternalDietaryIntake(context: modelContext)
+                            await MainActor.run {
+                                importStatusMessage = imported > 0
+                                    ? "Imported \(imported) external meals from Apple Health into your daily nutrition log."
+                                    : "No new external meals found in Apple Health."
+                            }
+                        }
+                    } label: {
+                        Label("Import Nutrition from Apple Health", systemImage: "arrow.down.heart")
+                    }
+
+                    if let lastSync = healthService.lastSyncDate {
+                        HStack {
+                            Text("Last Synced")
+                            Spacer()
+                            Text(lastSync.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Toggle("iCloud / CloudKit Sync (Paid Dev Account)", isOn: Binding(
@@ -302,27 +367,68 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("CSV Data Import & Export (§13)") {
+                Section("Data Migration & AI Analysis (v1.5.3)") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Export All App Data")
+                            .font(.headline)
+                        Text("Download your complete history in universal CSVs, structured JSON, and an AI prompt-ready Markdown digest formatted for ChatGPT, Claude, and Gemini analysis or migration.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Button {
+                            isGeneratingExport = true
+                            Task {
+                                let pkg = try? ExportAllArchiveService.generateExportPackage(context: modelContext)
+                                await MainActor.run {
+                                    exportPackage = pkg
+                                    isGeneratingExport = false
+                                    if pkg != nil {
+                                        showingExportSheet = true
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Label("Export All Data (CSV + AI Prompt)", systemImage: "arrow.up.doc.fill")
+                                    .font(.headline)
+                                Spacer()
+                                if isGeneratingExport {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isGeneratingExport)
+                    }
+                    .padding(.vertical, 4)
+
                     Button {
                         showingStrongImporter = true
                     } label: {
                         Label("Import Strong / Workout CSV...", systemImage: "square.and.arrow.down")
                     }
 
-                    Button("Generate Food Log CSV") {
-                        exportedFileURL = try? CSVExportService.exportFoodLogCSV(context: modelContext)
-                    }
-                    Button("Generate Weigh-Ins & Trend CSV") {
-                        exportedFileURL = try? CSVExportService.exportWeighInsCSV(context: modelContext)
-                    }
-                    Button("Generate Workouts & Sets CSV") {
-                        exportedFileURL = try? CSVExportService.exportWorkoutsCSV(context: modelContext)
-                    }
+                    DisclosureGroup("Individual CSV Exports") {
+                        Button("Generate Food Log CSV") {
+                            exportedFileURL = try? CSVExportService.exportFoodLogCSV(context: modelContext)
+                        }
+                        Button("Generate Weigh-Ins & Trend CSV") {
+                            exportedFileURL = try? CSVExportService.exportWeighInsCSV(context: modelContext)
+                        }
+                        Button("Generate Workouts & Sets CSV") {
+                            exportedFileURL = try? CSVExportService.exportWorkoutsCSV(context: modelContext)
+                        }
 
-                    if let url = exportedFileURL {
-                        ShareLink(item: url) {
-                            Label("Share \(url.lastPathComponent)", systemImage: "square.and.arrow.up")
-                                .fontWeight(.semibold)
+                        if let url = exportedFileURL {
+                            ShareLink(item: url) {
+                                Label("Share \(url.lastPathComponent)", systemImage: "square.and.arrow.up")
+                                    .fontWeight(.semibold)
+                            }
                         }
                     }
                 }
@@ -370,6 +476,15 @@ struct SettingsView: View {
             } message: {
                 Text(importStatusMessage ?? "")
             }
+            .sheet(isPresented: $showingExportSheet) {
+                if let pkg = exportPackage {
+                    #if canImport(UIKit)
+                    ActivityView(activityItems: pkg.fileURLs)
+                    #else
+                    Text("Export package ready at \(pkg.folderURL.path)")
+                    #endif
+                }
+            }
             .onChange(of: bindableGoal.ratePercentPerWeek) { _, _ in
                 try? modelContext.save()
                 _ = CoachingCoordinator.evaluate(context: modelContext)
@@ -408,3 +523,16 @@ struct SettingsView: View {
         }
     }
 }
+
+#if canImport(UIKit)
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif

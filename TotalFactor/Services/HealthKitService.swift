@@ -51,6 +51,32 @@ public struct HealthDisplayDashboardStats: Equatable, Sendable {
     public var sleepHoursLastNight: Double? = nil
 }
 
+public struct HealthSyncSummary: Equatable, Sendable {
+    public var foodExported: Int = 0
+    public var weighInsExported: Int = 0
+    public var workoutsExported: Int = 0
+    public var foodImported: Int = 0
+    public var weighInsImported: Int = 0
+
+    public init(
+        foodExported: Int = 0,
+        weighInsExported: Int = 0,
+        workoutsExported: Int = 0,
+        foodImported: Int = 0,
+        weighInsImported: Int = 0
+    ) {
+        self.foodExported = foodExported
+        self.weighInsExported = weighInsExported
+        self.workoutsExported = workoutsExported
+        self.foodImported = foodImported
+        self.weighInsImported = weighInsImported
+    }
+
+    public var totalEvents: Int {
+        foodExported + weighInsExported + workoutsExported + foodImported + weighInsImported
+    }
+}
+
 @MainActor
 @Observable
 public final class HealthKitService {
@@ -124,7 +150,11 @@ public final class HealthKitService {
             .basalEnergyBurned,
             .heartRate,
             .restingHeartRate,
-            .heartRateVariabilitySDNN
+            .heartRateVariabilitySDNN,
+            .dietaryEnergyConsumed,
+            .dietaryProtein,
+            .dietaryCarbohydrates,
+            .dietaryFatTotal
         ]
 
         var toRead: Set<HKObjectType> = [HKObjectType.workoutType()]
@@ -622,6 +652,199 @@ public final class HealthKitService {
         } catch {
             // Permission not granted or Simulator unavailable
         }
+        #endif
+    }
+
+    // MARK: - Full History Sync to Apple Health (v1.5.3)
+
+    public func syncAllHistoryToAppleHealth(context: ModelContext) async -> (foodSynced: Int, weighInsSynced: Int, workoutsSynced: Int) {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return (0, 0, 0) }
+
+        var foodCount = 0
+        var weighInCount = 0
+        var workoutCount = 0
+
+        // 1. Food entries without HK sample IDs
+        let foodEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
+        for entry in foodEntries where entry.healthKitSampleIDs.isEmpty {
+            await syncFoodEntry(entry)
+            if !entry.healthKitSampleIDs.isEmpty {
+                foodCount += 1
+            }
+        }
+
+        // 2. Manual Weigh-ins without HK UUID
+        let weighIns = (try? context.fetch(FetchDescriptor<WeighIn>())) ?? []
+        for weighIn in weighIns where weighIn.source == .manual && weighIn.healthKitUUID == nil {
+            await saveManualWeighIn(weighIn)
+            if weighIn.healthKitUUID != nil {
+                weighInCount += 1
+            }
+        }
+
+        // 3. Completed Strength Workouts without HK UUID
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        for session in sessions where session.isFinished && session.healthKitWorkoutUUID == nil {
+            await saveStrengthWorkout(session)
+            if session.healthKitWorkoutUUID != nil {
+                workoutCount += 1
+            }
+        }
+
+        _ = try? context.save()
+        lastSyncDate = .now
+        return (foodCount, weighInCount, workoutCount)
+        #else
+        return (0, 0, 0)
+        #endif
+    }
+
+    // MARK: - Import External Dietary Intake from Apple Health (v1.5.3)
+
+    public func importExternalDietaryIntake(context: ModelContext, daysBack: Int = 30) async -> Int {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return 0 }
+        let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: .now) ?? .distantPast
+        let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: .now, options: .strictStartDate)
+        let myBundleID = Bundle.main.bundleIdentifier ?? "com.prerak.totalfactor"
+
+        var importedCount = 0
+        let existingEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
+        var knownHKIDs: Set<UUID> = Set(existingEntries.flatMap(\.healthKitSampleIDs))
+
+        // 1. Query HKCorrelationType .food
+        if let foodType = HKCorrelationType.correlationType(forIdentifier: .food) {
+            let correlations: [HKCorrelation] = await withCheckedContinuation { continuation in
+                let query = HKCorrelationQuery(type: foodType, predicate: datePredicate, samplePredicates: nil) { _, correlations, _ in
+                    continuation.resume(returning: correlations ?? [])
+                }
+                store.execute(query)
+            }
+
+            for corr in correlations {
+                let sourceID = corr.sourceRevision.source.bundleIdentifier
+                if sourceID.hasPrefix(myBundleID) { continue }
+                if knownHKIDs.contains(corr.uuid) { continue }
+
+                var calories: Double = 0
+                var protein: Double = 0
+                var carbs: Double = 0
+                var fat: Double = 0
+                var fiber: Double = 0
+                var sugar: Double = 0
+                var sodiumMg: Double = 0
+
+                for obj in corr.objects {
+                    guard let qs = obj as? HKQuantitySample else { continue }
+                    switch qs.quantityType.identifier {
+                    case HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue:
+                        calories = qs.quantity.doubleValue(for: .kilocalorie())
+                    case HKQuantityTypeIdentifier.dietaryProtein.rawValue:
+                        protein = qs.quantity.doubleValue(for: .gram())
+                    case HKQuantityTypeIdentifier.dietaryCarbohydrates.rawValue:
+                        carbs = qs.quantity.doubleValue(for: .gram())
+                    case HKQuantityTypeIdentifier.dietaryFatTotal.rawValue:
+                        fat = qs.quantity.doubleValue(for: .gram())
+                    case HKQuantityTypeIdentifier.dietaryFiber.rawValue:
+                        fiber = qs.quantity.doubleValue(for: .gram())
+                    case HKQuantityTypeIdentifier.dietarySugar.rawValue:
+                        sugar = qs.quantity.doubleValue(for: .gram())
+                    case HKQuantityTypeIdentifier.dietarySodium.rawValue:
+                        sodiumMg = qs.quantity.doubleValue(for: .gram()) * 1000.0
+                    default:
+                        break
+                    }
+                }
+
+                if calories > 0 || protein > 0 || carbs > 0 || fat > 0 {
+                    let foodName = (corr.metadata?[HKMetadataKeyFoodType] as? String)
+                        ?? "\(corr.sourceRevision.source.name) Meal"
+                    let entry = FoodLogEntry(
+                        quickTitle: foodName,
+                        calories: calories,
+                        protein: protein,
+                        carbs: carbs,
+                        fat: fat,
+                        mealTag: .none,
+                        timestamp: corr.startDate
+                    )
+                    entry.foodSourceRaw = FoodSource.healthKit.rawValue
+                    entry.snapshotFiberPer100g = fiber
+                    entry.snapshotSugarPer100g = sugar
+                    entry.snapshotSodiumMgPer100g = sodiumMg
+                    entry.healthKitSampleIDs = [corr.uuid]
+                    context.insert(entry)
+                    knownHKIDs.insert(corr.uuid)
+                    importedCount += 1
+                }
+            }
+        }
+
+        // 2. Query standalone dietaryEnergyConsumed (for external apps that log raw energy without correlation)
+        if let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) {
+            let samples = await fetchQuantitySamples(type: energyType, predicate: datePredicate)
+            for sample in samples {
+                let sourceID = sample.sourceRevision.source.bundleIdentifier
+                if sourceID.hasPrefix(myBundleID) { continue }
+                if knownHKIDs.contains(sample.uuid) { continue }
+
+                let kcal = sample.quantity.doubleValue(for: .kilocalorie())
+                guard kcal > 1.0 else { continue }
+
+                let foodName = (sample.metadata?[HKMetadataKeyFoodType] as? String)
+                    ?? "\(sample.sourceRevision.source.name) Log"
+                let entry = FoodLogEntry(
+                    quickTitle: foodName,
+                    calories: kcal,
+                    protein: 0,
+                    carbs: 0,
+                    fat: 0,
+                    mealTag: .none,
+                    timestamp: sample.startDate
+                )
+                entry.foodSourceRaw = FoodSource.healthKit.rawValue
+                entry.healthKitSampleIDs = [sample.uuid]
+                context.insert(entry)
+                knownHKIDs.insert(sample.uuid)
+                importedCount += 1
+            }
+        }
+
+        _ = try? context.save()
+        lastSyncDate = .now
+        return importedCount
+        #else
+        return 0
+        #endif
+    }
+
+    // MARK: - Unified Two-Way Sync (v1.5.3)
+
+    public func performFullTwoWaySync(context: ModelContext) async -> HealthSyncSummary {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return HealthSyncSummary() }
+        _ = await requestPermissions()
+
+        let (foodOut, weighOut, workoutsOut) = await syncAllHistoryToAppleHealth(context: context)
+        let initialWeighCount = (try? context.fetch(FetchDescriptor<WeighIn>()))?.count ?? 0
+        await importExternalBodyMetrics(context: context)
+        let finalWeighCount = (try? context.fetch(FetchDescriptor<WeighIn>()))?.count ?? 0
+        let weighImported = max(0, finalWeighCount - initialWeighCount)
+
+        let foodImported = await importExternalDietaryIntake(context: context)
+        await refreshTodayDashboardTelemetry()
+        lastSyncDate = .now
+
+        return HealthSyncSummary(
+            foodExported: foodOut,
+            weighInsExported: weighOut,
+            workoutsExported: workoutsOut,
+            foodImported: foodImported,
+            weighInsImported: weighImported
+        )
+        #else
+        return HealthSyncSummary()
         #endif
     }
 

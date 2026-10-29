@@ -29,7 +29,13 @@ public final class AppState {
     public var showingActiveWorkoutFullScreen: Bool = false
     public var pendingShortcutWorkoutName: String? = nil
 
-    public init() {}
+    public init() {
+        for arg in ProcessInfo.processInfo.arguments {
+            if arg.starts(with: "--tab="), let tab = AppTab(rawValue: String(arg.dropFirst("--tab=".count))) {
+                selectedTab = tab
+            }
+        }
+    }
 
     public func openQuickAdd(tab: Int = 0, mealTag: MealTag = .none, autoStartDictation: Bool = false) {
         quickAddInitialTab = tab

@@ -181,7 +181,49 @@ public enum NaturalLanguageMealParser {
         ("protein bar", "protein bar"),
         ("almonds", "almonds raw"),
         ("peanut butter", "peanut butter"),
-        ("honey", "honey")
+        ("honey", "honey"),
+        // Street foods & cultural staples
+        ("panipuri", "panipuri"),
+        ("pani puri", "panipuri"),
+        ("golgappa", "panipuri"),
+        ("gol gappa", "panipuri"),
+        ("puchka", "panipuri"),
+        ("samosas", "samosa"),
+        ("street tacos", "street taco"),
+        ("tacos", "street taco"),
+        ("taco", "street taco"),
+        ("dumplings", "dumplings"),
+        ("momos", "momos"),
+        ("momo", "momos"),
+        ("sushi roll", "sushi roll"),
+        ("sushi", "sushi roll"),
+        ("rotis", "roti"),
+        ("chapati", "roti"),
+        ("chapatis", "roti"),
+        ("daal", "dal tadka"),
+        ("dal", "dal tadka"),
+        ("biryani", "chicken biryani"),
+        ("chicken wings", "chicken wing"),
+        ("wings", "chicken wing"),
+        ("falafels", "falafel"),
+        ("burrito bowl", "burrito bowl"),
+        ("pad thai", "pad thai"),
+        // Hand & container estimators
+        ("palm of chicken", "palm of protein"),
+        ("palm of steak", "palm of protein"),
+        ("palm of meat", "palm of protein"),
+        ("fist of rice", "fist of carbs"),
+        ("fist of pasta", "fist of carbs"),
+        ("fist of oats", "fist of carbs"),
+        ("cupped hand of nuts", "cupped hand of snacks"),
+        ("handful of nuts", "cupped hand of snacks"),
+        ("thumb of oil", "thumb of fat"),
+        ("thumb of butter", "thumb of fat"),
+        ("deli pint of soup", "deli pint"),
+        ("deli pint of curry", "deli pint"),
+        ("deli quart of soup", "deli quart"),
+        ("deli quart of curry", "deli quart"),
+        ("takeout box", "3 compartment takeout")
     ]
 
     public static func parse(
@@ -516,6 +558,31 @@ public enum NaturalLanguageMealParser {
             return .householdUnit(canonicalToken: "can", fallbackGrams: 140.0, displayUnit: "can")
         case "serving", "servings":
             return .householdUnit(canonicalToken: "serving", fallbackGrams: 100.0, displayUnit: "serving")
+        // Zero-Scale Hand & Container units
+        case "palm", "palms":
+            return .householdUnit(canonicalToken: "palm", fallbackGrams: 130.0, displayUnit: "palm")
+        case "fist", "fists":
+            return .householdUnit(canonicalToken: "fist", fallbackGrams: 158.0, displayUnit: "fist")
+        case "thumb", "thumbs":
+            return .householdUnit(canonicalToken: "thumb", fallbackGrams: 14.0, displayUnit: "thumb")
+        case "handful", "handfuls":
+            return .householdUnit(canonicalToken: "handful", fallbackGrams: 50.0, displayUnit: "handful")
+        case "pint", "pints":
+            return .householdUnit(canonicalToken: "pint", fallbackGrams: 450.0, displayUnit: "pint")
+        case "quart", "quarts":
+            return .householdUnit(canonicalToken: "quart", fallbackGrams: 900.0, displayUnit: "quart")
+        case "taco", "tacos":
+            return .householdUnit(canonicalToken: "taco", fallbackGrams: 90.0, displayUnit: "taco")
+        case "wing", "wings":
+            return .householdUnit(canonicalToken: "wing", fallbackGrams: 34.0, displayUnit: "wing")
+        case "roll", "rolls":
+            return .householdUnit(canonicalToken: "roll", fallbackGrams: 200.0, displayUnit: "roll")
+        case "roti", "rotis", "chapati", "chapatis":
+            return .householdUnit(canonicalToken: "roti", fallbackGrams: 35.0, displayUnit: "roti")
+        case "samosa", "samosas":
+            return .householdUnit(canonicalToken: "samosa", fallbackGrams: 100.0, displayUnit: "samosa")
+        case "katori", "katoris":
+            return .householdUnit(canonicalToken: "katori", fallbackGrams: 180.0, displayUnit: "katori")
         case "small":
             return .sizeDescriptor(sizeWord: "small")
         case "medium", "med":
@@ -544,6 +611,31 @@ public enum NaturalLanguageMealParser {
         persistedFoods: [PersistedFoodMatcherItem],
         offlineCatalog: OfflineUSDACatalogIndex
     ) -> ParsedMealDraftItem? {
+        // 0. Check verified Composite & Street Foods first (e.g. Panipuri, Samosa, Street Tacos, Hand Portions)
+        if let composite = CompositeFoodLibrary.find(matching: item.cleanedFoodQuery) {
+            let qty = max(0.25, item.quantity)
+            let totalGrams = max(1.0, composite.servingGrams * qty)
+            let unit = composite.pieceUnitName
+            let formattedQty = (qty.truncatingRemainder(dividingBy: 1) == 0)
+                ? "\(Int(qty))"
+                : String(format: "%.1f", qty)
+            let label = "\(formattedQty) \(unit)\(qty > 1 && !unit.hasSuffix("s") ? "s" : "")"
+
+            return ParsedMealDraftItem(
+                rawSegment: item.rawSegment,
+                foodName: composite.name,
+                brand: composite.category.rawValue,
+                quantity: qty,
+                servingLabel: "\(label) (\(Int(totalGrams.rounded()))g)",
+                grams: totalGrams,
+                nutrientsPer100g: composite.nutrientsPer100g,
+                source: .custom,
+                matchedPersistedFoodID: nil,
+                matchedOfflineUSDASourceID: "composite-\(composite.name.lowercased().replacingOccurrences(of: " ", with: "-"))",
+                matchOriginBadge: "Street Food"
+            )
+        }
+
         let persistedCandidates = persistedFoods.map { pf in
             RankableFoodCandidate(
                 id: pf.id,

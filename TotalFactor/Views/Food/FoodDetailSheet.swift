@@ -82,6 +82,7 @@ struct FoodDetailSheet: View {
         switch target {
         case .persisted(let food): return food.nutrientsPer100g
         case .offlineUSDA(let entry): return entry.nutrientsPer100g
+        case .composite(let entry): return entry.nutrientsPer100g
         }
     }
 
@@ -92,6 +93,7 @@ struct FoodDetailSheet: View {
         switch target {
         case .persisted(let food): return food.servingSizes
         case .offlineUSDA(let entry): return entry.servingSizes
+        case .composite(let entry): return entry.servingSizes
         }
     }
 
@@ -102,6 +104,7 @@ struct FoodDetailSheet: View {
         switch target {
         case .persisted(let food): return food.lastLoggedGrams
         case .offlineUSDA(let entry): return entry.defaultServing.grams
+        case .composite(let entry): return entry.servingGrams
         }
     }
 
@@ -112,6 +115,7 @@ struct FoodDetailSheet: View {
         switch target {
         case .persisted(let food): return food.lastLoggedServingLabel
         case .offlineUSDA(let entry): return entry.defaultServing.label
+        case .composite(let entry): return entry.defaultServingLabel
         }
     }
 
@@ -574,6 +578,11 @@ struct FoodDetailSheet: View {
         } else if case .offlineUSDA(let entry) = target {
             let created = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext, markFavorite: true)
             materializedFood = created
+        } else if case .composite(let entry) = target {
+            let created = CompositeFoodLibrary.materialize(entry, in: modelContext)
+            created.isFavorite = true
+            try? modelContext.save()
+            materializedFood = created
         }
         InlineFoodKeypadHaptics.lightTap()
     }
@@ -610,6 +619,10 @@ struct FoodDetailSheet: View {
             return food
         case .offlineUSDA(let entry):
             let food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            materializedFood = food
+            return food
+        case .composite(let entry):
+            let food = CompositeFoodLibrary.materialize(entry, in: modelContext)
             materializedFood = food
             return food
         }

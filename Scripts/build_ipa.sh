@@ -10,7 +10,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
 export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
-DERIVED_DATA="/tmp/TotalFactorDerivedData"
+DERIVED_DATA="/tmp/TotalFactorDerivedData_SideStoreBuild"
 STAGING_DIR="/tmp/TotalFactorIPAStaging"
 IPA_DEST="$PROJECT_DIR/TotalFactor.ipa"
 
@@ -24,13 +24,21 @@ if command -v xcodegen >/dev/null 2>&1; then
 fi
 
 echo "2/4 Compiling Total Factor workspace (iOS + Watch + Widgets)..."
-xcodebuild \
+BUILD_LOG="/tmp/xcodebuild_ipa.log"
+if ! xcodebuild \
   -project TotalFactor.xcodeproj \
   -scheme TotalFactor \
   -configuration Debug \
   -destination "generic/platform=iOS" \
   -derivedDataPath "$DERIVED_DATA" \
-  build | tail -n 15
+  build > "$BUILD_LOG" 2>&1; then
+  echo "Build failed! Output:"
+  tail -n 25 "$BUILD_LOG"
+  echo "Errors:"
+  grep -C 2 -E "error:" "$BUILD_LOG" || true
+  exit 1
+fi
+echo "    ✓ Workspace build succeeded"
 
 APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphoneos/TotalFactor.app"
 if [[ ! -d "$APP_PATH" ]]; then

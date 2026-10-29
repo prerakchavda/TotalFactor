@@ -273,6 +273,8 @@ struct ThePlateWorkspaceSheet: View {
                 food = f
             case .offlineUSDA(let entry):
                 food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            case .composite(let entry):
+                food = CompositeFoodLibrary.materialize(entry, in: modelContext)
             }
             let mealItem = SavedMealItem(
                 food: food,

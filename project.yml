@@ -41,6 +41,7 @@ targets:
           - "Resources/IconAlternatives/**"
           - "Resources/ExerciseMedia"
           - "Resources/ExerciseMedia/**"
+          - "Resources/SideStore/**"
       - path: TotalFactor/Resources/ExerciseMedia
         type: folder
         buildPhase: resources

@@ -11,19 +11,26 @@
       "bundleIdentifier": "com.prerak.totalfactor",
       "developerName": "Prerak Chavda",
       "subtitle": "Adaptive Nutrition & Smart Gym Tracker",
-      "version": "1.5.1",
+      "version": "1.5.3",
       "versionDate": "2026-10-29",
-      "versionDescription": "Kitchen Rehaul & Workout UI Bug Fixes: The Plate multi-add dock, hourly timeline, adherence strip, recipe explosion, and workout pause/discard fixes.",
-      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.1/TotalFactor.ipa",
+      "versionDescription": "Apple Health Bi-Directional Sync, Universal CSV & AI Digest Export, Zero-Scale Hand Estimators, Street Food Composites & 3-Sec Ballpark Logger.",
+      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.3/TotalFactor.ipa",
       "localizedDescription": "Total Factor is an offline-first, native iOS adaptive macro coach and smart strength training tracker built with SwiftUI, SwiftData, HealthKit, and Apple Intelligence.",
       "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
       "tintColor": "FF5B00",
-      "size": 18738567,
+      "size": 19238519,
       "minOSVersion": "17.0",
       "screenshotURLs": []
     }
   ],
   "news": [
+    {
+      "title": "Total Factor v1.5.3 Released!",
+      "identifier": "v1.5.3-release",
+      "caption": "Real-World & Zero-Scale Food Logging: No-Scale Hand & Container Estimators, 3-Sec Ballpark Logger, Street Food Composites & Unified Plate.",
+      "date": "2026-10-29",
+      "appID": "com.prerak.totalfactor"
+    },
     {
       "title": "Total Factor v1.5.1 Released!",
       "identifier": "v1.5.1-release",

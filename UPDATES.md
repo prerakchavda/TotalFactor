@@ -6,6 +6,84 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.3 — Build 12 (2026-10-29)
+
+### 1. Apple Health Bi-Directional Synchronization & History Back-Sync
+- **"Two-Way Apple Health Sync" (`HealthKitService.swift`, `SettingsView.swift`)**:
+  - Full bidirectional sync engine between Total Factor and Apple Health with live events counter.
+  - Added read permissions for dietary calories and macronutrients (`.dietaryEnergyConsumed`, `.dietaryProtein`, `.dietaryCarbohydrates`, `.dietaryFatTotal`).
+  - Added new `FoodSource.healthKit` enum case so external meals display an *"Apple Health (External)"* badge.
+- **"Push Complete History to Apple Health"**:
+  - 1-tap historical sync that iterates over all past food entries, manual weigh-ins, and completed strength workouts and pushes any unsynced items directly to Apple Health.
+  - Ensures third-party fitness, diet, or health apps (Apple Fitness, MyFitnessPal, MacroFactor, RP Diet, LoseIt, Strava) immediately have access to all nutrition and training history logged in Total Factor.
+- **"Import Nutrition from Apple Health"**:
+  - Imports external dietary intake logged by third-party apps via Apple Health into Total Factor's daily nutrition log.
+  - Robust bundle ID filtering and UUID deduplication ensures Total Factor's own writes are never duplicated.
+
+### 2. Photo Tracker Fixes & Empty State Drop Zones
+- **Pose Selector Pill Bar (`PhotoCompareView.swift`)**:
+  - Replaced the native segmented control inside `ScrollView` with a custom, haptic-enabled Segmented Pill Bar.
+  - Added live photo count badges (`Front (3)`, `Side (0)`, `Back (1)`) and spring animation.
+  - Pose switching immediately clears selection IDs (`leftPhotoID = nil`, `rightPhotoID = nil`) to prevent comparison freezes.
+- **Interactive Empty State Drop Zones**:
+  - The "No Side/Back Photos Yet" empty placeholder card is now an interactive drop zone with dashed accent border.
+  - Tapping anywhere on the empty card or the primary button directly opens the photo picker or camera.
+  - Immediate `pickerItem = nil` reset ensures subsequent photo picks always re-trigger without cancellation locks.
+
+### 3. EXIF Capture Metadata & Historical Weight Matching
+- **Past Photo Import & Metadata Extraction (`PhotoMetadataHelper.swift`)**:
+  - Automatically extracts original photo capture timestamps from embedded EXIF/TIFF metadata (`kCGImagePropertyExifDateTimeOriginal`, `DateTimeDigitized`, `TIFFDateTime`) via `ImageIO` without requiring Photo Library permissions.
+  - Automatically queries the user's historical `WeighIn` logs closest to the photo's capture date to populate `weightKgAtCapture`.
+  - Displays a toast banner upon importing a past photo (e.g. *"Imported past photo from 2024-03-12 • 178.4 lbs"*).
+- **Full Screen Photo Viewer Enhancements**:
+  - Added interactive Pose switcher menu allowing users to re-assign photos between Front, Side, and Back poses anytime.
+  - Added Date & Weight editor sheet to adjust capture timestamps and scale weight.
+  - Added destructive photo deletion option.
+
+### 4. "Export All App Data" (Universal CSVs + AI Coaching Digest)
+- **Universal Data Package (`ExportAllArchiveService.swift`, `SettingsView.swift`)**:
+  - Prominent 1-tap **"Export All App Data"** card in Settings that generates a unified export folder and presents the native iOS Share Sheet (Save to Files, AirDrop, Notes, or AI apps).
+  - **`TotalFactor_AI_Digest.md`**: Pre-formatted Markdown report containing user demographics, expenditure targets, a 60-day daily aggregated nutrition & adherence matrix, personal strength PRs, and an evidence-based sports nutrition AI coaching prompt ready to paste into ChatGPT, Claude, or Google Gemini.
+  - **`TotalFactor_AllData.json`**: Complete structured JSON export of UserProfile, Goals, FoodLogEntry, WeighIn, WorkoutSession, BodyMetric, and ProgressPhoto records.
+  - **Universal CSVs**: `TotalFactor_FoodLog.csv`, `TotalFactor_WeighIns.csv`, `TotalFactor_Workouts.csv`, and `TotalFactor_BodyMetrics.csv`.
+
+---
+
+## v1.5.2 — Build 11 (2026-10-29)
+
+### 1. Zero-Scale & Real-World Food Logging
+- **"No-Scale & Container Estimator" Sheet (`NoScaleEstimatorSheet.swift`)**:
+  - Built an intuitive visual estimation tool for real-world meals where food scales are unavailable (social dinners, takeout, family gatherings).
+  - **Biological Hand Rulers**: Visual Palm of Protein (~30g P / 130g cooked meat/fish/tofu), Fist of Carbs (~1 cup / 158g rice/pasta/oats), Cupped Hand of Snacks (~½ cup / 50g nuts/chips), and Thumb of Fat (~1 tbsp / 14g butter/oil/peanut butter).
+  - **Takeout Container Presets**: Standardized restaurant containers including Deli Pint (16 oz / 2 cups curry/soup), Deli Quart (32 oz / 4 cups), 3-Compartment Takeout Box (full meal with sides), and Round Foil Tin.
+  - Live aggregated macro calculation with 1-tap **"Add to Plate"** and direct logging.
+- **Cultural & Street Food Composite Library (`CompositeFoodLibrary.swift`)**:
+  - Added verified offline composite library for foods that cannot be weighed raw or on a scale.
+  - **Natural Piece-Count Steppers**: Panipuri/Golgappa (~28 kcal/pc, default 10 pieces = 280 kcal), Samosas (Standard 260 kcal vs Cocktail 90 kcal), Street Tacos (180 kcal), Steamed Dumplings/Momos (45 kcal), Sushi Rolls (320 kcal), Plain Roti (80 kcal), Roti with Ghee (110 kcal), Dal Tadka Katori (150 kcal), Chicken Biryani (320 kcal/cup), Pizza Slices (285 kcal), Chicken Wings (85 kcal), Falafel (60 kcal), Masala Dosa Set (380 kcal), Pav Bhaji (450 kcal), Chole Bhature (620 kcal), Burrito Bowl (720 kcal), and Pad Thai (650 kcal).
+  - All composite dishes are fully searchable in Quick Add and materialize as persistent foods on first log.
+- **"Ballpark My Meal" 3-Second Quick Logger (`MealBallparkSheet.swift`)**:
+  - Ultra-fast 3-second meal logger for buffets, weddings, holiday feasts, dining out, and unmeasured restaurant meals without tracking friction or diet guilt.
+  - 4 General Tiers: Light Snack (~300 kcal: 15P / 35C / 10F), Standard Meal (~650 kcal: 35P / 65C / 25F), Hearty Restaurant Meal (~950 kcal: 45P / 100C / 40F), and Feast / Buffet (~1,350 kcal: 50P / 140C / 65F).
+  - **Meal Vibe Modifiers**: 1-tap chips for `[🍗 High Protein]` (+15g P, -15g C), `[🍟 Fried / Oily]` (+15g F, +135 kcal), and `[🍚 Carb Heavy]` (+30g C, +120 kcal) plus fine-tune calorie slider.
+  - Supports 1-tap "Add to Plate" and direct logging with customizable meal title.
+
+### 2. Voice & Natural Language Parser Enhancements
+- **Street Food & Hand-Size Offline Aliases (`NaturalLanguageMealParser.swift`)**:
+  - Expanded the 2ms deterministic offline natural language parser to automatically resolve street foods, cultural staples, and hand-size descriptors.
+  - Resolves spoken phrases like *"10 panipuri and 2 samosas"*, *"2 street tacos and a handful of chips"*, *"1 palm chicken, 1 fist rice, and 1 thumb olive oil"*, *"deli pint of soup"*, *"takeout container of biryani"*, and *"3 chapatis with ghee and 1 katori of dal"* completely offline with zero API key.
+  - Added new canonical unit kinds: `palm`, `fist`, `thumb`, `handful`, `pint`, `quart`, `taco`, `wing`, `roll`, `roti`, `samosa`, and `katori`.
+
+### 3. Workflow & The Plate Unification
+- **AI Describe & Plate Dock Synergy (`DescribeMealView.swift`, `QuickAddFoodSheet.swift`)**:
+  - Connected `DescribeMealView` directly to `ThePlateDockView`. In `MultiItemMealConfirmationSheet`, users can now tap **"Add to Plate"** to drop voice-described or AI-analyzed items directly into the persistent bottom Plate dock, letting them seamlessly combine AI meals with barcode scans and search items before batch logging.
+  - Added real-world sample prompt chips: *"10 panipuri and 2 samosas"*, *"1 palm chicken, 1 fist rice, and 1 thumb olive oil"*.
+- **Quick Add & Kitchen Hub Integration (`QuickAddFoodSheet.swift`, `KitchenHubView.swift`)**:
+  - Mode 3 ("Quick") in Quick Add now features two prominent 1-tap launcher cards for **Ballpark My Meal** and **No-Scale Estimator** alongside manual macro entry.
+  - Added "Street & Bites" filter tab to Quick Add search for instant 1-tap access to composite foods.
+  - Added "Composites" segment tab to Kitchen Hub displaying all 20+ verified street foods and hand benchmarks with 1-tap access to the No-Scale Estimator.
+
+---
+
 ## v1.5.1 — Build 10 (2026-10-29)
 
 ### 1. Workout UI & Stability Bug Fixes

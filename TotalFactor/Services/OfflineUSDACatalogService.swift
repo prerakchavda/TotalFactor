@@ -6,11 +6,13 @@ import SwiftData
 public enum CatalogSearchItem: Identifiable {
     case persisted(Food)
     case offlineUSDA(OfflineUSDAFoodEntry)
+    case composite(CompositeFoodEntry)
 
     public var id: UUID {
         switch self {
         case .persisted(let food): return food.id
         case .offlineUSDA(let entry): return entry.id
+        case .composite(let entry): return entry.id
         }
     }
 
@@ -18,6 +20,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.name
         case .offlineUSDA(let entry): return entry.name
+        case .composite(let entry): return entry.name
         }
     }
 
@@ -25,6 +28,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.brand
         case .offlineUSDA(let entry): return entry.brand
+        case .composite(let entry): return entry.category.rawValue
         }
     }
 
@@ -32,20 +36,21 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.source
         case .offlineUSDA: return .usda
+        case .composite: return .custom
         }
     }
 
     public var isFavorite: Bool {
         switch self {
         case .persisted(let food): return food.isFavorite
-        case .offlineUSDA: return false
+        case .offlineUSDA, .composite: return false
         }
     }
 
     public var allowOneTapRepeat: Bool {
         switch self {
         case .persisted(let food): return food.useCount > 0
-        case .offlineUSDA: return false
+        case .offlineUSDA, .composite: return false
         }
     }
 
@@ -53,6 +58,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.caloriesPer100g
         case .offlineUSDA(let entry): return entry.calories
+        case .composite(let entry): return entry.nutrientsPer100g.calories
         }
     }
 
@@ -60,6 +66,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.lastLoggedServingLabel
         case .offlineUSDA(let entry): return entry.defaultServing.label
+        case .composite(let entry): return entry.defaultServingLabel
         }
     }
 
@@ -69,6 +76,8 @@ public enum CatalogSearchItem: Identifiable {
             return food.macrosOnlyPer100g.scaled(forGrams: food.lastLoggedGrams)
         case .offlineUSDA(let entry):
             return entry.macrosOnlyPer100g.scaled(forGrams: entry.defaultServing.grams)
+        case .composite(let entry):
+            return entry.perServingNutrients
         }
     }
 
@@ -76,6 +85,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.servingSizes
         case .offlineUSDA(let entry): return entry.servingSizes
+        case .composite(let entry): return entry.servingSizes
         }
     }
 
@@ -85,6 +95,8 @@ public enum CatalogSearchItem: Identifiable {
             return food.servingSizes.first ?? ServingSize(label: "100 g", grams: 100)
         case .offlineUSDA(let entry):
             return entry.defaultServing
+        case .composite(let entry):
+            return entry.defaultServing
         }
     }
 
@@ -92,6 +104,7 @@ public enum CatalogSearchItem: Identifiable {
         switch self {
         case .persisted(let food): return food.nutrientsPer100g
         case .offlineUSDA(let entry): return entry.nutrientsPer100g
+        case .composite(let entry): return entry.nutrientsPer100g
         }
     }
 }
@@ -211,7 +224,21 @@ public final class OfflineUSDACatalogService: @unchecked Sendable {
             now: now
         )
 
-        return ranked.compactMap { candidate in
+        var results: [CatalogSearchItem] = []
+        let trimmedQ = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedQ.isEmpty {
+            let compositeMatches = CompositeFoodLibrary.search(query: trimmedQ, limit: 4)
+            for c in compositeMatches {
+                results.append(.composite(c))
+            }
+        } else {
+            // Surface popular composite staples for zero-scale logging
+            for c in CompositeFoodLibrary.entries.prefix(6) {
+                results.append(.composite(c))
+            }
+        }
+
+        let usdaAndPersisted = ranked.compactMap { candidate -> CatalogSearchItem? in
             if let existing = foodByID[candidate.id] {
                 return .persisted(existing)
             }
@@ -223,6 +250,9 @@ public final class OfflineUSDACatalogService: @unchecked Sendable {
             }
             return nil
         }
+
+        results.append(contentsOf: usdaAndPersisted)
+        return results
     }
 
     /// Materializes an `OfflineUSDAFoodEntry` as a persistent SwiftData `Food` `@Model` row on first log, favorite, or recipe use,
