@@ -6,6 +6,68 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.5 — Build 14 (2026-10-29) — HealthKit External Nutrition Sync Engine & Bug Fixes (1.5.3.x Fixes)
+
+### 1. Robust Multi-App Nutrition Ingestion Engine (`HealthKitService.swift`)
+- **Zero Duplicate Calorie & Macro Ingestion**:
+  - Fixed a fundamental HealthKit query collision where meals logged in external apps (MacroFactor, MyFitnessPal, Cronometer, Lose It) via `HKCorrelationType.food` were being imported a second time as standalone `dietaryEnergyConsumed` entries with `0g` macros.
+  - Extracted all child `HKQuantitySample` UUIDs from active correlations and blacklisted them from standalone calorie ingestion, ensuring single-entry ingestion for every external meal.
+- **Bi-Directional Deletion & Modification Reconciliation**:
+  - Total Factor now actively reconciles external entries against HealthKit. When a meal is deleted or changed in MacroFactor, MyFitnessPal, or Apple Health, Total Factor automatically prunes the deleted entry from SwiftData or updates its macros in-place without generating duplicates.
+- **Automatic Time-of-Day Meal Tagging**:
+  - Replaced unassigned `.none` tags with intelligent time-of-day timeline placement:
+    - 5am–11am: `.breakfast`
+    - 11am–3pm: `.lunch`
+    - 3pm–6pm: `.snack`
+    - 6pm–10pm: `.dinner`
+    - 10pm–5am: `.snack`
+- **Dynamic App Name Attribution & Food Title Fallback**:
+  - Dynamically extracts the external source name (`sourceRevision.source.name`) e.g. "MacroFactor", "MyFitnessPal", "Cronometer", "Lose It!".
+  - If a specific food item name is present (`HKMetadataKeyFoodType`), Total Factor preserves it (e.g. *"Chicken Breast"*).
+  - If an app syncs an hourly or aggregate meal block (common with MacroFactor's hourly mode), Total Factor synthesizes a clean, natural title like `MacroFactor Lunch` or `MyFitnessPal Breakfast` and stores the brand for app-level attribution.
+- **Loop & Re-Export Prevention**:
+  - Added strict guards in `syncFoodEntry` and `syncAllHistoryToAppleHealth` preventing Total Factor from ever re-exporting third-party imported meals back to HealthKit.
+
+### 2. Timeline & Settings Polish (`MacroZoneBar.swift`, `FoodTimelineView.swift`, `SettingsView.swift`)
+- **App-Specific Provenance Badges**:
+  - Enhanced `FoodSourceBadge` to take an optional `brand` parameter. Third-party meals now proudly display their source app name (`MacroFactor`, `MyFitnessPal`, `Cronometer`) in a themed pink pill on timeline cards and hour-by-hour logs.
+- **One-Tap "Remove All Imported HealthKit Meals" Safety Tool**:
+  - Added a dedicated maintenance tool under Settings $\rightarrow$ Apple Health with a native confirmation dialog to wipe only third-party imported HealthKit meals. Local foods, custom items, and recipes created in Total Factor are strictly protected.
+
+---
+
+## v1.5.4 — Build 13 (2026-10-29)
+
+### 1. SideStore & AltStore Visual Makeover & Schema v2 Upgrade
+- **High-Res App Icon & Source Branding (`icon.png`, `source.json`)**:
+  - Fixed missing logo in SideStore / AltStore: resolved 404 URL caused by mismatched raw file naming by publishing dedicated 1024×1024 `icon.png` in `TotalFactor/Resources/SideStore/`.
+  - Added fallback `AppIcon-1024.png` to asset catalog and symlink for full backward compatibility.
+- **Official 16:9 News & Store Banner (`banner.png`, 1200×675)**:
+  - Designed high-resolution hero graphic featuring a deep midnight charcoal background (`#10141D`), flame orange radiant ambient glow, embossed app icon squircle, and SF Pro typography with feature badges.
+  - Linked as `headerURL` in source manifest and featured visual card in SideStore News feed.
+- **Full Retina iOS 17 Preview Screenshot Gallery**:
+  - Added 4 high-resolution (1206×2622) iPhone screenshots showcasing core workflows:
+    1. **Today Dashboard (`screenshot_today.png`)**: Live adherence rings, calories burned, weight trend, and active macro gauges.
+    2. **Food Log & The Plate (`screenshot_food.png`)**: 7-day adherence strip, hourly timeline, and persistent Plate dock.
+    3. **Smart Strength Tracker (`screenshot_train.png`)**: Live workout session, RIR pills, active rest timer, and hypertrophy volume targets.
+    4. **Progress & Adaptive Coaching (`screenshot_progress.png`)**: Dynamic TDEE expenditure chart, weight moving average, and weekly coaching check-in banner.
+- **SideStore Schema v2 Manifest & Rich Metadata**:
+  - Restructured `TotalFactor/Resources/SideStore/source.json` to conform to official SideStore schema v2.
+  - Added `versions` array preserving historical releases (v1.5.0 through v1.5.4) with individual download URLs and byte sizes.
+  - Added `permissions` array for Camera, Photos, Microphone, and Speech Recognition with clear user explanations.
+  - Added rich Markdown `localizedDescription` breaking down Adaptive TDEE, The Plate, Strength Tracker, and offline privacy.
+  - Configured `tintColor: "FF5B00"` and `category: "fitness"`.
+- **Release Automation Polish (`Scripts/publish_sidestore_release.sh`)**:
+  - Updated publisher script to automatically maintain the `versions` array, news banner graphics, and preserve rich metadata during future releases.
+
+### 2. Deep Linking & UI Robustness
+- **Custom URL Scheme Handler (`Info.plist`, `RootTabView.swift`)**:
+  - Added `CFBundleURLTypes` registering `totalfactor://` URL scheme for quick-launch widgets and shortcuts.
+- **Exhaustive Switch Fix (`MacroZoneBar.swift`)**:
+  - Added `.healthKit` badge color case (`.pink`) to eliminate Swift compiler warnings.
+
+---
+
 ## v1.5.3 — Build 12 (2026-10-29)
 
 ### 1. Apple Health Bi-Directional Synchronization & History Back-Sync

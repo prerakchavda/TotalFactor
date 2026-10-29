@@ -53,7 +53,7 @@ source_path = '$SOURCE_JSON'
 with open(source_path, 'r') as f:
     data = json.load(f)
 
-desc = 'Apple Health Bi-Directional Sync, Universal CSV & AI Digest Export, Zero-Scale Hand Estimators, Street Food Composites & 3-Sec Ballpark Logger.'
+desc = 'HealthKit External Nutrition Sync Engine: Zero-duplicate ingestion, multi-app attribution (MacroFactor, MyFitnessPal, Cronometer), bi-directional deletion reconciliation, and auto meal slotting.'
 
 for app in data.get('apps', []):
     if app.get('bundleIdentifier') == 'com.prerak.totalfactor':
@@ -63,14 +63,45 @@ for app in data.get('apps', []):
         app['size'] = int('$FILE_SIZE')
         app['downloadURL'] = f'https://github.com/prerakchavda/TotalFactor/releases/download/v$VERSION/TotalFactor.ipa'
 
+        # Update or prepend versions array
+        versions = app.get('versions', [])
+        ver_entry = next((v for v in versions if v.get('version') == '$VERSION'), None)
+        if ver_entry:
+            ver_entry['date'] = '$TODAY'
+            ver_entry['size'] = int('$FILE_SIZE')
+            ver_entry['localizedDescription'] = desc
+            ver_entry['downloadURL'] = f'https://github.com/prerakchavda/TotalFactor/releases/download/v$VERSION/TotalFactor.ipa'
+        else:
+            versions.insert(0, {
+                'version': '$VERSION',
+                'date': '$TODAY',
+                'localizedDescription': desc,
+                'downloadURL': f'https://github.com/prerakchavda/TotalFactor/releases/download/v$VERSION/TotalFactor.ipa',
+                'size': int('$FILE_SIZE'),
+                'minOSVersion': '17.0'
+            })
+        app['versions'] = versions
+
 news_list = data.get('news', [])
 news_id = 'v$VERSION-release'
-if not any(n.get('identifier') == news_id for n in news_list):
+existing_news = next((n for n in news_list if n.get('identifier') == news_id), None)
+if existing_news:
+    existing_news['title'] = f'Total Factor v$VERSION Released!'
+    existing_news['caption'] = desc
+    existing_news['date'] = '$TODAY'
+    existing_news['tintColor'] = 'FF5B00'
+    existing_news['imageURL'] = 'https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png'
+    existing_news['notify'] = True
+    existing_news['appID'] = 'com.prerak.totalfactor'
+else:
     news_list.insert(0, {
         'title': f'Total Factor v$VERSION Released!',
         'identifier': news_id,
         'caption': desc,
         'date': '$TODAY',
+        'tintColor': 'FF5B00',
+        'imageURL': 'https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png',
+        'notify': True,
         'appID': 'com.prerak.totalfactor'
     })
 data['news'] = news_list

@@ -3,7 +3,7 @@
   "name": "Total Factor",
   "identifier": "com.prerak.totalfactor.source",
   "subtitle": "Adaptive Nutrition Coach & Smart Strength Training Tracker",
-  "description": "Official community source for Total Factor — an offline-first, native iOS adaptive nutrition coach and smart strength training tracker with on-device Apple Intelligence, Vision plate logging, and MacroFactor-style workout UI.",
+  "description": "Official community source for Total Factor \u2014 an offline-first, native iOS adaptive nutrition coach and smart strength training tracker with on-device Apple Intelligence, Vision plate logging, and MacroFactor-style workout UI.",
   "website": "https://github.com/prerakchavda/TotalFactor",
   "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/icon.png",
   "headerURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
@@ -19,11 +19,11 @@
       "minOSVersion": "17.0",
       "iconURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/icon.png",
       "headerURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
-      "version": "1.5.3",
+      "version": "1.5.5",
       "versionDate": "2026-10-29",
-      "versionDescription": "Apple Health Bi-Directional Sync, Complete History Push, Universal CSV & AI Digest Export, Zero-Scale Hand Estimators, Street Food Composites & 3-Sec Ballpark Logger.",
-      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.3/TotalFactor.ipa",
-      "size": 19238519,
+      "versionDescription": "HealthKit External Nutrition Sync Engine: Zero-duplicate ingestion, multi-app attribution (MacroFactor, MyFitnessPal, Cronometer), bi-directional deletion reconciliation, and auto meal slotting.",
+      "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.5/TotalFactor.ipa",
+      "size": 19252475,
       "permissions": [
         {
           "type": "camera",
@@ -48,14 +48,30 @@
         "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/screenshot_train.png",
         "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/screenshot_progress.png"
       ],
-      "localizedDescription": "### Total Factor — Adaptive Nutrition & Smart Strength Tracker\n\nTotal Factor is an offline-first, native iOS fitness powerhouse combining an **evidence-based adaptive nutrition coach** with a **MacroFactor-inspired smart gym tracker**.\n\nBuilt entirely in modern SwiftUI and SwiftData, Total Factor runs completely on-device with zero subscription fees, zero cloud locks, and zero advertisements.\n\n---\n\n#### ⚡ Adaptive Energy Expenditure (TDEE)\n- **True Metabolic Trend Engine**: Dynamically calculates your real Total Daily Energy Expenditure from your daily calorie intake and weight trend without relying on inaccurate smartwatch burn estimates.\n- **Adherence-Neutral Weekly Check-Ins**: Guided coaching reviews adjust your macro targets automatically whether you ate over or under target—no guilt, no penalties.\n- **Adaptive Rate of Loss / Gain**: Intelligently scales weekly caloric targets to maintain your chosen rate of body change.\n\n#### 🥗 Frictionless Food Logging & The Plate\n- **The Plate Multi-Add Dock**: Stage multiple food items, barcode scans, custom recipes, and quick adds into a unified bottom tray before committing—reducing logging time by 75%.\n- **Hour-by-Hour Nutrition Timeline**: View your food intake organized by hour with macro distribution charts and adherence rings.\n- **Zero-Scale Hand & Container Estimators**: Visual palm, fist, cupped hand, and thumb estimators plus standard takeout containers (deli pints, quarts, foil tins) for real-world dining.\n- **Street & Cultural Food Library**: Pre-configured composite foods with piece-count steppers for foods you cannot weigh raw (street tacos, samosas, momos, sushi rolls, biryani bowls).\n- **3-Second Ballpark Logger**: Rapid 1-tap logging for social dining, weddings, and buffets.\n- **Offline Voice & Vision Describe**: Speak meals naturally or take a photo; on-device Apple Intelligence parses foods into grams and macros.\n\n#### 🏋️ Smart Strength Tracker\n- **MacroFactor-Style Workout UI**: Dedicated gym interface with custom numeric keypad, instantaneous RIR selection, and automatic set completion.\n- **Rest Timer & Live Activities**: Interactive rest timers with Lock Screen, Dynamic Island, and Apple Watch notifications.\n- **Muscle Hypertrophy Target Zones**: Tracks weekly direct volume sets per muscle group to ensure optimal stimulus and avoid overtraining.\n- **Built-in Exercise Library**: 120+ strength movements with animated target diagrams, form cues, and historical PR tracking.\n\n#### 🔒 Complete Privacy & Data Ownership\n- **100% On-Device**: All data stored locally in SwiftData. Works completely offline without internet or cellular reception.\n- **Two-Way Apple Health Sync**: Bidirectional sync for dietary calories, protein, carbs, fat, workouts, and scale weight.\n- **Universal Data Export**: 1-tap export in Settings provides complete CSV packages, structured JSON, and a pre-formatted Markdown AI coaching digest for ChatGPT, Claude, and Gemini.",
+      "localizedDescription": "### Total Factor \u2014 Adaptive Nutrition & Smart Strength Tracker\n\nTotal Factor is an offline-first, native iOS fitness powerhouse combining an **evidence-based adaptive nutrition coach** with a **MacroFactor-inspired smart gym tracker**.\n\nBuilt entirely in modern SwiftUI and SwiftData, Total Factor runs completely on-device with zero subscription fees, zero cloud locks, and zero advertisements.\n\n---\n\n#### \u26a1 Adaptive Energy Expenditure (TDEE)\n- **True Metabolic Trend Engine**: Dynamically calculates your real Total Daily Energy Expenditure from your daily calorie intake and weight trend without relying on inaccurate smartwatch burn estimates.\n- **Adherence-Neutral Weekly Check-Ins**: Guided coaching reviews adjust your macro targets automatically whether you ate over or under target\u2014no guilt, no penalties.\n- **Adaptive Rate of Loss / Gain**: Intelligently scales weekly caloric targets to maintain your chosen rate of body change.\n\n#### \ud83e\udd57 Frictionless Food Logging & The Plate\n- **The Plate Multi-Add Dock**: Stage multiple food items, barcode scans, custom recipes, and quick adds into a unified bottom tray before committing\u2014reducing logging time by 75%.\n- **Hour-by-Hour Nutrition Timeline**: View your food intake organized by hour with macro distribution charts and adherence rings.\n- **Zero-Scale Hand & Container Estimators**: Visual palm, fist, cupped hand, and thumb estimators plus standard takeout containers (deli pints, quarts, foil tins) for real-world dining.\n- **Street & Cultural Food Library**: Pre-configured composite foods with piece-count steppers for foods you cannot weigh raw (street tacos, samosas, momos, sushi rolls, biryani bowls).\n- **3-Second Ballpark Logger**: Rapid 1-tap logging for social dining, weddings, and buffets.\n- **Offline Voice & Vision Describe**: Speak meals naturally or take a photo; on-device Apple Intelligence parses foods into grams and macros.\n\n#### \ud83c\udfcb\ufe0f Smart Strength Tracker\n- **MacroFactor-Style Workout UI**: Dedicated gym interface with custom numeric keypad, instantaneous RIR selection, and automatic set completion.\n- **Rest Timer & Live Activities**: Interactive rest timers with Lock Screen, Dynamic Island, and Apple Watch notifications.\n- **Muscle Hypertrophy Target Zones**: Tracks weekly direct volume sets per muscle group to ensure optimal stimulus and avoid overtraining.\n- **Built-in Exercise Library**: 120+ strength movements with animated target diagrams, form cues, and historical PR tracking.\n\n#### \ud83d\udd12 Complete Privacy & Data Ownership\n- **100% On-Device**: All data stored locally in SwiftData. Works completely offline without internet or cellular reception.\n- **Two-Way Apple Health Sync**: Bidirectional sync for dietary calories, protein, carbs, fat, workouts, and scale weight.\n- **Universal Data Export**: 1-tap export in Settings provides complete CSV packages, structured JSON, and a pre-formatted Markdown AI coaching digest for ChatGPT, Claude, and Gemini.",
       "versions": [
+        {
+          "version": "1.5.5",
+          "date": "2026-10-29",
+          "localizedDescription": "HealthKit External Nutrition Sync Engine: Zero-duplicate ingestion, multi-app attribution (MacroFactor, MyFitnessPal, Cronometer), bi-directional deletion reconciliation, and auto meal slotting.",
+          "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.5/TotalFactor.ipa",
+          "size": 19252475,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.5.4",
+          "date": "2026-10-29",
+          "localizedDescription": "SideStore Community Experience Polish: High-res App Store-grade branding, Retina preview screenshots, 16:9 news banner, Apple Health 2-way sync, universal CSVs, and no-scale hand estimators.",
+          "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.4/TotalFactor.ipa",
+          "size": 19238992,
+          "minOSVersion": "17.0"
+        },
         {
           "version": "1.5.3",
           "date": "2026-10-29",
           "localizedDescription": "Apple Health Bi-Directional Sync, History Push, Photo Tracker Pose Pill Bar, EXIF Past Photo Import, and Universal Export All App Data.",
           "downloadURL": "https://github.com/prerakchavda/TotalFactor/releases/download/v1.5.3/TotalFactor.ipa",
-          "size": 19238519,
+          "size": 19238992,
           "minOSVersion": "17.0"
         },
         {
@@ -86,6 +102,26 @@
     }
   ],
   "news": [
+    {
+      "title": "Total Factor v1.5.5 Released!",
+      "identifier": "v1.5.5-release",
+      "caption": "HealthKit External Nutrition Sync Engine: Zero-duplicate ingestion, multi-app attribution (MacroFactor, MyFitnessPal, Cronometer), bi-directional deletion reconciliation, and auto meal slotting.",
+      "date": "2026-10-29",
+      "tintColor": "FF5B00",
+      "imageURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
+      "notify": true,
+      "appID": "com.prerak.totalfactor"
+    },
+    {
+      "title": "Total Factor v1.5.4 Released!",
+      "identifier": "v1.5.4-release",
+      "caption": "Stunning new visual branding, Retina screenshot gallery, Apple Health bi-directional sync, universal data export, and zero-scale hand estimators.",
+      "date": "2026-10-29",
+      "tintColor": "FF5B00",
+      "imageURL": "https://raw.githubusercontent.com/prerakchavda/TotalFactor/main/TotalFactor/Resources/SideStore/banner.png",
+      "notify": true,
+      "appID": "com.prerak.totalfactor"
+    },
     {
       "title": "Total Factor v1.5.3 Released!",
       "identifier": "v1.5.3-release",

@@ -798,7 +798,7 @@ struct FoodTimelineView: View {
                             Text(entry.foodName)
                                 .font(.subheadline.weight(.medium))
                                 .lineLimit(1)
-                            FoodSourceBadge(source: entry.foodSource)
+                            FoodSourceBadge(source: entry.foodSource, brand: entry.foodBrand)
                         }
                         HStack(spacing: 6) {
                             Text("\(entry.servingLabel) (\(Int(entry.grams.rounded()))g)")

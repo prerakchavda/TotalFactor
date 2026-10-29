@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var isGeneratingExport: Bool = false
     @State private var healthSyncSummary: HealthSyncSummary? = nil
     @State private var isHealthSyncing: Bool = false
+    @State private var showCleanExternalConfirm: Bool = false
 
     // Optional Gemini API configuration (Keychain-backed via GeminiConfigStore)
     @State private var geminiEnabled: Bool = GeminiConfigStore.isEnabled
@@ -283,6 +284,25 @@ struct SettingsView: View {
                         }
                     } label: {
                         Label("Import Nutrition from Apple Health", systemImage: "arrow.down.heart")
+                    }
+
+                    Button(role: .destructive) {
+                        showCleanExternalConfirm = true
+                    } label: {
+                        Label("Remove All Imported HealthKit Meals", systemImage: "trash")
+                    }
+                    .confirmationDialog(
+                        "Remove Imported External Meals?",
+                        isPresented: $showCleanExternalConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Remove All Imported Meals", role: .destructive) {
+                            let count = healthService.clearAllExternalDietaryIntake(context: modelContext)
+                            importStatusMessage = "Removed \(count) external meals previously imported from Apple Health."
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This removes only meals imported from third-party apps (MacroFactor, MyFitnessPal, etc.) via Apple Health. Foods and recipes logged directly inside Total Factor are never touched.")
                     }
 
                     if let lastSync = healthService.lastSyncDate {

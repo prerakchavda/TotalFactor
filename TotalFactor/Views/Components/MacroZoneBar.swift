@@ -130,6 +130,7 @@ struct MacroZoneBar: View {
 
 struct FoodSourceBadge: View {
     let source: FoodSource
+    var brand: String? = nil
 
     private var color: Color {
         switch source {
@@ -142,7 +143,13 @@ struct FoodSourceBadge: View {
     }
 
     var body: some View {
-        Text(source.shortBadge)
+        let label: String = {
+            if source == .healthKit, let brand, !brand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return brand
+            }
+            return source.shortBadge
+        }()
+        Text(label)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)

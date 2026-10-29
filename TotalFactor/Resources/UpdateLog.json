@@ -1,5 +1,68 @@
 [
   {
+    "version": "1.5.5",
+    "build": "14",
+    "date": "2026-10-29",
+    "headline": "HealthKit External Nutrition Sync Engine & Bug Fixes: Zero-Duplicate Ingestion, MacroFactor & Multi-App Support, Auto Time-Slotting, and Sync Reconciliation",
+    "sections": [
+      {
+        "title": "Multi-App External Nutrition Ingestion Engine",
+        "icon": "arrow.triangle.2.circlepath.circle.fill",
+        "items": [
+          "Zero-Duplicate Fix: eliminated HealthKit collision where external meals were imported twice (once with macros, once as standalone 0-macro calorie ghost entries).",
+          "Child Sample Blacklisting: harvested all child quantity sample UUIDs from HKCorrelation food objects to prevent double-counting in standalone energy queries.",
+          "Bi-Directional Deletion Reconciliation: deleting or modifying a food in MacroFactor, MyFitnessPal, or Apple Health automatically prunes or updates the entry in Total Factor on next sync.",
+          "Dynamic App Attribution: dynamically detects external source app names (MacroFactor, MyFitnessPal, Cronometer, Lose It) and assigns proper brand tags.",
+          "Natural Title Synthesis: keeps specific food names from metadata when present, and cleanly synthesizes 'MacroFactor Lunch' or 'MyFitnessPal Breakfast' for hourly/aggregated sync blocks."
+        ]
+      },
+      {
+        "title": "Timeline & App Experience Polish",
+        "icon": "clock.badge.checkmark.fill",
+        "items": [
+          "Auto Time-Slotting: external meals automatically slot into Breakfast, Lunch, Dinner, or Snack based on timestamp rather than landing in untagged space.",
+          "Themed Provenance Badges: FoodSourceBadge displays custom app pills (e.g. 'MacroFactor', 'MyFitnessPal') in themed pink styling on timeline cards and hour-by-hour views.",
+          "Loop Protection: strict safeguards prevent Total Factor from ever re-exporting third-party imported meals back to HealthKit.",
+          "Safety Maintenance Tool: added 1-tap 'Remove All Imported HealthKit Meals' in Settings to safely wipe external entries with zero risk to locally logged foods."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.4",
+    "build": "13",
+    "date": "2026-10-29",
+    "headline": "SideStore Community Makeover: High-Res Logo, 16:9 Banner, Retina Screenshots Gallery, Schema v2, and totalfactor:// URL Scheme",
+    "sections": [
+      {
+        "title": "SideStore & AltStore Visual Makeover",
+        "icon": "sparkles",
+        "items": [
+          "Fixed missing logo in SideStore / AltStore: published high-res 1024×1024 icon.png to eliminate 404 raw GitHub links.",
+          "Official 16:9 widescreen store header & news banner (banner.png) with radiant flame orange glow and typography.",
+          "Full Retina iPhone screenshot gallery showcasing Today rings, Food log & The Plate dock, Strength Tracker, and Dynamic TDEE progress."
+        ]
+      },
+      {
+        "title": "SideStore Schema v2 Manifest",
+        "icon": "doc.badge.gearshape.fill",
+        "items": [
+          "Restructured source manifest to official SideStore schema v2 with versions array for previous release downloads.",
+          "Added permissions declarations for Camera, Photos, Microphone, and Speech Recognition.",
+          "Rich Markdown localized app description highlighting adaptive nutrition and smart training."
+        ]
+      },
+      {
+        "title": "Deep Linking & Reliability",
+        "icon": "link.badge.plus",
+        "items": [
+          "Registered totalfactor:// custom URL scheme for quick actions, widgets, and external launcher shortcuts.",
+          "Resolved exhaustive switch compiler check in MacroZoneBar for Apple Health badge support."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.3",
     "build": "12",
     "date": "2026-10-29",

@@ -151,7 +151,7 @@ struct HourByHourTimelineSection: View {
                             .padding(.vertical, 1.5)
                             .background(Color.purple.opacity(0.15), in: Capsule())
                     } else {
-                        FoodSourceBadge(source: entry.foodSource)
+                        FoodSourceBadge(source: entry.foodSource, brand: entry.foodBrand)
                     }
                 }
 

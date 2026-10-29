@@ -494,6 +494,8 @@ public final class HealthKitService {
     public func syncFoodEntry(_ entry: FoodLogEntry) async {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        // Ground Rule: Never export entries that were imported from HealthKit/third-party apps
+        guard entry.foodSourceRaw != FoodSource.healthKit.rawValue else { return }
         if !entry.healthKitSampleIDs.isEmpty {
             await deleteSamples(uuids: entry.healthKitSampleIDs)
             entry.healthKitSampleIDs = []
@@ -665,9 +667,9 @@ public final class HealthKitService {
         var weighInCount = 0
         var workoutCount = 0
 
-        // 1. Food entries without HK sample IDs
+        // 1. Food entries without HK sample IDs (skipping third-party imported meals)
         let foodEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
-        for entry in foodEntries where entry.healthKitSampleIDs.isEmpty {
+        for entry in foodEntries where entry.foodSourceRaw != FoodSource.healthKit.rawValue && entry.healthKitSampleIDs.isEmpty {
             await syncFoodEntry(entry)
             if !entry.healthKitSampleIDs.isEmpty {
                 foodCount += 1
@@ -700,7 +702,7 @@ public final class HealthKitService {
         #endif
     }
 
-    // MARK: - Import External Dietary Intake from Apple Health (v1.5.3)
+    // MARK: - Import External Dietary Intake from Apple Health (v1.5.5 / 1.5.3.x Bug Fixes)
 
     public func importExternalDietaryIntake(context: ModelContext, daysBack: Int = 30) async -> Int {
         #if canImport(HealthKit)
@@ -710,8 +712,36 @@ public final class HealthKitService {
         let myBundleID = Bundle.main.bundleIdentifier ?? "com.prerak.totalfactor"
 
         var importedCount = 0
-        let existingEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
-        var knownHKIDs: Set<UUID> = Set(existingEntries.flatMap(\.healthKitSampleIDs))
+        let allExistingEntries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
+        let externalEntriesInWindow = allExistingEntries.filter {
+            $0.foodSourceRaw == FoodSource.healthKit.rawValue && $0.timestamp >= startDate
+        }
+
+        var existingEntryByHKID: [UUID: FoodLogEntry] = [:]
+        for entry in externalEntriesInWindow {
+            for id in entry.healthKitSampleIDs {
+                existingEntryByHKID[id] = entry
+            }
+        }
+
+        var activeHKIDsInHealthKit: Set<UUID> = []
+        var correlationChildSampleIDs: Set<UUID> = []
+
+        func inferMealTag(from date: Date) -> MealTag {
+            let hour = Calendar.current.component(.hour, from: date)
+            switch hour {
+            case 5..<11:
+                return .breakfast
+            case 11..<15:
+                return .lunch
+            case 15..<18:
+                return .snack
+            case 18..<22:
+                return .dinner
+            default:
+                return .snack
+            }
+        }
 
         // 1. Query HKCorrelationType .food
         if let foodType = HKCorrelationType.correlationType(forIdentifier: .food) {
@@ -724,8 +754,17 @@ public final class HealthKitService {
 
             for corr in correlations {
                 let sourceID = corr.sourceRevision.source.bundleIdentifier
-                if sourceID.hasPrefix(myBundleID) { continue }
-                if knownHKIDs.contains(corr.uuid) { continue }
+                if sourceID.hasPrefix(myBundleID) || sourceID.hasPrefix("com.prerak.totalfactor") { continue }
+
+                activeHKIDsInHealthKit.insert(corr.uuid)
+
+                // Track all child sample UUIDs to prevent double-counting in step 2
+                for obj in corr.objects {
+                    if let qs = obj as? HKQuantitySample {
+                        correlationChildSampleIDs.insert(qs.uuid)
+                        activeHKIDsInHealthKit.insert(qs.uuid)
+                    }
+                }
 
                 var calories: Double = 0
                 var protein: Double = 0
@@ -758,25 +797,51 @@ public final class HealthKitService {
                 }
 
                 if calories > 0 || protein > 0 || carbs > 0 || fat > 0 {
-                    let foodName = (corr.metadata?[HKMetadataKeyFoodType] as? String)
-                        ?? "\(corr.sourceRevision.source.name) Meal"
-                    let entry = FoodLogEntry(
-                        quickTitle: foodName,
-                        calories: calories,
-                        protein: protein,
-                        carbs: carbs,
-                        fat: fat,
-                        mealTag: .none,
-                        timestamp: corr.startDate
-                    )
-                    entry.foodSourceRaw = FoodSource.healthKit.rawValue
-                    entry.snapshotFiberPer100g = fiber
-                    entry.snapshotSugarPer100g = sugar
-                    entry.snapshotSodiumMgPer100g = sodiumMg
-                    entry.healthKitSampleIDs = [corr.uuid]
-                    context.insert(entry)
-                    knownHKIDs.insert(corr.uuid)
-                    importedCount += 1
+                    let sourceName = corr.sourceRevision.source.name
+                    let mealTag = inferMealTag(from: corr.startDate)
+                    let foodName: String = {
+                        if let foodTypeMeta = corr.metadata?[HKMetadataKeyFoodType] as? String,
+                           !foodTypeMeta.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            return foodTypeMeta
+                        }
+                        let mealLabel = mealTag == .none ? "Meal" : mealTag.displayName
+                        return "\(sourceName) \(mealLabel)"
+                    }()
+
+                    if let existing = existingEntryByHKID[corr.uuid] {
+                        // Reconcile and update in-place
+                        existing.foodName = foodName
+                        existing.foodBrand = sourceName
+                        existing.snapshotCaloriesPer100g = calories
+                        existing.snapshotProteinPer100g = protein
+                        existing.snapshotCarbsPer100g = carbs
+                        existing.snapshotFatPer100g = fat
+                        existing.snapshotFiberPer100g = fiber
+                        existing.snapshotSugarPer100g = sugar
+                        existing.snapshotSodiumMgPer100g = sodiumMg
+                        if existing.mealTag == .none {
+                            existing.mealTag = mealTag
+                        }
+                    } else {
+                        let entry = FoodLogEntry(
+                            quickTitle: foodName,
+                            calories: calories,
+                            protein: protein,
+                            carbs: carbs,
+                            fat: fat,
+                            mealTag: mealTag,
+                            timestamp: corr.startDate
+                        )
+                        entry.foodBrand = sourceName
+                        entry.foodSourceRaw = FoodSource.healthKit.rawValue
+                        entry.snapshotFiberPer100g = fiber
+                        entry.snapshotSugarPer100g = sugar
+                        entry.snapshotSodiumMgPer100g = sodiumMg
+                        entry.healthKitSampleIDs = [corr.uuid]
+                        context.insert(entry)
+                        existingEntryByHKID[corr.uuid] = entry
+                        importedCount += 1
+                    }
                 }
             }
         }
@@ -786,28 +851,59 @@ public final class HealthKitService {
             let samples = await fetchQuantitySamples(type: energyType, predicate: datePredicate)
             for sample in samples {
                 let sourceID = sample.sourceRevision.source.bundleIdentifier
-                if sourceID.hasPrefix(myBundleID) { continue }
-                if knownHKIDs.contains(sample.uuid) { continue }
+                if sourceID.hasPrefix(myBundleID) || sourceID.hasPrefix("com.prerak.totalfactor") { continue }
+
+                // Exclude any sample that is a child of an HKCorrelation
+                if correlationChildSampleIDs.contains(sample.uuid) { continue }
+
+                activeHKIDsInHealthKit.insert(sample.uuid)
 
                 let kcal = sample.quantity.doubleValue(for: .kilocalorie())
                 guard kcal > 1.0 else { continue }
 
-                let foodName = (sample.metadata?[HKMetadataKeyFoodType] as? String)
-                    ?? "\(sample.sourceRevision.source.name) Log"
-                let entry = FoodLogEntry(
-                    quickTitle: foodName,
-                    calories: kcal,
-                    protein: 0,
-                    carbs: 0,
-                    fat: 0,
-                    mealTag: .none,
-                    timestamp: sample.startDate
-                )
-                entry.foodSourceRaw = FoodSource.healthKit.rawValue
-                entry.healthKitSampleIDs = [sample.uuid]
-                context.insert(entry)
-                knownHKIDs.insert(sample.uuid)
-                importedCount += 1
+                let sourceName = sample.sourceRevision.source.name
+                let mealTag = inferMealTag(from: sample.startDate)
+                let foodName: String = {
+                    if let foodTypeMeta = sample.metadata?[HKMetadataKeyFoodType] as? String,
+                       !foodTypeMeta.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        return foodTypeMeta
+                    }
+                    let mealLabel = mealTag == .none ? "Log" : mealTag.displayName
+                    return "\(sourceName) \(mealLabel)"
+                }()
+
+                if let existing = existingEntryByHKID[sample.uuid] {
+                    existing.foodName = foodName
+                    existing.foodBrand = sourceName
+                    existing.snapshotCaloriesPer100g = kcal
+                    if existing.mealTag == .none {
+                        existing.mealTag = mealTag
+                    }
+                } else {
+                    let entry = FoodLogEntry(
+                        quickTitle: foodName,
+                        calories: kcal,
+                        protein: 0,
+                        carbs: 0,
+                        fat: 0,
+                        mealTag: mealTag,
+                        timestamp: sample.startDate
+                    )
+                    entry.foodBrand = sourceName
+                    entry.foodSourceRaw = FoodSource.healthKit.rawValue
+                    entry.healthKitSampleIDs = [sample.uuid]
+                    context.insert(entry)
+                    existingEntryByHKID[sample.uuid] = entry
+                    importedCount += 1
+                }
+            }
+        }
+
+        // 3. Reconcile deletions: Remove imported entries whose HealthKit samples no longer exist
+        for entry in externalEntriesInWindow {
+            let hasActiveSample = entry.healthKitSampleIDs.contains { activeHKIDsInHealthKit.contains($0) }
+            if !hasActiveSample && !entry.healthKitSampleIDs.isEmpty {
+                context.delete(entry)
             }
         }
 
@@ -817,6 +913,17 @@ public final class HealthKitService {
         #else
         return 0
         #endif
+    }
+
+    public func clearAllExternalDietaryIntake(context: ModelContext) -> Int {
+        let entries = (try? context.fetch(FetchDescriptor<FoodLogEntry>())) ?? []
+        let externalEntries = entries.filter { $0.foodSourceRaw == FoodSource.healthKit.rawValue }
+        let count = externalEntries.count
+        for entry in externalEntries {
+            context.delete(entry)
+        }
+        _ = try? context.save()
+        return count
     }
 
     // MARK: - Unified Two-Way Sync (v1.5.3)
