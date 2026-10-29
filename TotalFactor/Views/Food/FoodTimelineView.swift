@@ -10,9 +10,14 @@ struct FoodTimelineView: View {
     @Query(sort: \FoodLogEntry.timestamp, order: .forward) private var allEntries: [FoodLogEntry]
     @Query private var dailyNotes: [DailyNote]
     @Query private var allFoods: [Food]
+    @Query private var allRecipes: [Recipe]
     @Query private var customNutrientTargets: [NutrientTarget]
 
     @AppStorage("totalfactor.foodTimeline.groupByMeal") private var groupByMeal: Bool = false
+    @AppStorage("totalfactor.foodTimeline.timelineStyle") private var timelineStyle: String = "hourByHour"
+    @AppStorage("totalfactor.foodTimeline.showRemaining") private var showRemaining: Bool = false
+    @AppStorage("totalfactor.foodTimeline.hideEmptyHours") private var hideEmptyHours: Bool = true
+    @AppStorage("totalfactor.foodTimeline.handednessLeading") private var handednessLeading: Bool = false
 
     @State private var isSelecting: Bool = false
     @State private var selectedEntryIDs: Set<UUID> = []
@@ -25,6 +30,9 @@ struct FoodTimelineView: View {
     @State private var showingSaveAsRecipeAlert: Bool = false
     @State private var newRecipeName: String = ""
     @State private var showingMicronutrients: Bool = false
+    @State private var showingKitchenHub: Bool = false
+    @State private var showingPlateWorkspace: Bool = false
+    @State private var stagedItems: [StagedFoodItem] = []
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -70,124 +78,172 @@ struct FoodTimelineView: View {
         let calZone = zoneByName["calories"]
 
         NavigationStack {
-            VStack(spacing: 0) {
-                // Top Macro Zone Summary Header (§6)
-                VStack(spacing: 10) {
-                    HStack {
-                        Button {
-                            appState.selectedDayKey = DayKey.addingDays(-1, to: activeDayKey)
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
-                        Spacer()
-                        Text(DayKey.displayTitle(for: activeDayKey))
-                            .font(.headline)
-                        Spacer()
-                        Button {
-                            toggleComplete()
-                        } label: {
-                            let done = dayNote?.isComplete ?? false
-                            Label(done ? "Complete" : "Mark Complete", systemImage: done ? "checkmark.circle.fill" : "circle")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(done ? .green : .secondary)
-                        }
-                        Button {
-                            appState.selectedDayKey = DayKey.addingDays(1, to: activeDayKey)
-                        } label: {
-                            Image(systemName: "chevron.right")
-                        }
-                    }
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    // MacroFactor 7-Day Adherence Calendar Strip
+                    WeekAdherenceCalendarStrip()
+                        .padding(.horizontal, 10)
+                        .padding(.top, 4)
+                        .padding(.bottom, 2)
 
-                    MacroZoneBar(
-                        title: "Calories",
-                        current: eaten.calories,
-                        unit: "kcal",
-                        floor: calZone != nil ? calZone!.floor : (targets.calories * 0.92).rounded(),
-                        target: calZone != nil ? calZone!.target : targets.calories,
-                        ceiling: calZone != nil ? calZone!.ceiling : (targets.calories * 1.05).rounded(),
-                        tint: .orange
-                    )
+                    // Top Macro Zone Summary Header (§6 & MacroFactor Remaining Budget Toggle)
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text(showRemaining ? "Remaining Budget" : "Consumed Today")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                showRemaining.toggle()
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.left.arrow.right")
+                                    Text(showRemaining ? "Show Consumed" : "Show Remaining")
+                                }
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                            }
+                            .buttonStyle(.plain)
 
-                    HStack(spacing: 14) {
-                        compactMacroPill(
-                            "P",
-                            current: eaten.protein,
-                            target: zoneByName["protein"]?.target ?? targets.protein,
-                            floor: zoneByName["protein"]?.floor ?? targets.proteinFloor,
-                            color: .red
+                            Spacer()
+
+                            Button {
+                                toggleComplete()
+                            } label: {
+                                let done = dayNote?.isComplete ?? false
+                                Label(done ? "Complete" : "Mark Complete", systemImage: done ? "checkmark.circle.fill" : "circle")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(done ? .green : .secondary)
+                            }
+                        }
+
+                        let targetCals = calZone?.target ?? targets.calories
+                        let displayCals = showRemaining ? max(0, targetCals - eaten.calories) : eaten.calories
+
+                        MacroZoneBar(
+                            title: showRemaining ? "Remaining" : "Calories",
+                            current: displayCals,
+                            unit: "kcal",
+                            floor: calZone != nil ? calZone!.floor : (targets.calories * 0.92).rounded(),
+                            target: targetCals,
+                            ceiling: calZone != nil ? calZone!.ceiling : (targets.calories * 1.05).rounded(),
+                            tint: .orange
                         )
-                        compactMacroPill(
-                            "C",
-                            current: eaten.carbs,
-                            target: zoneByName["carbs"]?.target ?? targets.carbs,
-                            floor: zoneByName["carbs"]?.floor,
-                            color: .blue
-                        )
-                        compactMacroPill(
-                            "F",
-                            current: eaten.fat,
-                            target: zoneByName["fat"]?.target ?? targets.fat,
-                            floor: zoneByName["fat"]?.floor ?? targets.fatFloor,
-                            color: .yellow
-                        )
-                    }
 
-                    // View-mode toggle (Timeline vs By Meal), Day Note button, and Voice/Copy shortcuts
-                    HStack(spacing: 8) {
-                        Button {
-                            groupByMeal.toggle()
-                        } label: {
-                            Label(
-                                groupByMeal ? "Grouped by Meal" : "Timeline",
-                                systemImage: groupByMeal ? "rectangle.grid.1x2.fill" : "clock"
+                        HStack(spacing: 14) {
+                            let pTarget = zoneByName["protein"]?.target ?? targets.protein
+                            let cTarget = zoneByName["carbs"]?.target ?? targets.carbs
+                            let fTarget = zoneByName["fat"]?.target ?? targets.fat
+
+                            compactMacroPill(
+                                "P",
+                                current: showRemaining ? max(0, pTarget - eaten.protein) : eaten.protein,
+                                target: pTarget,
+                                floor: zoneByName["protein"]?.floor ?? targets.proteinFloor,
+                                color: .red
                             )
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(
-                                groupByMeal ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.13),
-                                in: Capsule()
+                            compactMacroPill(
+                                "C",
+                                current: showRemaining ? max(0, cTarget - eaten.carbs) : eaten.carbs,
+                                target: cTarget,
+                                floor: zoneByName["carbs"]?.floor,
+                                color: .blue
                             )
-                            .foregroundStyle(groupByMeal ? Color.accentColor : Color.primary)
+                            compactMacroPill(
+                                "F",
+                                current: showRemaining ? max(0, fTarget - eaten.fat) : eaten.fat,
+                                target: fTarget,
+                                floor: zoneByName["fat"]?.floor ?? targets.fatFloor,
+                                color: .yellow
+                            )
                         }
-                        .buttonStyle(.plain)
 
-                        Button {
-                            showingDailyNoteEditor = true
-                        } label: {
-                            Label(
-                                dayNoteTrimmed.isEmpty ? "Day Note" : "Edit Note",
-                                systemImage: dayNoteTrimmed.isEmpty ? "note.text.badge.plus" : "note.text"
-                            )
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(
-                                dayNoteTrimmed.isEmpty ? Color.secondary.opacity(0.13) : Color.orange.opacity(0.16),
-                                in: Capsule()
-                            )
-                            .foregroundStyle(dayNoteTrimmed.isEmpty ? Color.primary : Color.orange)
-                        }
-                        .buttonStyle(.plain)
+                        // View-mode menu (Hour-by-Hour vs By Meal vs Flat), Day Note, and Voice
+                        HStack(spacing: 8) {
+                            Menu {
+                                Button {
+                                    timelineStyle = "hourByHour"
+                                } label: {
+                                    if timelineStyle == "hourByHour" {
+                                        Label("Hour-by-Hour Timeline", systemImage: "checkmark")
+                                    } else {
+                                        Text("Hour-by-Hour Timeline")
+                                    }
+                                }
 
-                        Spacer()
+                                Button {
+                                    timelineStyle = "mealGroups"
+                                } label: {
+                                    if timelineStyle == "mealGroups" {
+                                        Label("Grouped by Meal", systemImage: "checkmark")
+                                    } else {
+                                        Text("Grouped by Meal")
+                                    }
+                                }
 
-                        Button {
-                            appState.openQuickAdd(tab: 5)
-                        } label: {
-                            Label("Describe / Voice", systemImage: "waveform.and.mic")
+                                Button {
+                                    timelineStyle = "chronological"
+                                } label: {
+                                    if timelineStyle == "chronological" {
+                                        Label("Flat Chronological", systemImage: "checkmark")
+                                    } else {
+                                        Text("Flat Chronological")
+                                    }
+                                }
+
+                                Divider()
+
+                                Toggle("Hide Empty Hours", isOn: $hideEmptyHours)
+                                Toggle("Left-Handed '+' Buttons", isOn: $handednessLeading)
+                            } label: {
+                                Label(
+                                    timelineStyle == "hourByHour" ? "Hour-by-Hour" : (timelineStyle == "mealGroups" ? "By Meal" : "Flat Timeline"),
+                                    systemImage: "slider.horizontal.3"
+                                )
                                 .font(.caption2.weight(.semibold))
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 5)
-                                .background(Color.accentColor.opacity(0.14), in: Capsule())
-                                .foregroundStyle(Color.accentColor)
+                                .background(Color.secondary.opacity(0.13), in: Capsule())
+                                .foregroundStyle(Color.primary)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                showingDailyNoteEditor = true
+                            } label: {
+                                Label(
+                                    dayNoteTrimmed.isEmpty ? "Day Note" : "Edit Note",
+                                    systemImage: dayNoteTrimmed.isEmpty ? "note.text.badge.plus" : "note.text"
+                                )
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(
+                                    dayNoteTrimmed.isEmpty ? Color.secondary.opacity(0.13) : Color.orange.opacity(0.16),
+                                    in: Capsule()
+                                )
+                                .foregroundStyle(dayNoteTrimmed.isEmpty ? Color.primary : Color.orange)
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+
+                            Button {
+                                appState.openQuickAdd(tab: 5)
+                            } label: {
+                                Label("Describe / Voice", systemImage: "waveform.and.mic")
+                                    .font(.caption2.weight(.semibold))
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 5)
+                                    .background(Color.accentColor.opacity(0.14), in: Capsule())
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.06))
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color.secondary.opacity(0.06))
 
                 if !dayNoteTrimmed.isEmpty {
                     dailyNotePreviewBanner
@@ -197,7 +253,7 @@ struct FoodTimelineView: View {
                     multiSelectActionBar
                 }
 
-                if dayEntries.isEmpty && !groupByMeal {
+                if dayEntries.isEmpty && timelineStyle != "hourByHour" {
                     ContentUnavailableView {
                         Label("No Foods Logged", systemImage: "fork.knife")
                     } description: {
@@ -228,22 +284,45 @@ struct FoodTimelineView: View {
                             }
                         }
                     }
-                } else if groupByMeal {
+                } else if timelineStyle == "mealGroups" {
                     mealGroupedListView
-                } else {
+                } else if timelineStyle == "chronological" {
                     chronologicalListView
+                } else {
+                    hourByHourListView
                 }
             }
-            .navigationTitle("Food Log")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(isSelecting ? "Done" : "Select") {
-                        isSelecting.toggle()
-                        if !isSelecting { selectedEntryIDs.removeAll() }
-                    }
+
+            // MacroFactor The Plate Dock (Floating on Timeline)
+            if !stagedItems.isEmpty {
+                ThePlateDockView(
+                    stagedItems: $stagedItems,
+                    onOpenWorkspace: { showingPlateWorkspace = true },
+                    onCommit: { commitStagedItemsFromTimeline() }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: !stagedItems.isEmpty)
+        .navigationTitle("Food Log")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(isSelecting ? "Done" : "Select") {
+                    isSelecting.toggle()
+                    if !isSelecting { selectedEntryIDs.removeAll() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 12) {
+                    Button {
+                        showingKitchenHub = true
+                    } label: {
+                        Image(systemName: "frying.pan.fill")
+                            .font(.system(size: 15))
+                    }
+                    .accessibilityLabel("Open Kitchen Pantry & Hub")
+
                     Menu {
                         Button {
                             showingMicronutrients = true
@@ -251,12 +330,9 @@ struct FoodTimelineView: View {
                             Label("Micronutrients & Targets", systemImage: "pills.fill")
                         }
                         Button {
-                            groupByMeal.toggle()
+                            showingKitchenHub = true
                         } label: {
-                            Label(
-                                groupByMeal ? "Switch to Chronological Timeline" : "Group by Meal Tag",
-                                systemImage: groupByMeal ? "clock" : "rectangle.grid.1x2.fill"
-                            )
+                            Label("Kitchen Hub (Recipes & Staples)", systemImage: "frying.pan")
                         }
                         Button {
                             showingDailyNoteEditor = true
@@ -285,16 +361,25 @@ struct FoodTimelineView: View {
                         } label: {
                             Label("Scan Barcode", systemImage: "barcode.viewfinder")
                         }
-                        Button {
-                            appState.openQuickAdd(tab: 4)
-                        } label: {
-                            Label("Recipes", systemImage: "book.closed")
-                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingPlateWorkspace) {
+            ThePlateWorkspaceSheet(
+                stagedItems: $stagedItems,
+                dayKey: activeDayKey,
+                initialMealTag: .none,
+                onCommitAll: { targetTag, targetDate in
+                    commitStagedItemsFromTimeline(targetMealTag: targetTag, targetTimestamp: targetDate)
+                }
+            )
+        }
+        .sheet(isPresented: $showingKitchenHub) {
+            KitchenHubView()
+        }
             .sheet(item: $editingEntry) { entry in
                 EditLoggedFoodSheet(entry: entry)
             }
@@ -424,6 +509,154 @@ struct FoodTimelineView: View {
             }
         }
         .listStyle(.plain)
+    }
+
+    // MARK: - MacroFactor Hour-by-Hour Timeline Mode
+
+    private var hourByHourListView: some View {
+        let entriesByHour = Dictionary(grouping: dayEntries) { entry in
+            Calendar.current.component(.hour, from: entry.timestamp)
+        }
+        let currentHour = Calendar.current.component(.hour, from: .now)
+        let allHours = Array(6...23)
+        let activeHours: [Int] = {
+            if hideEmptyHours {
+                let present = Set(entriesByHour.keys)
+                let filtered = allHours.filter { present.contains($0) || $0 == currentHour }
+                return filtered.isEmpty ? [currentHour] : filtered
+            } else {
+                return allHours
+            }
+        }()
+
+        return ScrollView {
+            LazyVStack(spacing: 8) {
+                ForEach(activeHours, id: \.self) { hour in
+                    let hourEntries = entriesByHour[hour] ?? []
+                    HourByHourTimelineSection(
+                        hour: hour,
+                        entries: hourEntries,
+                        dayKey: activeDayKey,
+                        isHandednessLeading: handednessLeading,
+                        onAddFoodToHour: { targetHour in
+                            appState.openQuickAdd(tab: 0)
+                        },
+                        onExplodeRecipe: { entry in
+                            explodeRecipe(entry)
+                        },
+                        onEditEntry: { entry in
+                            editingEntry = entry
+                        },
+                        onStageToPlate: { entry in
+                            stageEntryToPlate(entry)
+                        }
+                    )
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.bottom, stagedItems.isEmpty ? 20 : 80)
+        }
+    }
+
+    private func explodeRecipe(_ entry: FoodLogEntry) {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+        let matchedRecipe = allRecipes.first(where: {
+            ($0.id == entry.recipeID) ||
+            ($0.linkedFoodID == entry.foodID) ||
+            ($0.name.lowercased() == entry.foodName.lowercased())
+        })
+
+        guard let recipe = matchedRecipe else { return }
+
+        let fraction = entry.grams / max(1.0, recipe.totalYieldGrams)
+        let entryTag = entry.mealTag
+        let entryTime = entry.timestamp
+        let entryDay = entry.dayKey
+
+        modelContext.delete(entry)
+
+        for ing in recipe.safeIngredients {
+            guard let food = ing.food else { continue }
+            let scaledGrams = max(0.5, ing.grams * fraction)
+            let childEntry = FoodLogEntry(
+                food: food,
+                grams: scaledGrams,
+                servingLabel: "\(Int(scaledGrams.rounded())) g",
+                mealTag: entryTag,
+                timestamp: entryTime,
+                dayKey: entryDay
+            )
+            modelContext.insert(childEntry)
+            Task { await healthService.syncFoodEntry(childEntry) }
+        }
+
+        try? modelContext.save()
+        _ = CoachingCoordinator.evaluate(forDayKey: activeDayKey, context: modelContext)
+    }
+
+    private func stageEntryToPlate(_ entry: FoodLogEntry) {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        #endif
+        let matchedFood = allFoods.first(where: { $0.id == entry.foodID })
+        let item: CatalogSearchItem
+        if let matchedFood {
+            item = .persisted(matchedFood)
+        } else {
+            let temp = Food(
+                name: entry.foodName,
+                brand: entry.foodBrand,
+                source: entry.foodSource,
+                servingSizes: [ServingSize(label: entry.servingLabel, grams: entry.grams)],
+                nutrientsPer100g: entry.loggedNutrients
+            )
+            modelContext.insert(temp)
+            item = .persisted(temp)
+        }
+        let staged = StagedFoodItem(
+            item: item,
+            quantity: 1.0,
+            selectedServing: ServingSize(label: entry.servingLabel, grams: entry.grams),
+            mealTag: entry.mealTag
+        )
+        stagedItems.append(staged)
+    }
+
+    private func commitStagedItemsFromTimeline(targetMealTag: MealTag = .none, targetTimestamp: Date = .now) {
+        guard !stagedItems.isEmpty else { return }
+        for staged in stagedItems {
+            let food: Food
+            switch staged.item {
+            case .persisted(let p):
+                food = p
+            case .offlineUSDA(let entry):
+                food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+            }
+
+            let grams = max(0.5, staged.grams)
+            let displayLabel = "\(InlineQuantityCalculator.formatClean(staged.quantity)) × \(staged.selectedServing.label)"
+            food.lastLoggedGrams = grams
+            food.lastLoggedServingLabel = staged.selectedServing.label
+            food.useCount += 1
+            food.lastUsed = .now
+
+            let entry = FoodLogEntry(
+                food: food,
+                grams: grams,
+                servingLabel: displayLabel,
+                mealTag: targetMealTag == .none ? (staged.mealTag == .none ? .snack : staged.mealTag) : targetMealTag,
+                timestamp: targetTimestamp,
+                dayKey: activeDayKey
+            )
+            modelContext.insert(entry)
+            Task { await healthService.syncFoodEntry(entry) }
+        }
+
+        try? modelContext.save()
+        _ = CoachingCoordinator.evaluate(forDayKey: activeDayKey, context: modelContext)
+        stagedItems.removeAll()
     }
 
     private var mealGroupedListView: some View {

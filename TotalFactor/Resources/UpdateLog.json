@@ -1,5 +1,60 @@
 [
   {
+    "version": "1.5.1",
+    "build": "10",
+    "date": "2026-10-29",
+    "headline": "Kitchen Rehaul & Workout UI Bug Fixes: The Plate Multi-Add Dock, Hourly Timeline, Adherence Calendar, Pause/Resume & Jammed Typography Fix",
+    "sections": [
+      {
+        "title": "Workout UI & Stability Bug Fixes",
+        "icon": "wrench.and.screwdriver.fill",
+        "items": [
+          "Fixed crushed action button lettering (Wand, Warm Up, Note) by replacing cramped HStack with scrollable horizontal container.",
+          "Widened exercise carousel titles from 58pt to 72pt with 2-line wrapping to eliminate aggressive ellipsis truncation.",
+          "Added full Pause & Resume workout capability, freezing elapsed timer and displaying amber PAUSED status.",
+          "Fixed Discard Workout: added safety confirmation alert and full cascade deletion of draft sets, session entity, and active rest timer."
+        ]
+      },
+      {
+        "title": "Kitchen Rehaul: The Plate Multi-Add Workspace",
+        "icon": "tray.2.fill",
+        "items": [
+          "Persistent floating plate dock stages multiple foods while searching or browsing without logging one-by-one.",
+          "Swipe-to-stage gesture directly from catalog search rows.",
+          "Expansive Plate Workspace sheet with inline quantity adjustments, serving unit pickers, and batch logging to any meal slot or custom timestamp."
+        ]
+      },
+      {
+        "title": "Hour-by-Hour Timeline & Adherence Strip",
+        "icon": "calendar.day.timeline.left",
+        "items": [
+          "7-Day Adherence Calendar Strip atop the Food Log with circular target rings and 1-tap day switching.",
+          "Hourly food log timeline clustering intake by hour with macro subtotals, inline '+' buttons, and left-handed mode.",
+          "Remaining vs. Consumed daily budget toggle to switch perspective with a single tap."
+        ]
+      },
+      {
+        "title": "Kitchen Hub & Recipe Explosion",
+        "icon": "frying.pan.fill",
+        "items": [
+          "Kitchen Hub consolidates Recipes, Saved Meals, and Custom Foods in one central manager.",
+          "Recipe moisture loss / water absorption percentage math and yields in Recipe Builder.",
+          "Explode Recipe: unpack logged recipes into individual ingredient items scaled to portion eaten."
+        ]
+      },
+      {
+        "title": "Food Detail Sheet Enhancements",
+        "icon": "chart.pie.fill",
+        "items": [
+          "Macro Calorie Ratio Donut showing exact caloric contribution from Protein, Carbs, and Fat.",
+          "Daily Goal Impact Bar previewing before-and-after intake against today's calorie budget.",
+          "Kitchen-scale subtractive tare math (e.g. 245 - 65 = 180 g) directly in the keypad.",
+          "Collapsible micronutrient drawer previewing vitamin and mineral density before committing."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.0",
     "build": "9",
     "date": "2026-10-28",

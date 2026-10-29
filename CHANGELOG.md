@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.1] - 2026-10-29
+
+### Added — Kitchen Rehaul & Workout UI Bug Fixes: The Plate Multi-Add Dock, Hourly Timeline, Adherence Calendar, Pause/Resume & Jammed Typography Fix (Build 10)
+
+#### Fixed & Polished
+- **Workout Action Pill Lettering & Wrapping (`ActiveWorkoutView.swift`)**:
+  - Replaced rigid, unscrollable action button `HStack` with horizontal `ScrollView` featuring `.fixedSize(horizontal: true, vertical: false)` and `.lineLimit(1)`, preventing labels like `Wand`, `Warm Up`, and `Note` from wrapping awkwardly into two lines.
+- **Top Carousel Exercise Title Truncation (`ActiveWorkoutView.swift`)**:
+  - Widened thumbnail label width from `58pt` to `72pt` with `.lineLimit(2)` multi-line wrapping so exercise titles remain legible without abrupt ellipsis truncation.
+- **Pause & Resume Workout (`ActiveWorkoutView.swift`, `TrainingModels.swift`, `RootTabView.swift`)**:
+  - Implemented pause/resume mechanics for active workout sessions. Freezes elapsed timer, tracks cumulative pause duration (`totalPausedSeconds`), and updates the UI and mini-bar with amber `⏸ PAUSED` status.
+- **Discard Workout Cascade Deletion (`ActiveWorkoutView.swift`)**:
+  - Replaced silent dismissal with safety confirmation alert that cascade deletes draft sets, session model, rest timer Live Activity, and clears active session state.
+
+#### Added
+- **7-Day Adherence Calendar Strip (`WeekAdherenceCalendarStrip.swift`)**:
+  - MacroFactor-style weekly adherence carousel atop the food log featuring circular target rings and 1-tap day switching.
+- **Hour-by-Hour Timeline Mode (`HourByHourTimelineSection.swift`)**:
+  - Added hourly food log view mode with hourly macro subtotals, inline `+` buttons, left/right handedness alignment, and empty-hour collapsing.
+- **"The Plate" Multi-Add Staging Workspace (`ThePlateDockView.swift`, `ThePlateWorkspaceSheet.swift`)**:
+  - Persistent bottom plate dock staging multiple foods during search/browse workflows.
+  - Swipe-to-stage gesture directly on catalog search items.
+  - Plate Workspace sheet for batch quantity editing, unit conversions, and 1-tap bulk logging to any meal tag or custom timestamp.
+- **Explode Recipe to Ingredients (`FoodTimelineView.swift`)**:
+  - Unpack logged recipes directly from the timeline into constituent ingredients scaled to portion consumed.
+- **Kitchen Hub (`KitchenHubView.swift`)**:
+  - Centralized manager for Recipes, Saved Meals (`SavedMeal` / `SavedMealItem`), and Custom Foods.
+  - Recipe moisture loss / water absorption percentage math and yields in `RecipeBuilderSheet.swift`.
+- **Enhanced Food Detail Sheet (`FoodDetailSheet.swift`)**:
+  - Macro Calorie Ratio Donut (`MacroRatioDonutView`).
+  - Daily Goal Impact before/after progress bar.
+  - Kitchen-scale subtractive tare math (`245 - 65 = 180 g`) via `.minus` operator in `InlineQuantityCalculator`.
+  - Micronutrient accordion preview drawer.
+- **Smart Search Filter Tabs (`QuickAddFoodSheet.swift`)**:
+  - Filter pills for `All`, `History`, `Favorites`, `Custom`, `Recipes`, `Common`, and `Branded`.
+
+---
+
 ## [1.5.0] - 2026-10-28
 
 ### Added — MacroFactor Workouts UI Revamp, Top Exercise Carousel, Docked Custom Gym Keypad & Anatomical Heatmap Celebration (Build 9)

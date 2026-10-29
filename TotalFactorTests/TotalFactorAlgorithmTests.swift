@@ -365,6 +365,17 @@ final class TotalFactorAlgorithmTests: XCTestCase {
         calc.tap(.equals)
         XCTAssertEqual(calc.expression, "265")
         XCTAssertEqual(calc.evaluatedValue, 265.0, accuracy: 0.01)
+
+        // Kitchen scale tare subtraction math (§MacroFactor Kitchen): 265 - 65 = 200g
+        calc.tap(.minus)
+        XCTAssertEqual(calc.evaluatedValue, 265.0, accuracy: 0.01) // trailing '-' evaluates safely
+        calc.tap(.six)
+        calc.tap(.five)
+        XCTAssertEqual(calc.expression, "265-65")
+        XCTAssertEqual(calc.evaluatedValue, 200.0, accuracy: 0.01)
+        calc.tap(.equals)
+        XCTAssertEqual(calc.expression, "200")
+        XCTAssertEqual(calc.evaluatedValue, 200.0, accuracy: 0.01)
     }
 
     // MARK: - 6. Strong CSV Workout Importer, Planet Fitness Split & Exercise Guides

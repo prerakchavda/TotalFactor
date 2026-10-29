@@ -37,6 +37,22 @@ struct QuickAddFoodSheet: View {
     @State private var showingCustomFoodCreator: Bool = false
     @State private var showingRecipeBuilder: Bool = false
     @State private var showingStagedReviewSheet: Bool = false
+    @State private var showingPlateWorkspace: Bool = false
+    @State private var showingKitchenHub: Bool = false
+
+    // MacroFactor Search Filters
+    public enum SearchFilterCategory: String, CaseIterable, Identifiable {
+        case all = "All"
+        case history = "History"
+        case favorites = "Favorites"
+        case custom = "Custom"
+        case recipes = "Recipes"
+        case common = "Common (USDA)"
+        case branded = "Branded"
+
+        public var id: String { rawValue }
+    }
+    @State private var selectedSearchFilter: SearchFilterCategory = .all
 
     // Multi-Add Staging
     @State private var stagedItems: [StagedFoodItem] = []
@@ -70,43 +86,56 @@ struct QuickAddFoodSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                modePickerStrip
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    modePickerStrip
 
-                switch selectedMode {
-                case 0:
-                    searchTabView
-                case 5:
-                    DescribeMealView(
-                        dayKey: dayKey,
-                        defaultMealTag: activeMealTag,
-                        autoStartDictation: triggerVoiceOnDescribeOpen,
-                        persistedFoods: foods
-                    ) {
-                        dismiss()
-                    }
-                case 1:
-                    BarcodeScannerView(usdaApiKey: profile.usdaApiKey) { outcome in
-                        switch outcome {
-                        case .found(let food):
-                            selectedCatalogItemForDetail = .persisted(food)
-                        case .notFound(let missingBarcode):
-                            customFoodPrefillBarcode = missingBarcode
-                            selectedMode = 2 // Spec §4: Miss -> open label scanner with barcode pre-filled!
+                    switch selectedMode {
+                    case 0:
+                        searchTabView
+                    case 5:
+                        DescribeMealView(
+                            dayKey: dayKey,
+                            defaultMealTag: activeMealTag,
+                            autoStartDictation: triggerVoiceOnDescribeOpen,
+                            persistedFoods: foods
+                        ) {
+                            dismiss()
                         }
+                    case 1:
+                        BarcodeScannerView(usdaApiKey: profile.usdaApiKey) { outcome in
+                            switch outcome {
+                            case .found(let food):
+                                selectedCatalogItemForDetail = .persisted(food)
+                            case .notFound(let missingBarcode):
+                                customFoodPrefillBarcode = missingBarcode
+                                selectedMode = 2 // Spec §4: Miss -> open label scanner with barcode pre-filled!
+                            }
+                        }
+                    case 2:
+                        LabelScannerView(prefilledBarcode: customFoodPrefillBarcode) { parsed, barcode in
+                            customFoodParsedLabel = parsed
+                            customFoodPrefillBarcode = barcode
+                            showingCustomFoodCreator = true
+                        }
+                    case 3:
+                        quickRawEntryView
+                    default:
+                        recipesTabView
                     }
-                case 2:
-                    LabelScannerView(prefilledBarcode: customFoodPrefillBarcode) { parsed, barcode in
-                        customFoodParsedLabel = parsed
-                        customFoodPrefillBarcode = barcode
-                        showingCustomFoodCreator = true
-                    }
-                case 3:
-                    quickRawEntryView
-                default:
-                    recipesTabView
+                }
+
+                // Persistent MacroFactor "The Plate" Dock
+                if !stagedItems.isEmpty {
+                    ThePlateDockView(
+                        stagedItems: $stagedItems,
+                        onOpenWorkspace: { showingPlateWorkspace = true },
+                        onCommit: { logAllStagedItems() }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .animation(.easeInOut(duration: 0.22), value: !stagedItems.isEmpty)
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -115,6 +144,14 @@ struct QuickAddFoodSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 12) {
+                        Button {
+                            showingKitchenHub = true
+                        } label: {
+                            Image(systemName: "frying.pan.fill")
+                                .font(.system(size: 15))
+                        }
+                        .accessibilityLabel("Open Kitchen Pantry & Hub")
+
                         Menu {
                             ForEach(MealTag.allCases) { tag in
                                 Button {
@@ -191,14 +228,18 @@ struct QuickAddFoodSheet: View {
             .sheet(isPresented: $showingRecipeBuilder) {
                 RecipeBuilderSheet()
             }
-            .sheet(isPresented: $showingStagedReviewSheet) {
-                StagedFoodReviewSheet(
+            .sheet(isPresented: $showingPlateWorkspace) {
+                ThePlateWorkspaceSheet(
                     stagedItems: $stagedItems,
                     dayKey: dayKey,
-                    defaultMealTag: activeMealTag
-                ) {
-                    logAllStagedItems()
-                }
+                    initialMealTag: activeMealTag,
+                    onCommitAll: { targetTag, targetDate in
+                        logAllStagedItems(targetMealTag: targetTag, targetTimestamp: targetDate)
+                    }
+                )
+            }
+            .sheet(isPresented: $showingKitchenHub) {
+                KitchenHubView()
             }
         }
     }
@@ -280,8 +321,33 @@ struct QuickAddFoodSheet: View {
             .padding(.horizontal)
             .padding(.bottom, 6)
 
+            // MacroFactor-Style Search Filter Pills
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(SearchFilterCategory.allCases) { cat in
+                        let isSel = (selectedSearchFilter == cat)
+                        Button {
+                            selectedSearchFilter = cat
+                        } label: {
+                            Text(cat.rawValue)
+                                .font(.system(size: 11, weight: .semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    isSel ? Color(red: 0.18, green: 0.48, blue: 0.96) : Color.secondary.opacity(0.12),
+                                    in: Capsule()
+                                )
+                                .foregroundStyle(isSel ? Color.white : Color.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 6)
+            }
+
             List {
-                if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && !cachedUsualSuggestions.isEmpty {
+                if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && !cachedUsualSuggestions.isEmpty && (selectedSearchFilter == .all || selectedSearchFilter == .history) {
                     Section("Usually at This Time (1-Tap Log)") {
                         ForEach(cachedUsualSuggestions) { food in
                             catalogSearchRow(item: .persisted(food), forceOneTapRepeat: true)
@@ -291,15 +357,15 @@ struct QuickAddFoodSheet: View {
 
                 Section(
                     searchQuery.isEmpty
-                        ? "Favorites, Recent & Offline USDA (\(OfflineUSDACatalogService.shared.isLoaded ? "\(OfflineUSDACatalogService.shared.totalCatalogCount) verified" : "loading..."))"
+                        ? "Favorites, Recent & Offline USDA (\(OfflineUSDACatalogService.shared.isLoaded ? "\(filteredCatalogResults.count) verified" : "loading..."))"
                         : "Offline USDA & Personal Matches"
                 ) {
-                    ForEach(cachedCatalogResults) { item in
+                    ForEach(filteredCatalogResults) { item in
                         catalogSearchRow(item: item, forceOneTapRepeat: false)
                     }
                 }
 
-                if !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                if !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty && (selectedSearchFilter == .all || selectedSearchFilter == .branded) {
                     Section("Online USDA Branded & Open Food Facts") {
                         if isSearchingOnline {
                             HStack {
@@ -345,9 +411,21 @@ struct QuickAddFoodSheet: View {
                 }
             }
             .listStyle(.plain)
+        }
+    }
 
-            if !stagedItems.isEmpty {
-                stagedItemsDock
+    private var filteredCatalogResults: [CatalogSearchItem] {
+        cachedCatalogResults.filter { item in
+            switch selectedSearchFilter {
+            case .all: return true
+            case .history: return item.allowOneTapRepeat
+            case .favorites: return item.isFavorite
+            case .custom: return item.source == .custom
+            case .recipes: return item.source == .recipe
+            case .common:
+                return item.source == .usda && (item.brand == nil || item.brand?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true)
+            case .branded:
+                return item.source == .off || (item.brand != nil && !item.brand!.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
     }
@@ -418,6 +496,14 @@ struct QuickAddFoodSheet: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Instant log \(persistedFood.name)")
             }
+        }
+        .swipeActions(edge: .leading) {
+            Button {
+                stageItem(item)
+            } label: {
+                Label("Plate", systemImage: "fork.knife")
+            }
+            .tint(Color(red: 0.18, green: 0.48, blue: 0.96))
         }
     }
 
@@ -649,7 +735,7 @@ struct QuickAddFoodSheet: View {
         stagedItems.append(staged)
     }
 
-    private func logAllStagedItems() {
+    private func logAllStagedItems(targetMealTag: MealTag? = nil, targetTimestamp: Date? = nil) {
         guard !stagedItems.isEmpty else { return }
         for staged in stagedItems {
             let food: Food
@@ -668,12 +754,13 @@ struct QuickAddFoodSheet: View {
             food.lastUsed = .now
             food.typicalHourOfDay = Calendar.current.component(.hour, from: .now)
 
+            let finalTag = targetMealTag ?? (staged.mealTag == .none ? activeMealTag : staged.mealTag)
             let entry = FoodLogEntry(
                 food: food,
                 grams: grams,
                 servingLabel: displayLabel,
-                mealTag: staged.mealTag == .none ? activeMealTag : staged.mealTag,
-                timestamp: logTimestamp(),
+                mealTag: finalTag,
+                timestamp: targetTimestamp ?? logTimestamp(),
                 dayKey: dayKey
             )
             modelContext.insert(entry)

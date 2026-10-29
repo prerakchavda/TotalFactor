@@ -19,6 +19,7 @@ public struct InlineQuantityCalculator: Sendable, Equatable {
         case nine = "9"
         case decimal = "."
         case plus = "+"
+        case minus = "-"
         case multiply = "×"
         case equals = "="
         case backspace = "⌫"
@@ -85,11 +86,11 @@ public struct InlineQuantityCalculator: Sendable, Equatable {
                 expression.append(".")
             }
 
-        case .plus, .multiply:
+        case .plus, .minus, .multiply:
             let op = key.rawValue
             isPreselected = false
             guard !expression.isEmpty else { return }
-            if let last = expression.last, last == "+" || last == "×" {
+            if let last = expression.last, last == "+" || last == "-" || last == "×" {
                 expression.removeLast()
                 expression.append(op)
             } else if let last = expression.last, last == "." {
@@ -118,10 +119,10 @@ public struct InlineQuantityCalculator: Sendable, Equatable {
     }
 
     public var hasOperator: Bool {
-        expression.contains("+") || expression.contains("×")
+        expression.contains("+") || expression.contains("-") || expression.contains("×")
     }
 
-    /// Evaluates `+` and `×` with standard multiplication precedence (`100+50×2` -> `200`).
+    /// Evaluates `+`, `-`, and `×` with standard kitchen-scale container tare math (`250-70` -> `180`).
     /// Trailing operators (`"140+"`) evaluate cleanly to the completed prefix (`140.0`).
     public var evaluatedValue: Double {
         Self.evaluate(expression)
@@ -131,14 +132,28 @@ public struct InlineQuantityCalculator: Sendable, Equatable {
         var sanitized = raw
             .replacingOccurrences(of: ",", with: ".")
             .replacingOccurrences(of: "*", with: "×")
+            .replacingOccurrences(of: "−", with: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        while let last = sanitized.last, last == "+" || last == "×" || last == "." {
+        while let last = sanitized.last, last == "+" || last == "-" || last == "×" || last == "." {
             sanitized.removeLast()
         }
         guard !sanitized.isEmpty else { return 0 }
 
-        let additiveTerms = sanitized.split(separator: "+", omittingEmptySubsequences: true)
+        // Tokenize additions and subtractions: replace '-' with '+-'
+        var normalized = ""
+        var prevChar: Character? = nil
+        for ch in sanitized {
+            if ch == "-" {
+                if let p = prevChar, p != "+" && p != "-" && p != "×" {
+                    normalized.append("+")
+                }
+            }
+            normalized.append(ch)
+            prevChar = ch
+        }
+
+        let additiveTerms = normalized.split(separator: "+", omittingEmptySubsequences: true)
         guard !additiveTerms.isEmpty else { return 0 }
 
         var sum = 0.0

@@ -214,6 +214,8 @@ public final class Recipe {
     public var totalYieldGrams: Double = 500.0
     public var servings: Double = 4.0
     public var linkedFoodID: UUID? = nil
+    public var waterLossPercent: Double? = nil
+    public var notes: String = ""
     public var createdAt: Date = Date()
 
     @Relationship(deleteRule: .cascade, inverse: \RecipeIngredient.recipe)
@@ -360,6 +362,10 @@ public final class FoodLogEntry {
     public var dayKey: String = ""
     public var healthKitSampleIDsJSON: Data = Data()
 
+    /// Optional parent recipe linkage for 1-tap "Explode Recipe" (§MacroFactor Kitchen)
+    public var recipeID: UUID? = nil
+    public var recipeYieldFraction: Double? = nil
+
     public init(
         food: Food,
         grams: Double,
@@ -499,5 +505,85 @@ public final class DailyNote {
         self.date = date ?? DayKey.date(from: dayKey) ?? .now
         self.isComplete = isComplete
         self.notes = notes
+    }
+}
+
+// MARK: - Saved Meals (§MacroFactor Kitchen Rehaul)
+
+/// Reusable multi-item staple meal template (e.g. "Morning Shake", "Standard Post-Workout Bowl")
+@Model
+public final class SavedMeal {
+    public var id: UUID = UUID()
+    public var name: String = ""
+    public var createdAt: Date = Date()
+    public var lastUsed: Date? = nil
+    public var useCount: Int = 0
+    public var defaultMealTagRaw: String = MealTag.none.rawValue
+
+    @Relationship(deleteRule: .cascade, inverse: \SavedMealItem.meal)
+    public var items: [SavedMealItem]? = []
+
+    public init(name: String, defaultMealTag: MealTag = .none) {
+        self.id = UUID()
+        self.name = name
+        self.defaultMealTagRaw = defaultMealTag.rawValue
+        self.createdAt = Date()
+    }
+
+    public var defaultMealTag: MealTag {
+        get { MealTag(rawValue: defaultMealTagRaw) ?? .none }
+        set { defaultMealTagRaw = newValue.rawValue }
+    }
+
+    public var safeItems: [SavedMealItem] {
+        items ?? []
+    }
+
+    public var totalNutrients: NutrientsPer100g {
+        var total = NutrientsPer100g()
+        for item in safeItems {
+            let sc = item.scaledNutrients
+            total.calories += sc.calories
+            total.protein += sc.protein
+            total.carbs += sc.carbs
+            total.fat += sc.fat
+            total.fiber += sc.fiber
+            total.sugar += sc.sugar
+            total.sodiumMg += sc.sodiumMg
+        }
+        return total
+    }
+}
+
+@Model
+public final class SavedMealItem {
+    public var id: UUID = UUID()
+    public var grams: Double = 100.0
+    public var servingLabel: String = "100 g"
+    public var quantity: Double = 1.0
+    public var snapshotName: String = ""
+    public var snapshotNutrientsJSON: Data = Data()
+
+    public var meal: SavedMeal? = nil
+    public var food: Food? = nil
+
+    public init(food: Food, grams: Double, servingLabel: String, quantity: Double = 1.0) {
+        self.id = UUID()
+        self.food = food
+        self.grams = max(0.1, grams)
+        self.servingLabel = servingLabel
+        self.quantity = max(0.01, quantity)
+        self.snapshotName = food.name
+        self.snapshotNutrientsJSON = (try? JSONEncoder().encode(food.nutrientsPer100g)) ?? Data()
+    }
+
+    public var scaledNutrients: NutrientsPer100g {
+        if let food {
+            return food.nutrientsPer100g.scaled(forGrams: grams)
+        }
+        if let decoded = try? JSONDecoder().decode(NutrientsPer100g.self, from: snapshotNutrientsJSON) {
+            return decoded.scaled(forGrams: grams)
+        }
+        return NutrientsPer100g()
     }
 }

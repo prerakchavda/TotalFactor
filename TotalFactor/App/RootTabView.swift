@@ -132,15 +132,29 @@ private struct ActiveWorkoutMiniBar: View {
                     .background(Circle().fill(.green))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(session.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 6) {
+                        Text(session.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        if session.isPaused {
+                            Text("PAUSED")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.yellow)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Color.yellow.opacity(0.18), in: Capsule())
+                        }
+                    }
                     if restTimer.isRunning {
                         Text("Rest: \(restTimer.remainingSeconds)s • \(restTimer.exerciseName)")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.orange)
+                    } else if session.isPaused {
+                        Text("Workout paused • Tap to resume")
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
                     } else {
-                        Text("\(session.completedSetCount) sets logged • Tap to resume")
+                        Text("\(session.completedSetCount) sets logged • Tap to open")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

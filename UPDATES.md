@@ -6,6 +6,45 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.1 — Build 10 (2026-10-29)
+
+### 1. Workout UI & Stability Bug Fixes
+- **Action Pill Lettering & Wrapping Fix (`ActiveWorkoutView.swift`)**:
+  - Fixed crushed and hyphenated button labels (`Wa\nnd`, `Warm\nUp`, `Not\ne`) caused by an unscrollable horizontal container. Replaced rigid `HStack` with a smooth horizontal `ScrollView` with `.fixedSize(horizontal: true, vertical: false)` and `.lineLimit(1)`, ensuring pristine typography across all device sizes.
+- **Top Exercise Switcher Carousel Polish (`ActiveWorkoutView.swift`)**:
+  - Widened thumbnail label width from `58pt` to `72pt` with multi-line wrapping (`.lineLimit(2)`) so longer exercise names (e.g., *Incline Dumbbell Curl*, *Romanian Deadlift*) no longer aggressively truncate with ellipses.
+- **Functional Pause & Resume Workout (`ActiveWorkoutView.swift`, `TrainingModels.swift`, `RootTabView.swift`)**:
+  - Added full pause/resume capabilities to active sessions. Tapping **Pause Workout** in the navigation header or ellipsis menu freezes the elapsed timer, tracks total paused duration (`totalPausedSeconds`), and updates the UI and mini-bar with an amber `⏸ PAUSED` badge.
+- **Fixed Discard Workout Cascade Deletion (`ActiveWorkoutView.swift`)**:
+  - Fixed bug where discarding a workout dismissed the screen without resetting session state or deleting SwiftData records. Now presents a safety confirmation alert, wipes orphaned draft sets and session entities, cancels active rest timers, and cleanly resets `appState.activeWorkoutSessionID`.
+
+### 2. Kitchen Rehaul & MacroParity Food Logging
+- **7-Day Adherence Calendar Strip (`WeekAdherenceCalendarStrip.swift`)**:
+  - Added MacroFactor-style weekly adherence strip atop the food log showing 7 days of calorie target rings. Each day ring displays percentage adherence or over/under status with 1-tap fast day switching.
+- **Remaining vs. Consumed Budget Toggle (`FoodTimelineView.swift`)**:
+  - Added 1-tap budget perspective switcher allowing users to view macro progress either as consumed intake (`1,850 kcal`) or remaining budget (`650 kcal left`).
+- **Hour-by-Hour Timeline Mode (`HourByHourTimelineSection.swift`)**:
+  - Added a third timeline view mode alongside "Grouped by Meal" and "Flat Chronological": an hourly timeline clustering food entries by hour of consumption with hourly macro subtotals, inline `+` buttons, handedness alignment (left- vs right-handed logging), and an option to collapse empty hours.
+- **"The Plate" Multi-Add Staging Workspace (`ThePlateDockView.swift`, `ThePlateWorkspaceSheet.swift`)**:
+  - Built MacroFactor's signature multi-item staging plate. Foods can be staged to a floating bottom tray while browsing or searching without logging individually.
+  - The persistent bottom dock displays staged item count, calorie sum, macro breakdown, and a 1-tap **Log All** button.
+  - Tapping the plate opens an expansive workspace sheet with inline quantity adjustments, serving unit pickers, swipe-to-delete, and batch commit to any meal slot or custom timestamp.
+  - Added swipe-to-stage gesture directly on catalog search results.
+- **Explode Recipe to Ingredients (`FoodTimelineView.swift`)**:
+  - Logged recipes can now be "exploded" directly from the timeline with a single tap. The parent recipe entry is unpacked into its individual ingredient items, scaled proportionally to the logged portion.
+- **Kitchen Hub (`KitchenHubView.swift`)**:
+  - Integrated pantry and recipe management center consolidating Custom Foods, Saved Meals (`SavedMeal` / `SavedMealItem`), and Recipes under unified tabbed navigation.
+  - Includes raw-to-cooked moisture loss / absorption percentage math and yields in the recipe creator (`RecipeBuilderSheet.swift`).
+- **Enhanced Food Detail Sheet (`FoodDetailSheet.swift`)**:
+  - **Macro Calorie Ratio Donut (`MacroRatioDonutView`)**: Visual breakdown displaying exact caloric percentage contributions from Protein (red), Carbs (blue), and Fat (yellow).
+  - **Daily Goal Impact Bar**: Live before/after preview bar visualizing how the selected food will impact today's remaining calorie target.
+  - **Kitchen-Scale Tare Math**: Keypad now supports subtractive tare math (`245 - 65 = 180 g`) via `.minus` operator support in `InlineQuantityCalculator`.
+  - **Micronutrient Accordion Preview**: Collapsible nutrient drawer showing vitamin and mineral density before committing the entry.
+- **Search Category Filter Tabs (`QuickAddFoodSheet.swift`)**:
+  - Added segmented search tabs (`All`, `History`, `Favorites`, `Custom`, `Recipes`, `Common`, `Branded`) to filter search results instantly.
+
+---
+
 ## v1.5.0 — Build 9 (2026-10-28)
 
 ### 1. MacroFactor Workouts UI Revamp

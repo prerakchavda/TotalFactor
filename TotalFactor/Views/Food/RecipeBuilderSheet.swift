@@ -10,6 +10,8 @@ struct RecipeBuilderSheet: View {
 
     @Query(sort: \Food.name) private var allFoods: [Food]
 
+    var prefilledStagedItems: [StagedFoodItem] = []
+
     @State private var recipeName: String = ""
     @State private var servings: Double = 4
     @State private var totalCookedGrams: Double = 600
@@ -17,9 +19,15 @@ struct RecipeBuilderSheet: View {
     @State private var ingredientSearch: String = ""
     @State private var pickerResults: [CatalogSearchItem] = []
     @State private var showingIngredientPicker: Bool = false
+    @State private var recipeNotes: String = ""
 
     private var rawBatchGrams: Double {
         draftIngredients.reduce(0.0) { $0 + $1.grams }
+    }
+
+    private var waterDeltaPercent: Double? {
+        guard rawBatchGrams > 0 else { return nil }
+        return ((totalCookedGrams - rawBatchGrams) / rawBatchGrams) * 100.0
     }
 
     private var totalBatchNutrients: NutrientsPer100g {
@@ -61,12 +69,40 @@ struct RecipeBuilderSheet: View {
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
-                    if rawBatchGrams > 0 {
-                        Button("Set Cooked Weight = Raw Sum (\(Int(rawBatchGrams.rounded()))g)") {
-                            totalCookedGrams = rawBatchGrams.rounded()
+
+                    if let delta = waterDeltaPercent {
+                        HStack {
+                            Text(delta < 0 ? "Moisture Loss" : "Moisture Gain")
+                                .font(.caption.weight(.medium))
+                            Spacer()
+                            Text(delta < 0 ? String(format: "%.1f%% water loss (evaporation)", abs(delta)) : String(format: "+%.1f%% water gain (absorption)", delta))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(delta < 0 ? Color.orange : Color(red: 0.18, green: 0.48, blue: 0.96))
                         }
-                        .font(.caption)
+
+                        // Quick Presets
+                        HStack(spacing: 8) {
+                            Button("Raw Sum (\(Int(rawBatchGrams.rounded()))g)") {
+                                totalCookedGrams = rawBatchGrams.rounded()
+                            }
+                            .font(.caption2)
+
+                            Button("-25% Loss (Meat)") {
+                                totalCookedGrams = (rawBatchGrams * 0.75).rounded()
+                            }
+                            .font(.caption2)
+
+                            Button("+150% Gain (Rice/Pasta)") {
+                                totalCookedGrams = (rawBatchGrams * 2.5).rounded()
+                            }
+                            .font(.caption2)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
                     }
+
+                    TextField("Cooking Notes / Instructions (optional)", text: $recipeNotes, axis: .vertical)
+                        .lineLimit(2...4)
                 }
 
                 Section("Ingredients") {
@@ -180,6 +216,21 @@ struct RecipeBuilderSheet: View {
                     }
                 }
             }
+            .onAppear {
+                if !prefilledStagedItems.isEmpty && draftIngredients.isEmpty {
+                    for staged in prefilledStagedItems {
+                        let food: Food
+                        switch staged.item {
+                        case .persisted(let f):
+                            food = f
+                        case .offlineUSDA(let entry):
+                            food = OfflineUSDACatalogService.shared.materialize(entry, in: modelContext)
+                        }
+                        draftIngredients.append((id: UUID(), food: food, grams: staged.grams))
+                    }
+                    totalCookedGrams = max(100.0, rawBatchGrams)
+                }
+            }
         }
     }
 
@@ -197,6 +248,10 @@ struct RecipeBuilderSheet: View {
             totalYieldGrams: max(1, totalCookedGrams),
             servings: max(1, servings)
         )
+        if let wl = waterDeltaPercent, wl < 0 {
+            recipe.waterLossPercent = abs(wl)
+        }
+        recipe.notes = recipeNotes
         modelContext.insert(recipe)
 
         for item in draftIngredients {

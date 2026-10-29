@@ -57,6 +57,7 @@ public struct ActiveWorkoutView: View {
     @State private var activeWandDiagnostic: ProgressionEngine.ProgressionWandDiagnostic? = nil
     @State private var swappingBlock: ExerciseBlock? = nil
     @State private var setupNotesExercise: Exercise? = nil
+    @State private var showingDiscardConfirmation: Bool = false
 
     // Celebration Sheet State
     @State private var showingCelebrationSheet: Bool = false
@@ -176,11 +177,16 @@ public struct ActiveWorkoutView: View {
                             }
                             Divider()
                             Button("Add Exercise") { showingAddExercise = true }
-                            Button(role: .destructive) {
-                                appState.showingActiveWorkoutFullScreen = false
-                                dismiss()
+                            Button {
+                                togglePauseWorkout()
                             } label: {
-                                Label("Discard Session", systemImage: "trash")
+                                Label(session.isPaused ? "Resume Workout" : "Pause Workout", systemImage: session.isPaused ? "play.fill" : "pause.fill")
+                            }
+                            Divider()
+                            Button(role: .destructive) {
+                                showingDiscardConfirmation = true
+                            } label: {
+                                Label("Discard Workout", systemImage: "trash")
                             }
                         } label: {
                             Image(systemName: "line.3.horizontal")
@@ -188,8 +194,15 @@ public struct ActiveWorkoutView: View {
                                 .foregroundStyle(.primary)
                         }
 
-                        // Elapsed Workout Duration Clock
-                        ActiveElapsedTimerView(startDate: session.start)
+                        // Elapsed Workout Duration Clock / Paused Badge
+                        Button {
+                            if session.isPaused {
+                                togglePauseWorkout()
+                            }
+                        } label: {
+                            ActiveElapsedTimerView(session: session)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -267,6 +280,14 @@ public struct ActiveWorkoutView: View {
             .onDisappear {
                 healthService.stopLiveHeartRateObserver()
             }
+            .alert("Discard Workout?", isPresented: $showingDiscardConfirmation) {
+                Button("Discard Workout", role: .destructive) {
+                    discardWorkout()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to discard this workout? All logged sets and progress will be permanently deleted.")
+            }
         }
     }
 
@@ -305,8 +326,9 @@ public struct ActiveWorkoutView: View {
                                 Text(block.exercise.name)
                                     .font(.system(size: 11, weight: isSelected ? .bold : .medium))
                                     .foregroundStyle(isSelected ? .primary : .secondary)
-                                    .lineLimit(1)
-                                    .frame(width: 58)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 72, height: 26)
 
                                 Text("\(completedCount)/\(totalCount)")
                                     .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -427,121 +449,133 @@ public struct ActiveWorkoutView: View {
                     .buttonStyle(.plain)
                 }
 
-                // MacroFactor Action Pills Bar
-                HStack(spacing: 8) {
-                    // 🪄 Progression Wand
-                    Button {
-                        computeAndOpenWand(for: block, digest: digest)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "wand.and.stars")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("Wand")
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(Color.blue.opacity(0.15), in: Capsule())
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
-                    }
-                    .buttonStyle(.plain)
-
-                    // 📊 Info
-                    Button {
-                        guideExercise = ex
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chart.bar.doc.horizontal")
-                                .font(.system(size: 10))
-                            Text("Info")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
-                        .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-
-                    // ⏱ Warm Up
-                    Button {
-                        insertAutoWarmups(for: block)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 10))
-                            Text("Warm Up")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
-                        .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-
-                    // 🔀 Swap
-                    Button {
-                        swappingBlock = block
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 10))
-                            Text("Swap")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
-                        .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-
-                    // 📝 Note
-                    Button {
-                        setupNotesExercise = ex
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 10))
-                            Text("Note")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
-                        .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer(minLength: 0)
-
-                    // Menu for Unilateral / Plates / Delete
-                    Menu {
+                // MacroFactor Action Pills Bar (Horizontal Scroll preventing text wrapping)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        // 🪄 Progression Wand
                         Button {
-                            toggleUnilateral(for: block)
+                            computeAndOpenWand(for: block, digest: digest)
                         } label: {
-                            Label(block.sets.first?.isUnilateral == true ? "Switch to Bilateral" : "Switch to Unilateral (L / R)", systemImage: "arrow.left.and.right")
-                        }
-                        if ex.equipment.usesBarbellPlates {
-                            Button {
-                                plateCalcWeightKg = block.sets.first(where: { $0.type == .working })?.weightKg ?? 60.0
-                            } label: {
-                                Label("Plate Calculator", systemImage: "circle.grid.cross")
+                            HStack(spacing: 4) {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("Wand")
+                                    .font(.system(size: 11, weight: .bold))
                             }
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.15), in: Capsule())
+                            .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
                         }
-                        Divider()
-                        Button(role: .destructive) {
-                            for s in block.sets { modelContext.delete(s) }
-                            try? modelContext.save()
+                        .buttonStyle(.plain)
+
+                        // ⏱ Warm Up
+                        Button {
+                            insertAutoWarmups(for: block)
                         } label: {
-                            Label("Delete Exercise", systemImage: "trash")
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .font(.system(size: 10))
+                                Text("Warm Up")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .foregroundStyle(.primary)
                         }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.secondary)
-                            .padding(6)
+                        .buttonStyle(.plain)
+
+                        // 🔀 Swap
+                        Button {
+                            swappingBlock = block
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 10))
+                                Text("Swap")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+
+                        // 📊 Info
+                        Button {
+                            guideExercise = ex
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chart.bar.doc.horizontal")
+                                    .font(.system(size: 10))
+                                Text("Info")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+
+                        // 📝 Note
+                        Button {
+                            setupNotesExercise = ex
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10))
+                                Text("Note")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+
+                        // Menu for Unilateral / Plates / Delete
+                        Menu {
+                            Button {
+                                toggleUnilateral(for: block)
+                            } label: {
+                                Label(block.sets.first?.isUnilateral == true ? "Switch to Bilateral" : "Switch to Unilateral (L / R)", systemImage: "arrow.left.and.right")
+                            }
+                            if ex.equipment.usesBarbellPlates {
+                                Button {
+                                    plateCalcWeightKg = block.sets.first(where: { $0.type == .working })?.weightKg ?? 60.0
+                                } label: {
+                                    Label("Plate Calculator", systemImage: "circle.grid.cross")
+                                }
+                            }
+                            Divider()
+                            Button(role: .destructive) {
+                                for s in block.sets { modelContext.delete(s) }
+                                try? modelContext.save()
+                            } label: {
+                                Label("Delete Exercise", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                        }
                     }
                 }
             }
@@ -908,7 +942,41 @@ public struct ActiveWorkoutView: View {
         }
     }
 
-    // MARK: - Workout Lifecycle & PR Collection
+    // MARK: - Workout Lifecycle & Controls
+
+    private func togglePauseWorkout() {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+        if session.isPaused {
+            session.resumeSession()
+        } else {
+            session.pauseSession()
+        }
+        try? modelContext.save()
+    }
+
+    private func discardWorkout() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        #endif
+        let timer = RestTimerService.shared
+        timer.lastRestStartedAt = nil
+        timer.skip()
+        PhoneWatchSyncService.shared.liveWatchHeartRateBPM = nil
+        PhoneWatchSyncService.shared.liveWatchActiveCaloriesDisplayOnly = 0
+        HealthKitService.shared.stopLiveHeartRateObserver()
+
+        for s in session.sortedSets {
+            modelContext.delete(s)
+        }
+        modelContext.delete(session)
+        try? modelContext.save()
+
+        appState.activeWorkoutSessionID = nil
+        appState.showingActiveWorkoutFullScreen = false
+        dismiss()
+    }
 
     private func finishWorkout() {
         let diffs = evaluateRoutineDiff()
@@ -1437,16 +1505,22 @@ public struct ActiveWorkoutView: View {
 // MARK: - Isolated Header Telemetry Tickers
 
 private struct ActiveElapsedTimerView: View {
-    let startDate: Date
+    let session: WorkoutSession
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0)) { context in
-            let elapsed = max(0, Int(context.date.timeIntervalSince(startDate)))
+            let elapsed = session.effectiveElapsedSeconds(at: context.date)
             let s = elapsed % 60
             let m = (elapsed / 60) % 60
             let h = elapsed / 3600
 
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
+                if session.isPaused {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.yellow)
+                }
+
                 if h > 0 {
                     Text(String(format: "%d:%02d:%02d", h, m, s))
                 } else {
@@ -1454,7 +1528,13 @@ private struct ActiveElapsedTimerView: View {
                 }
             }
             .font(.system(size: 14, weight: .bold, design: .monospaced))
-            .foregroundStyle(.primary)
+            .foregroundStyle(session.isPaused ? Color.yellow : Color.primary)
+            .padding(.horizontal, session.isPaused ? 7 : 0)
+            .padding(.vertical, session.isPaused ? 3 : 0)
+            .background(
+                session.isPaused ? Color.yellow.opacity(0.18) : Color.clear,
+                in: Capsule()
+            )
         }
     }
 }

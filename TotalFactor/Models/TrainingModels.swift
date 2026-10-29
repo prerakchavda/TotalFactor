@@ -335,6 +335,11 @@ public final class WorkoutSession {
     public var notes: String = ""
     public var healthKitWorkoutUUID: UUID? = nil
 
+    /// Pause tracking (§MacroFactor Workout UI)
+    public var isPaused: Bool = false
+    public var totalPausedSeconds: Int = 0
+    public var lastPausedDate: Date? = nil
+
     public var programWorkout: ProgramWorkout? = nil
     public var gymProfile: GymProfile? = nil
 
@@ -380,6 +385,27 @@ public final class WorkoutSession {
 
     public var isFinished: Bool {
         end != nil
+    }
+
+    public func pauseSession() {
+        guard !isPaused, end == nil else { return }
+        isPaused = true
+        lastPausedDate = .now
+    }
+
+    public func resumeSession() {
+        guard isPaused else { return }
+        if let pausedAt = lastPausedDate {
+            totalPausedSeconds += max(0, Int(Date().timeIntervalSince(pausedAt)))
+        }
+        isPaused = false
+        lastPausedDate = nil
+    }
+
+    public func effectiveElapsedSeconds(at now: Date = .now) -> Int {
+        let currentPause = (isPaused && lastPausedDate != nil) ? Int(now.timeIntervalSince(lastPausedDate!)) : 0
+        let gross = Int(now.timeIntervalSince(start))
+        return max(0, gross - totalPausedSeconds - currentPause)
     }
 }
 

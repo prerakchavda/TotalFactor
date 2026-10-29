@@ -31,7 +31,9 @@ struct TotalFactorApp: App {
             ExerciseSlot.self,
             WorkoutSession.self,
             SetLog.self,
-            PersonalRecord.self
+            PersonalRecord.self,
+            SavedMeal.self,
+            SavedMealItem.self
         ])
 
         // Graceful provisioning fallback:

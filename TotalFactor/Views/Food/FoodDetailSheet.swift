@@ -15,6 +15,7 @@ struct FoodDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(HealthKitService.self) private var healthService
+    @Query private var allEntries: [FoodLogEntry]
 
     let target: CatalogSearchItem
     let dayKey: String
@@ -26,6 +27,7 @@ struct FoodDetailSheet: View {
     @State private var calculator = InlineQuantityCalculator(initialText: "100", isPreselected: true)
     @State private var mealTag: MealTag = .none
     @State private var customCopyToEdit: Food? = nil
+    @State private var showingMicros: Bool = false
 
     init(
         target: CatalogSearchItem,
@@ -147,11 +149,15 @@ struct FoodDetailSheet: View {
 
                         liveMacroCard
 
+                        dailyImpactBar
+
                         amountReadoutCard
 
                         servingPillsRow(options: allServings)
 
                         quickMultipliersAndMealRow
+
+                        micronutrientAccordion
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -275,24 +281,125 @@ struct FoodDetailSheet: View {
     }
 
     private var liveMacroCard: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                macroPreviewTile("Calories", "\(Int(previewNutrients.calories.rounded()))", "kcal", .orange)
-                macroPreviewTile("Protein", String(format: "%.1f", previewNutrients.protein), "g", .red)
-                macroPreviewTile("Carbs", String(format: "%.1f", previewNutrients.carbs), "g", .blue)
-                macroPreviewTile("Fat", String(format: "%.1f", previewNutrients.fat), "g", .yellow)
+        HStack(spacing: 12) {
+            // Visual Macro Ratio Donut (MacroFactor Signature)
+            MacroRatioDonutView(nutrients: previewNutrients)
+
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    macroPreviewTile("Protein", String(format: "%.1f", previewNutrients.protein), "g", .red)
+                    macroPreviewTile("Carbs", String(format: "%.1f", previewNutrients.carbs), "g", .blue)
+                    macroPreviewTile("Fat", String(format: "%.1f", previewNutrients.fat), "g", .yellow)
+                }
+
+                HStack(spacing: 12) {
+                    Text("Fiber \(String(format: "%.1f", previewNutrients.fiber))g")
+                    Text("Sugar \(String(format: "%.1f", previewNutrients.sugar))g")
+                    Text("Sodium \(Int(previewNutrients.sodiumMg.rounded()))mg")
+                }
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             }
-            HStack(spacing: 16) {
-                Text("Fiber \(String(format: "%.1f", previewNutrients.fiber))g")
-                Text("Sugar \(String(format: "%.1f", previewNutrients.sugar))g")
-                Text("Sodium \(Int(previewNutrients.sodiumMg.rounded()))mg")
-            }
-            .font(.caption2.monospacedDigit())
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 12)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var dailyImpactBar: some View {
+        let digest = CoachingCoordinator.cachedOrComputeDigest(forDayKey: dayKey, context: modelContext)
+        let target = max(800.0, digest.todayTargets.calories)
+        let before = allEntries.filter { $0.dayKey == dayKey }.reduce(0.0) { $0 + $1.calories }
+        let delta = previewNutrients.calories
+        let projected = before + delta
+        let remaining = max(0, target - projected)
+
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("Impact on Today's Goal")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(before.rounded())) + \(Int(delta.rounded())) → \(Int(projected.rounded())) / \(Int(target.rounded())) kcal")
+                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(projected > target * 1.05 ? .orange : Color(red: 0.18, green: 0.48, blue: 0.96))
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.secondary.opacity(0.18))
+                        .frame(height: 6)
+
+                    let wBefore = min(geo.size.width, geo.size.width * CGFloat(before / target))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(red: 0.18, green: 0.48, blue: 0.96).opacity(0.45))
+                        .frame(width: wBefore, height: 6)
+
+                    let wDelta = min(geo.size.width - wBefore, geo.size.width * CGFloat(delta / target))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .frame(width: max(2, wDelta), height: 6)
+                        .offset(x: wBefore)
+                }
+            }
+            .frame(height: 6)
+
+            HStack {
+                Text(remaining > 0 ? "\(Int(remaining.rounded())) kcal remaining" : "\(Int(abs(projected - target).rounded())) kcal over target")
+                    .font(.caption2)
+                    .foregroundStyle(remaining > 0 ? Color.secondary : Color.orange)
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var micronutrientAccordion: some View {
+        DisclosureGroup(isExpanded: $showingMicros) {
+            VStack(spacing: 6) {
+                let micros = previewNutrients.micronutrients
+                microRow("Fiber", value: previewNutrients.fiber, unit: "g")
+                microRow("Sugar", value: previewNutrients.sugar, unit: "g")
+                microRow("Sodium", value: previewNutrients.sodiumMg, unit: "mg")
+                if let pot = micros["potassium"] {
+                    microRow("Potassium", value: pot, unit: "mg")
+                }
+                if let calc = micros["calcium"] {
+                    microRow("Calcium", value: calc, unit: "mg")
+                }
+                if let iron = micros["iron"] {
+                    microRow("Iron", value: iron, unit: "mg")
+                }
+                if let vitC = micros["vitamin_c"] {
+                    microRow("Vitamin C", value: vitC, unit: "mg")
+                }
+                if let vitD = micros["vitamin_d"] {
+                    microRow("Vitamin D", value: vitD, unit: "IU")
+                }
+            }
+            .padding(.top, 6)
+        } label: {
+            Label("Micronutrients & Vitamins", systemImage: "leaf.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func microRow(_ label: String, value: Double, unit: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(String(format: "%.1f %@", value, unit))
+                .font(.caption.weight(.medium).monospacedDigit())
+                .foregroundStyle(.primary)
+        }
     }
 
     private var amountReadoutCard: some View {
@@ -559,8 +666,8 @@ struct InlineFoodKeypadView: View {
     private let rows: [[InlineQuantityCalculator.Key]] = [
         [.one, .two, .three, .backspace],
         [.four, .five, .six, .plus],
-        [.seven, .eight, .nine, .multiply],
-        [.decimal, .zero, .doubleZero, .equals]
+        [.seven, .eight, .nine, .minus],
+        [.decimal, .zero, .multiply, .equals]
     ]
 
     var body: some View {
@@ -576,7 +683,7 @@ struct InlineFoodKeypadView: View {
     }
 
     private func keypadButton(for key: InlineQuantityCalculator.Key) -> some View {
-        let isUtility = (key == .backspace || key == .plus || key == .multiply || key == .equals)
+        let isUtility = (key == .backspace || key == .plus || key == .minus || key == .multiply || key == .equals)
         return Button {
             calculator.tap(key)
             InlineFoodKeypadHaptics.lightTap()
@@ -624,5 +731,63 @@ enum InlineFoodKeypadHaptics {
         #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         #endif
+    }
+}
+
+/// MacroFactor signature dynamic macro ratio donut chart (§MacroFactor Kitchen)
+private struct MacroRatioDonutView: View {
+    let nutrients: NutrientsPer100g
+
+    private var pCals: Double { max(0, nutrients.protein * 4) }
+    private var cCals: Double { max(0, nutrients.carbs * 4) }
+    private var fCals: Double { max(0, nutrients.fat * 9) }
+    private var totalCals: Double { max(1.0, pCals + cCals + fCals) }
+
+    private var pFraction: Double { pCals / totalCals }
+    private var cFraction: Double { cCals / totalCals }
+    private var fFraction: Double { fCals / totalCals }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: 6)
+                    .frame(width: 58, height: 58)
+
+                // Protein segment (Red)
+                Circle()
+                    .trim(from: 0, to: CGFloat(pFraction))
+                    .stroke(Color.red, style: StrokeStyle(lineWidth: 6, lineCap: .butt))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 58, height: 58)
+
+                // Carbs segment (Blue)
+                Circle()
+                    .trim(from: CGFloat(pFraction), to: CGFloat(pFraction + cFraction))
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .butt))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 58, height: 58)
+
+                // Fat segment (Yellow)
+                Circle()
+                    .trim(from: CGFloat(pFraction + cFraction), to: 1.0)
+                    .stroke(Color.yellow, style: StrokeStyle(lineWidth: 6, lineCap: .butt))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 58, height: 58)
+
+                VStack(spacing: 0) {
+                    Text("\(Int(nutrients.calories.rounded()))")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.primary)
+                    Text("kcal")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text("\(Int((pFraction * 100).rounded()))P • \(Int((cFraction * 100).rounded()))C • \(Int((fFraction * 100).rounded()))F")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
     }
 }
