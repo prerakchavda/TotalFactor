@@ -6,6 +6,34 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.9 — Build 19 (2026-10-29) — Dedicated Weight Trend & History View, Date-Specific Weigh-In History & Chart Scrubbing
+
+### 1. Interactive Weight Trend Navigation (`TodayDashboardView.swift`, `ProgressHubView.swift`)
+- **Tappable Dashboard & Progress Weight Cards**:
+  - Tapping the Weight Trend card on either the Today Dashboard or the Progress Hub now immediately navigates into the full **Weight Trend & History** screen (`WeightDetailView`).
+  - Added disclosure chevron indicators and clear "View History" / "View Weigh-Ins by Date" prompt links for effortless one-tap discovery.
+
+### 2. Date-Specific Weigh-In History & CRUD Editing (`WeightDetailView.swift`)
+- **Complete Chronological Weigh-In History**:
+  - Built a comprehensive history list displaying every recorded scale weigh-in by date and time (e.g. "Today", "Yesterday", "Wed, Oct 28, 2026", "7:15 AM").
+  - Each entry displays the scale weight in user units (lb or kg), the smoothed trend weight on that calendar date, and the directional delta vs the prior weigh-in (e.g. `↓ 0.4 lb`).
+  - Labeled source badges clearly indicate entries from Manual logging or Apple Health.
+- **Direct Entry Editing & Deletion**:
+  - Tapping any weigh-in in the history opens `EditWeighInSheet` to modify the recorded scale weight (with ±0.2 nudge buttons) or timestamp, or delete accidental/duplicate entries.
+  - Context menu and swipe-to-delete support for swift management.
+- **Date Search & Retroactive Logging**:
+  - Integrated a fast search bar to filter weigh-ins by date or month.
+  - Added "+ Log Weight" with `AddWeighInSheet` supporting retroactive backfilling for any past date.
+
+### 3. Interactive Chart Scrubbing & Tooltip Inspection (`WeightDetailView.swift`, `ProgressHubView.swift`)
+- **Touch & Drag Chart Scrubbing**:
+  - Implemented `.chartXSelection` with dynamic `RuleMark` indicators on both the Progress Hub and Weight Detail charts.
+  - Dragging a finger across the chart displays an instant floating HUD tooltip with the exact date, recorded scale weight, and smoothed trend weight at that timeline position.
+- **Multi-Window Time Range Filtering**:
+  - Added range selection (2W, 1M, 3M, 6M, 1Y, All) with smooth interpolation of smoothed trend trajectories and scale dot points.
+
+---
+
 ## v1.5.8 — Build 18 (2026-10-29) — Comprehensive Bug Fixes & Reliability Overhaul
 
 ### 1. MacroFactor CSV Importer & Units Correctness (`MacroFactorImportService.swift`)

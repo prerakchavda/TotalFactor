@@ -398,6 +398,27 @@ public struct MacroTargets: Codable, Hashable, Sendable {
 
 // MARK: - Body Tracking Enums
 
+public enum ProgressChartRange: String, Codable, CaseIterable, Identifiable, Sendable {
+    case twoWeeks = "2W"
+    case oneMonth = "1M"
+    case threeMonths = "3M"
+    case sixMonths = "6M"
+    case oneYear = "1Y"
+    case all = "All"
+
+    public var id: String { rawValue }
+    public var daysBack: Int? {
+        switch self {
+        case .twoWeeks: return 14
+        case .oneMonth: return 30
+        case .threeMonths: return 90
+        case .sixMonths: return 180
+        case .oneYear: return 365
+        case .all: return nil
+        }
+    }
+}
+
 public enum WeighInSource: String, Codable, CaseIterable, Sendable {
     case manual
     case healthKit

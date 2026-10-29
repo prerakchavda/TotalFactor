@@ -384,53 +384,65 @@ struct TodayDashboardView: View {
 
     private func coachingMetricsRow(digest: CoachingDashboardDigest) -> some View {
         HStack(spacing: 12) {
-            // Trend Weight Card (Apple Health Style)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    AppleIconBadge(icon: "scalemass.fill", color: AppleTheme.trend, size: 26)
-                    Text("Weight Trend")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
+            // Trend Weight Card (Apple Health Style - Clickable to Weight Detail & History)
+            NavigationLink(destination: WeightDetailView()) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        AppleIconBadge(icon: "scalemass.fill", color: AppleTheme.trend, size: 26)
+                        Text("Weight Trend")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
 
-                if let trendKg = digest.weightSummary.latestTrendKg {
-                    Text(UnitsFormatter.formatWeight(trendKg, system: profile.unitSystem))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
+                    if let trendKg = digest.weightSummary.latestTrendKg {
+                        Text(UnitsFormatter.formatWeight(trendKg, system: profile.unitSystem))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
 
-                    if let d7 = digest.weightSummary.change7dKg {
-                        Label(
-                            "\(UnitsFormatter.formatSignedWeightDelta(d7, system: profile.unitSystem)) this week",
-                            systemImage: d7 <= 0 ? "arrow.down.right" : "arrow.up.right"
-                        )
-                        .font(.caption2.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(AppleTheme.trend)
+                        if let d7 = digest.weightSummary.change7dKg {
+                            Label(
+                                "\(UnitsFormatter.formatSignedWeightDelta(d7, system: profile.unitSystem)) this week",
+                                systemImage: d7 <= 0 ? "arrow.down.right" : "arrow.up.right"
+                            )
+                            .font(.caption2.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(AppleTheme.trend)
+                        } else {
+                            Text("Log daily for velocity")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     } else {
-                        Text("Log daily for velocity")
-                            .font(.caption2)
+                        Text("No weigh-ins")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                } else {
-                    Text("No weigh-ins")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
 
-                Spacer(minLength: 2)
+                    Spacer(minLength: 2)
 
-                Button {
-                    appState.showingWeighInSheet = true
-                } label: {
-                    Label("Log Weight", systemImage: "plus")
-                        .font(.caption.weight(.semibold))
+                    HStack {
+                        Text("View History")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(AppleTheme.trend)
+                        Spacer()
+                        Button {
+                            appState.showingWeighInSheet = true
+                        } label: {
+                            Label("Log", systemImage: "plus")
+                                .font(.caption2.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                    }
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .appleHealthCard(padding: 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .appleHealthCard(padding: 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.plain)
 
             // Adaptive Expenditure Card (Apple Health Style)
             VStack(alignment: .leading, spacing: 8) {

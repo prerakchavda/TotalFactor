@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.9] - 2026-10-29
+
+### Added — Weight Trend & History Detail View, Date-Specific Weigh-In History & Interactive Chart Scrubbing (Build 19)
+
+#### Added
+- **Dedicated Weight Trend & History Screen (`WeightDetailView.swift`)**:
+  - Tapping the Weight Trend card on Today Dashboard or Progress Hub now opens an in-depth view with hero metrics, 7-day and 30-day velocity, total net change, and target goal distance.
+- **Date-Specific Weigh-In History by Date (`WeightDetailView.swift`)**:
+  - Full reverse-chronological list showing exact date, time, scale weight, smoothed trend weight, and prior-entry delta for every recorded weigh-in.
+  - Search bar to filter weigh-in history by date, day of week, or month.
+- **Weigh-In CRUD Management (`EditWeighInSheet.swift`, `AddWeighInSheet.swift`)**:
+  - Tap any history entry to adjust scale weight or timestamp, or delete erroneous and duplicate weigh-ins.
+  - Swipe-to-delete and context menu support.
+  - "+ Log Weight" button supporting retroactive entry backfilling for any past date.
+- **Interactive Chart Scrubbing (`WeightDetailView.swift`, `ProgressHubView.swift`)**:
+  - Implemented `.chartXSelection` on both weight charts with dynamic `RuleMark` indicators displaying exact dates, scale points, and smoothed trend weight tooltips on touch/scrub.
+  - Multi-window time filtering (2W, 1M, 3M, 6M, 1Y, All).
+
+---
+
 ## [1.5.8] - 2026-10-29
 
 ### Fixed — Comprehensive Bug Fixes & Reliability Overhaul (Build 18)

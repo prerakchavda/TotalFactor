@@ -2,27 +2,6 @@ import SwiftUI
 import SwiftData
 import Charts
 
-enum ProgressChartRange: String, CaseIterable, Identifiable {
-    case twoWeeks = "2W"
-    case oneMonth = "1M"
-    case threeMonths = "3M"
-    case sixMonths = "6M"
-    case oneYear = "1Y"
-    case all = "All"
-
-    var id: String { rawValue }
-    var daysBack: Int? {
-        switch self {
-        case .twoWeeks: return 14
-        case .oneMonth: return 30
-        case .threeMonths: return 90
-        case .sixMonths: return 180
-        case .oneYear: return 365
-        case .all: return nil
-        }
-    }
-}
-
 struct ProgressHubView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppState.self) private var appState
@@ -35,6 +14,7 @@ struct ProgressHubView: View {
     @Query private var sessions: [WorkoutSession]
 
     @State private var selectedRange: ProgressChartRange = .oneMonth
+    @State private var selectedWeightChartDate: Date? = nil
     @State private var selectedMetricType: BodyMetricType = .waist
     @State private var addSheetMetricType: BodyMetricType = .waist
     @State private var showingAddMetricSheet: Bool = false
@@ -175,31 +155,39 @@ struct ProgressHubView: View {
         }
 
         return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 8) {
-                    AppleIconBadge(icon: "scalemass.fill", color: AppleTheme.trend, size: 28)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Weight Trend")
-                            .font(.headline.weight(.bold))
-                        if let proj = projectedGoalDateString {
-                            Text(proj)
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(AppleTheme.trend)
-                        } else if let weekly = summary.weeklyRateKg {
-                            Text("Velocity: \(UnitsFormatter.formatSignedWeightDelta(weekly, system: unit))/wk")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+            NavigationLink(destination: WeightDetailView()) {
+                HStack(alignment: .firstTextBaseline) {
+                    HStack(spacing: 8) {
+                        AppleIconBadge(icon: "scalemass.fill", color: AppleTheme.trend, size: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text("Weight Trend")
+                                    .font(.headline.weight(.bold))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            if let proj = projectedGoalDateString {
+                                Text(proj)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(AppleTheme.trend)
+                            } else if let weekly = summary.weeklyRateKg {
+                                Text("Velocity: \(UnitsFormatter.formatSignedWeightDelta(weekly, system: unit))/wk")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
-                }
-                Spacer()
-                if let latest = summary.latestTrendKg {
-                    Text(UnitsFormatter.formatWeight(latest, system: unit))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(AppleTheme.trend)
+                    Spacer()
+                    if let latest = summary.latestTrendKg {
+                        Text(UnitsFormatter.formatWeight(latest, system: unit))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(AppleTheme.trend)
+                    }
                 }
             }
+            .buttonStyle(.plain)
 
             if points.isEmpty {
                 Text("Log your first weigh-in to plot scale dots and smoothed trend weight.")
@@ -223,8 +211,36 @@ struct ProgressHubView: View {
                         .foregroundStyle(AppleTheme.trend)
                         .lineStyle(StrokeStyle(lineWidth: 2.8, lineCap: .round))
                     }
+
+                    if let selectedWeightChartDate,
+                       let matched = points.min(by: { abs($0.date.timeIntervalSince(selectedWeightChartDate)) < abs($1.date.timeIntervalSince(selectedWeightChartDate)) }) {
+                        RuleMark(x: .value("Selected Date", matched.date))
+                            .foregroundStyle(Color.secondary.opacity(0.4))
+                            .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+                            .annotation(position: .top, spacing: 6) {
+                                VStack(spacing: 2) {
+                                    Text(matched.date.formatted(date: .abbreviated, time: .omitted))
+                                        .font(.caption2.weight(.bold))
+                                    HStack(spacing: 6) {
+                                        if let s = matched.scaleKg {
+                                            Text("Scale: \(UnitsFormatter.formatWeight(s, system: unit))")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Text("Trend: \(UnitsFormatter.formatWeight(matched.trendKg, system: unit))")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(AppleTheme.trend)
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                .shadow(color: .black.opacity(0.12), radius: 3)
+                            }
+                    }
                 }
                 .chartYScale(domain: yMin...yMax)
+                .chartXSelection(value: $selectedWeightChartDate)
                 .frame(height: 190)
             }
 
@@ -233,6 +249,19 @@ struct ProgressHubView: View {
                 deltaChip("14d", deltaKg: summary.change14dKg)
                 deltaChip("30d", deltaKg: summary.change30dKg)
             }
+
+            NavigationLink(destination: WeightDetailView()) {
+                HStack {
+                    Text("View Weigh-Ins by Date & Full History")
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                }
+                .foregroundStyle(AppleTheme.trend)
+                .padding(.top, 4)
+            }
+            .buttonStyle(.plain)
         }
         .appleHealthCard(padding: 18)
     }

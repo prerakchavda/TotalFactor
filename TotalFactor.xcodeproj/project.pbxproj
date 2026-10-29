@@ -32,6 +32,7 @@
 		2DC32A1E4511FA48E3AAF85C /* ShareSheetHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B056BC9EFA57AFA7730F18B3 /* ShareSheetHelper.swift */; };
 		2E9BDEA6122AC24289E42296 /* ExportAllArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 415AEB1E7D9731BE8E0A214E /* ExportAllArchiveService.swift */; };
 		2F9BF6C36A0342BAFDE93375 /* MacroZoneBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A24991B92DF4C24CB9ACF /* MacroZoneBar.swift */; };
+		2FF4F6DBA83067371FB94715 /* WeightDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9832ED1F3D5AAABB8E8319BA /* WeightDetailView.swift */; };
 		3387792EC5DADCDDFA566144 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2F6F462E19F3894D8E66AD /* NutritionModels.swift */; };
 		3C47F174C8FE89035CBF7A04 /* FoodSearchRanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD347A657D5D74F72F78356A /* FoodSearchRanker.swift */; };
 		3D3E3EACD73E234A41782BA1 /* ProgramBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C87DB622ED3F1C570F7893 /* ProgramBuilderView.swift */; };
@@ -261,6 +262,7 @@
 		88C2D3191CCE607694FDA3BB /* MuscleVolumeMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleVolumeMapView.swift; sourceTree = "<group>"; };
 		89475BB1D9EFE179669BDFA4 /* HourByHourTimelineSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourByHourTimelineSection.swift; sourceTree = "<group>"; };
 		8F9D46380428F5B3BA3B8E1B /* OfflineUSDACatalogIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineUSDACatalogIndex.swift; sourceTree = "<group>"; };
+		9832ED1F3D5AAABB8E8319BA /* WeightDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightDetailView.swift; sourceTree = "<group>"; };
 		998117B7351E96454715B9B8 /* DateDayKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDayKey.swift; sourceTree = "<group>"; };
 		9B08655AB09D0621422F001D /* NotificationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsView.swift; sourceTree = "<group>"; };
 		9D76F47D9BBF7D15737105EA /* MacroFactorImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroFactorImportService.swift; sourceTree = "<group>"; };
@@ -576,6 +578,7 @@
 				88C2D3191CCE607694FDA3BB /* MuscleVolumeMapView.swift */,
 				A65E13184332777BFF385AB7 /* PhotoCompareView.swift */,
 				DC357DF381F052F85183AEA4 /* ProgressHubView.swift */,
+				9832ED1F3D5AAABB8E8319BA /* WeightDetailView.swift */,
 			);
 			path = Progress;
 			sourceTree = "<group>";
@@ -884,6 +887,7 @@
 				C1DE40298E361FF71276C095 /* WatchSyncModels.swift in Sources */,
 				FDC98960EB223BFC3326FE82 /* WeekAdherenceCalendarStrip.swift in Sources */,
 				2BF64614874ABFC24A975CE2 /* WeeklyCheckInSheet.swift in Sources */,
+				2FF4F6DBA83067371FB94715 /* WeightDetailView.swift in Sources */,
 				1ED92B0397008359BF7E6177 /* WeightTrendEngine.swift in Sources */,
 				698D7BAEC2FD76B7C540BAEC /* WorkoutChangeLogSheet.swift in Sources */,
 				4790C5F1078A813E19A1539F /* WorkoutCompleteCelebrationView.swift in Sources */,

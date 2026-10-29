@@ -1,5 +1,38 @@
 [
   {
+    "version": "1.5.9",
+    "build": "19",
+    "date": "2026-10-29",
+    "headline": "Weight Trend & History Detail View, Date-Specific Weigh-In History, Editing & Interactive Chart Scrubbing",
+    "sections": [
+      {
+        "title": "Interactive Weight Trend Navigation",
+        "icon": "scalemass.fill",
+        "items": [
+          "Tappable Weight Cards: tapping the Weight Trend card on Today Dashboard or Progress Hub opens the full Weight Trend & History view.",
+          "Discovery Cues: added disclosure chevrons and clear 'View History' links to inspect weigh-in data."
+        ]
+      },
+      {
+        "title": "Date-Specific Weigh-In History & Editing",
+        "icon": "calendar",
+        "items": [
+          "Complete History by Date: inspect every weigh-in with exact date, time, scale weight, smoothed trend weight, and prior-entry delta.",
+          "Edit & Delete Entries: tap any weigh-in to adjust the recorded weight or timestamp, or delete erroneous and duplicate entries.",
+          "Date Search & Retroactive Add: search entries by date or backfill weigh-ins for any past day using the + button."
+        ]
+      },
+      {
+        "title": "Interactive Chart Scrubbing",
+        "icon": "chart.line.uptrend.xyaxis",
+        "items": [
+          "Touch & Drag Scrubbing: touch and scrub weight charts on Progress Hub and Weight Detail to display exact date, scale, and trend values.",
+          "Multi-Window Time Filtering: view weight trajectories across 2W, 1M, 3M, 6M, 1Y, and All-Time windows."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.8",
     "build": "18",
     "date": "2026-10-29",
