@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.6] - 2026-10-29
+
+### Fixed — HealthKit Auto-Authorization & Apple Health Sources Instant Registration (Build 15)
+
+#### Fixed
+- **On-Demand HealthKit Authorization (`HealthKitService.swift`)**:
+  - Added proactive `requestPermissions()` calls directly inside `importExternalDietaryIntake` and `syncAllHistoryToAppleHealth`.
+  - Ensures Total Factor prompts for Health permissions on the first tap of any sync action, immediately registering Total Factor in iOS Settings $\rightarrow$ Health $\rightarrow$ Data Access & Devices (Sources).
+
+---
+
 ## [1.5.5] - 2026-10-29
 
 ### Fixed & Enhanced — HealthKit External Nutrition Sync Engine, Zero-Duplicate Ingestion, MacroFactor Support, and Deletion Reconciliation (Build 14 / v1.5.3.x Hotfixes)

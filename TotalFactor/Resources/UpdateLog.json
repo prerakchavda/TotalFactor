@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.5.6",
+    "build": "15",
+    "date": "2026-10-29",
+    "headline": "HealthKit Auto-Authorization & Apple Health Sources Fix: On-Demand Permission Prompting & Instant Source Registration",
+    "sections": [
+      {
+        "title": "HealthKit Authorization & Apple Health Sources",
+        "icon": "heart.text.square.fill",
+        "items": [
+          "Auto-Prompt on Import: tapping 'Import Nutrition from Apple Health' now immediately prompts iOS for HealthKit permissions if not previously granted.",
+          "Apple Health Sources Registration: ensures Total Factor appears in iOS Settings → Health → Data Access & Devices immediately on first interaction."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.5",
     "build": "14",
     "date": "2026-10-29",

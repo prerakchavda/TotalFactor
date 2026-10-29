@@ -6,6 +6,18 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.6 — Build 15 (2026-10-29) — HealthKit Auto-Authorization & Apple Health Sources Fix
+
+### 1. Automatic HealthKit Authorization on Demand (`HealthKitService.swift`)
+- **Proactive Permission Prompting**:
+  - Added proactive `requestPermissions()` triggers directly inside `importExternalDietaryIntake` and `syncAllHistoryToAppleHealth`.
+  - Tapping **"Import Nutrition from Apple Health"** or **"Sync All History"** now immediately prompts iOS for HealthKit permissions if not already granted.
+- **Apple Health "Sources" Registration**:
+  - Resolves the issue where Total Factor did not appear under **Settings → Health → Data Access & Devices (Sources)** on fresh installs prior to running a full two-way sync.
+  - As soon as the permission prompt is accepted, Total Factor is instantly registered in iOS Health Sources.
+
+---
+
 ## v1.5.5 — Build 14 (2026-10-29) — HealthKit External Nutrition Sync Engine & Bug Fixes (1.5.3.x Fixes)
 
 ### 1. Robust Multi-App Nutrition Ingestion Engine (`HealthKitService.swift`)

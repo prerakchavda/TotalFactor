@@ -136,7 +136,7 @@ if [[ "$DO_PUSH" == "true" ]]; then
   echo ""
   echo "3. Creating GitHub Release v$VERSION and uploading TotalFactor.ipa..."
   read -r -d '' RELEASE_NOTES << 'EOF' || true
-### Total Factor v1.5.5 (Build 14) — HealthKit External Nutrition Sync Engine & Bug Fixes
+### Total Factor v$VERSION (Build $BUILD) — HealthKit External Nutrition Sync Engine & Bug Fixes
 
 #### Multi-App External Nutrition Ingestion Engine
 - **Zero-Duplicate Ingestion**: Fixed a HealthKit collision where meals logged in external apps (MacroFactor, MyFitnessPal, Cronometer, Lose It) via HKCorrelationType.food were imported twice.
@@ -157,9 +157,12 @@ EOF
     echo "Release v$VERSION already exists. Uploading new TotalFactor.ipa..."
     gh release upload "v$VERSION" "$IPA_PATH" --clobber
   else
-    gh release create "v$VERSION" "$IPA_PATH" \
+    echo "Creating GitHub Release v$VERSION..."
+    gh release create "v$VERSION" \
       --title "Total Factor v$VERSION (Build $BUILD) — HealthKit External Nutrition Sync Engine & Bug Fixes" \
       --notes "$RELEASE_NOTES"
+    echo "Uploading TotalFactor.ipa to v$VERSION..."
+    gh release upload "v$VERSION" "$IPA_PATH" --clobber
   fi
 
   echo ""
