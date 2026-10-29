@@ -662,6 +662,7 @@ public final class HealthKitService {
     public func syncAllHistoryToAppleHealth(context: ModelContext) async -> (foodSynced: Int, weighInsSynced: Int, workoutsSynced: Int) {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else { return (0, 0, 0) }
+        _ = await requestPermissions()
 
         var foodCount = 0
         var weighInCount = 0
@@ -707,6 +708,7 @@ public final class HealthKitService {
     public func importExternalDietaryIntake(context: ModelContext, daysBack: Int = 30) async -> Int {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else { return 0 }
+        _ = await requestPermissions()
         let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: .now) ?? .distantPast
         let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: .now, options: .strictStartDate)
         let myBundleID = Bundle.main.bundleIdentifier ?? "com.prerak.totalfactor"
