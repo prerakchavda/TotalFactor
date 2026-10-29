@@ -416,6 +416,14 @@ public enum WeighInRule: String, Codable, CaseIterable, Identifiable, Sendable {
         case .last: return "Latest Weigh-In"
         }
     }
+
+    public var explanation: String {
+        switch self {
+        case .firstMorning: return "Uses the earliest recorded weigh-in of the day for expenditure trend calculations."
+        case .average: return "Averages all scale weigh-ins logged within the calendar day."
+        case .last: return "Uses the most recent scale weigh-in logged on that day."
+        }
+    }
 }
 
 public enum BodyMetricType: String, Codable, CaseIterable, Identifiable, Sendable {

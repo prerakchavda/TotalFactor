@@ -568,11 +568,7 @@ struct TrainHubView: View {
         #if canImport(UIKit)
         do {
             let fileURL = try ProgramImportExportService.exportProgramToFile(program: prog)
-            let av = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let root = windowScene.windows.first?.rootViewController {
-                root.present(av, animated: true)
-            }
+            ShareSheetHelper.present(activityItems: [fileURL])
         } catch {}
         #endif
     }

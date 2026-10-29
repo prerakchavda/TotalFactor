@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.5.7] - 2026-10-29
+
+### Added — MacroFactor-Style Multi-Page Onboarding, Categorized Settings Hub & Workout Builder Fixes (Build 17)
+
+#### Added
+- **Multi-Page MacroFactor Onboarding (`OnboardingFlowView.swift`, `OnboardingCardComponents.swift`)**:
+  - Replaced cramped 3-step monolithic form with an elegant 10-step guided wizard.
+  - Interactive selection cards for Imperial/Metric, Biological Sex, Age, Height & Scale Weight, and Baseline Activity levels.
+  - MacroFactor Food: Goal selection cards (Cut/Maintain/Bulk), interactive rate of change slider with zone pills (*Conservative*, *Standard / Recommended*, *Aggressive*), and Day-1 macro split preview bar.
+  - MacroFactor Workouts: Strength training frequency (2–6 days/week), lifting focus (Hypertrophy, Strength, Both), gym setup selection, and automated Day-1 program generation via `ProgramGeneratorEngine`.
+  - Transparent Apple Health permissions step and Day-1 program launch summary.
+- **Categorized Settings Hub Architecture (`SettingsView.swift` & Modular Sub-Views)**:
+  - Redesigned Settings into a clean, single-screen dashboard with SF Symbol badges and dedicated drill-down pages.
+  - Active Program & Profile Card with a 1-tap "Rerun Setup & Onboarding" button to replay the onboarding wizard anytime.
+  - Dedicated child views: `GoalStrategySettingsView`, `FastingSettingsView`, `WorkoutPreferencesSettingsView`, `UnitsScheduleSettingsView`, `NotificationsSettingsView`, `AppleHealthSettingsView`, `AIDatabaseSettingsView`, `DataManagementSettingsView`, and `AttributionSettingsView`.
+- **Workout Day Removal (`ProgramBuilderView.swift`)**:
+  - Added an ellipsis action menu and "Delete Day" button to every workout day in `ProgramBuilderView`.
+  - Confirms via alert, cascades exercise slots, and automatically re-indexes remaining workout days consecutively (`order = 0, 1, 2...`) while updating `daysPerWeek`.
+- **Workout & Program Export Sharing Fix (`ShareSheetHelper.swift`, `TrainHubView.swift`, `ProgramBuilderView.swift`)**:
+  - Added `ShareSheetHelper` to resolve the topmost active `UIViewController` across nested modal presentations.
+  - Fixes silent presentation failures when exporting `.totalfactorprogram` files and workout CSV exports.
+
+---
+
 ## [1.5.6.5] - 2026-10-29
 
 ### Added — Direct MacroFactor CSV Importer, Deterministic Fingerprint Deduplication & Apple Health Loop Protection (Build 16)

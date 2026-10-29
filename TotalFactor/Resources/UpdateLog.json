@@ -1,5 +1,40 @@
 [
   {
+    "version": "1.5.7",
+    "build": "17",
+    "date": "2026-10-29",
+    "headline": "MacroFactor-Style Multi-Page Onboarding, Categorized Settings Hub & Workout Builder Fixes",
+    "sections": [
+      {
+        "title": "MacroFactor Multi-Page Onboarding Flow",
+        "icon": "sparkles",
+        "items": [
+          "10-Step Guided Setup: replaced the monolithic form with an elegant stepped wizard featuring animated progress, smooth transitions, and tactile cards.",
+          "MacroFactor Food: includes demographics, baseline activity cards, goal selection (Cut/Maintain/Bulk), interactive rate of change slider with zone pills (Conservative, Standard, Aggressive), and a Day-1 macro split preview bar.",
+          "MacroFactor Workouts: seamless strength training setup (frequency, focus, gym setup) with automated program generation on Day 1.",
+          "HealthKit & Launch: transparent Apple Health permissions breakdown with instant connection feedback."
+        ]
+      },
+      {
+        "title": "Categorized Settings Hub",
+        "icon": "gearshape.fill",
+        "items": [
+          "Master Hub Navigation: organized settings into a clean, single-screen dashboard with SF Symbol badges and dedicated drill-down subpages.",
+          "Active Program Header: displays current biological stats, active goal pill, and weekly check-in day with a 1-tap 'Rerun Setup & Onboarding' button.",
+          "Focused Sub-Views: separate pages for Goals & Strategy, Intermittent Fasting, Workouts, Units & Schedule, Notifications, Apple Health, AI & Databases, and Data Management."
+        ]
+      },
+      {
+        "title": "Workout Builder & Export Fixes",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "Workout Day Deletion: added an ellipsis menu and 'Delete Day' button with confirmation alert in ProgramBuilderView, cascading slots and re-indexing days.",
+          "Export Share Sheet Fix: built ShareSheetHelper to resolve the topmost view controller, ensuring .totalfactorprogram files and workout CSVs share reliably via AirDrop, Messages, and Files."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.5.6.5",
     "build": "16",
     "date": "2026-10-29",

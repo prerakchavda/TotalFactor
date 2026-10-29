@@ -53,7 +53,7 @@ source_path = '$SOURCE_JSON'
 with open(source_path, 'r') as f:
     data = json.load(f)
 
-desc = 'Direct MacroFactor CSV Importer: 1-tap import for MacroFactor food logs and weigh-ins with deterministic zero-duplicate fingerprinting and Apple Health loop protection.'
+desc = 'Multi-Page MacroFactor Onboarding (Food & Workouts), Categorized Settings Hub, Workout Day Removal, and Program Export Sharing Fixes.'
 
 for app in data.get('apps', []):
     if app.get('bundleIdentifier') == 'com.prerak.totalfactor':
@@ -123,7 +123,7 @@ if [[ "$DO_PUSH" == "true" ]]; then
   echo "1. Staging and committing workspace changes to git..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Total Factor v$VERSION (Build $BUILD) — Real-World & Zero-Scale Food Logging"
+    git commit -m "Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub"
   else
     echo "No uncommitted git changes."
   fi
@@ -136,20 +136,22 @@ if [[ "$DO_PUSH" == "true" ]]; then
   echo ""
   echo "3. Creating GitHub Release v$VERSION and uploading TotalFactor.ipa..."
   read -r -d '' RELEASE_NOTES << 'EOF' || true
-### Total Factor v$VERSION (Build $BUILD) — HealthKit External Nutrition Sync Engine & Bug Fixes
+### Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub
 
-#### Multi-App External Nutrition Ingestion Engine
-- **Zero-Duplicate Ingestion**: Fixed a HealthKit collision where meals logged in external apps (MacroFactor, MyFitnessPal, Cronometer, Lose It) via HKCorrelationType.food were imported twice.
-- **Child Sample Blacklisting**: Harvests all child quantity sample UUIDs from correlations to prevent double-counting in standalone energy queries.
-- **Bi-Directional Deletion Reconciliation**: Deleting or editing foods in MacroFactor, MyFitnessPal, or Apple Health automatically prunes or updates the entry in Total Factor on next sync.
-- **Dynamic App Attribution**: Detects external source app names (MacroFactor, MyFitnessPal, Cronometer, Lose It) and assigns proper brand tags.
-- **Natural Title Synthesis**: Keeps specific food names when available, or formats clean meal titles (e.g. 'MacroFactor Lunch') for hourly/aggregated sync blocks.
+#### 1. MacroFactor-Style Multi-Page Onboarding Flow
+- **10-Step Guided Wizard**: Replaced the monolithic 3-step form with an elegant stepped setup with animated progress indicators, smooth transitions, and tactile selection cards.
+- **MacroFactor Food Setup**: Step-by-step guidance for Imperial vs Metric units, biological demographics, height & starting weight with morning weigh-in tips, baseline activity level cards, primary goal selection (Cut, Maintain, Bulk), dynamic rate of change slider with zone pills (*Conservative*, *Standard / Recommended*, *Aggressive*), and a Day-1 macro split preview bar with carb cycling.
+- **MacroFactor Workouts Setup**: Direct onboarding for lifting frequency (2–6 days/week), training focus (Hypertrophy, Strength, Both), gym setup selection, and automated Day-1 program generation via `ProgramGeneratorEngine`.
+- **Apple Health Integration & Launch**: Transparent permission breakdown with live connection status and program summary launch card.
 
-#### Timeline & User Controls
-- **Auto Time-Slotting**: External meals automatically slot into Breakfast, Lunch, Dinner, or Snack based on timestamp rather than landing in untagged space.
-- **Themed Provenance Badges**: FoodSourceBadge displays custom app pills (e.g. 'MacroFactor', 'MyFitnessPal') in themed pink styling on timeline cards and hour-by-hour views.
-- **Loop Protection**: Strict safeguards prevent Total Factor from ever re-exporting third-party imported meals back to HealthKit.
-- **Safety Maintenance Tool**: Added 1-tap 'Remove All Imported HealthKit Meals' in Settings to safely wipe external entries with zero risk to locally logged foods.
+#### 2. Categorized Settings Hub Architecture
+- **Master Hub & Subpages**: Replaced the flat 538-line form with a clean, single-screen dashboard with SF Symbol badges and focused drill-down pages.
+- **Active Program Header Card**: Biological stats, active goal pill, check-in weekday, and a 1-tap **"Rerun Setup & Onboarding"** button.
+- **Focused Subpages**: Goals & Strategy, Intermittent Fasting, Workouts, Units & Schedule, Reminders & Notifications, Apple Health Sync, AI & Food Databases, and Data Management & Backup.
+
+#### 3. Workout Builder & Program Sharing Fixes
+- **Workout Day Removal**: Ellipsis action menu and destructive "Delete Day" button on each workout day in `ProgramBuilderView.swift` with cascade deletion, confirmation alert, and automatic order re-indexing.
+- **Program & Workout Export Fix**: `ShareSheetHelper` ensures `UIActivityViewController` presents reliably on top-most view controllers, fixing export failures for `.totalfactorprogram` and workout CSVs.
 EOF
 
   # Check if release already exists
@@ -159,7 +161,7 @@ EOF
   else
     echo "Creating GitHub Release v$VERSION..."
     gh release create "v$VERSION" \
-      --title "Total Factor v$VERSION (Build $BUILD) — HealthKit External Nutrition Sync Engine & Bug Fixes" \
+      --title "Total Factor v$VERSION (Build $BUILD) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub" \
       --notes "$RELEASE_NOTES"
     echo "Uploading TotalFactor.ipa to v$VERSION..."
     gh release upload "v$VERSION" "$IPA_PATH" --clobber

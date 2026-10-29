@@ -6,6 +6,60 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.5.7 — Build 17 (2026-10-29) — MacroFactor Multi-Page Onboarding & Categorized Settings Hub
+
+### 1. MacroFactor-Style Multi-Page Onboarding Flow (`OnboardingFlowView.swift`, `OnboardingCardComponents.swift`)
+- **10-Step Bite-Sized Guided Setup**:
+  - Replaced the cramped 3-step monolithic form with an elegant 10-page progressive wizard featuring animated step indicators (`Step X of 9`), smooth transitions, and tactile selection cards.
+  - **MacroFactor Food Setup**:
+    - **Demographics & Units**: Selectable cards for Imperial vs Metric, Biological Sex (anchoring Mifflin-St Jeor and fat floor protections), and Age stepper.
+    - **Body Metrics**: Height (feet/inches or cm) and scale weight with morning weigh-in guidance.
+    - **Baseline Activity**: Rich descriptive cards for Sedentary (<5k steps), Light (6k–8k steps), Moderate (8k–11k steps), and Very Active (12k+ steps) with clear notes that dynamic intake/scale data takes over in weeks 1–2.
+    - **Primary Goal Selection**: Interactive goal cards for Lose Fat (Cut), Maintain Weight, and Gain Muscle (Bulk).
+    - **Target Rate of Change Slider**: MacroFactor-style dynamic slider with live weekly % body weight change, weekly weight change display, and zone recommendation pills (*Conservative*, *Standard / Recommended*, *Aggressive*).
+    - **Day-1 Nutrition Strategy Preview**: Visual stacked macro bar breakdown (Protein, Carbs, Fat) with gram targets, calorie percentages, and Training-Day Carb Cycling toggle.
+  - **MacroFactor Workouts Setup**:
+    - Integrates strength training directly into onboarding: training frequency (2–6 days/week), primary lifting focus (Hypertrophy, Strength, Both), and primary gym setup.
+    - Automatically generates and activates an initial workout blueprint on Day 1 using `ProgramGeneratorEngine`.
+  - **Apple Health Integration & Launch**:
+    - Transparent permission breakdown (Smart Scale, Macros, Workouts, Watch Telemetry) with instant connection feedback.
+    - Summary card with Day-1 starting weight, calorie/protein targets, and workout split.
+
+### 2. Categorized Settings Hub Redesign (`SettingsView.swift` & Modular Sub-Views)
+- **Master Hub & Drill-Down Navigation Architecture**:
+  - Modularized the 538-line single form into a clean, high-level **Settings Hub** with SF Symbol badged navigation rows leading to dedicated subpages.
+  - **Active Program & Profile Card**: Displays biological sex, age, current weight, active goal pill, and weekly check-in day, with a 1-tap **"Rerun Setup & Onboarding"** button to replay the onboarding wizard anytime.
+  - **Coaching & Nutrition (`GoalStrategySettingsView.swift`, `FastingSettingsView.swift`)**:
+    - Goals & Target Rates (goal picker, weekly rate slider, carb cycling, BMR floor override).
+    - Intermittent Fasting (protocol picker, fasting timer controls).
+    - Deep link to `NutrientTargetsEditorView`.
+  - **Workouts & Training (`WorkoutPreferencesSettingsView.swift`)**:
+    - Rest timer sound & Apple Watch haptic wrist vibration mirroring.
+    - Gym Equipment Profiles management.
+  - **Preferences & Schedule (`UnitsScheduleSettingsView.swift`, `NotificationsSettingsView.swift`)**:
+    - Preferred units, weigh-in rule, first day of week, weekly check-in weekday.
+    - Weigh-in alarm, lunch/dinner meal logging reminders, evening missed food check, pre-workout alert.
+  - **Integrations & Cloud (`AppleHealthSettingsView.swift`, `AIDatabaseSettingsView.swift`)**:
+    - Two-way sync, push history, import nutrition, iCloud sync toggle.
+    - USDA FoodData Central API key, Gemini AI meal/photo logging, model picker, secure Keychain key storage.
+  - **Data Management & Exports (`DataManagementSettingsView.swift`)**:
+    - Direct MacroFactor CSV Importer with zero-duplicate protection.
+    - Universal Export Package (CSVs + AI Coaching prompt digest).
+    - Individual CSV Exports (Food Log, Weigh-Ins, Workouts).
+    - Strong Workout CSV Importer.
+  - **About & Science (`AttributionSettingsView.swift`, `UpdateLogView.swift`)**:
+    - Running update log with `v1.5.7 (Build 17)` badge and open-data attributions.
+
+### 3. Workout Builder Fixes: Day Removal & Share Sheet Presentation (`ProgramBuilderView.swift`, `TrainHubView.swift`, `ShareSheetHelper.swift`)
+- **Workout Day Removal**:
+  - Added an ellipsis action menu and destructive "Delete Day" button to every workout day section in `ProgramBuilderView.swift`.
+  - Cascades exercise slots, prompts with a confirmation alert, and automatically re-indexes remaining workout days consecutively (`order = 0, 1, 2...`) while updating `daysPerWeek`.
+- **Workout & Program Export Fix**:
+  - Built `ShareSheetHelper.swift` to resolve the topmost presented `UIViewController` across active modal sheets.
+  - Fixes silent presentation failures when exporting `.totalfactorprogram` files in `ProgramBuilderView` and `TrainHubView`, and ensures instant 1-tap sharing for workout CSV exports.
+
+---
+
 ## v1.5.6.5 — Build 16 (2026-10-29) — Direct MacroFactor CSV Importer & Zero-Duplicate Protection
 
 ### 1. Direct MacroFactor Data Importer (`MacroFactorImportService.swift`, `SettingsView.swift`)

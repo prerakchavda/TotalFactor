@@ -358,6 +358,7 @@ private struct ProgramDetailEditorView: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
 
     @State private var addingSlotToWorkout: ProgramWorkout? = nil
+    @State private var workoutToDelete: ProgramWorkout? = nil
 
     var body: some View {
         List {
@@ -431,6 +432,18 @@ private struct ProgramDetailEditorView: View {
                             Text("Sat").tag(7)
                         }
                         .labelsHidden()
+
+                        Menu {
+                            Button(role: .destructive) {
+                                workoutToDelete = workout
+                            } label: {
+                                Label("Delete Workout Day", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     ForEach(workout.sortedSlots) { slot in
@@ -465,11 +478,23 @@ private struct ProgramDetailEditorView: View {
                         try? modelContext.save()
                     }
 
-                    Button {
-                        addingSlotToWorkout = workout
-                    } label: {
-                        Label("Add Exercise Slot", systemImage: "plus.circle")
-                            .font(.caption.weight(.semibold))
+                    HStack {
+                        Button {
+                            addingSlotToWorkout = workout
+                        } label: {
+                            Label("Add Exercise Slot", systemImage: "plus.circle")
+                                .font(.caption.weight(.semibold))
+                        }
+
+                        Spacer()
+
+                        Button(role: .destructive) {
+                            workoutToDelete = workout
+                        } label: {
+                            Label("Delete Day", systemImage: "trash")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
             }
@@ -502,6 +527,22 @@ private struct ProgramDetailEditorView: View {
         }
         .navigationTitle(program.name)
         .toolbar { EditButton() }
+        .alert("Delete Workout Day?", isPresented: Binding(
+            get: { workoutToDelete != nil },
+            set: { if !$0 { workoutToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { workoutToDelete = nil }
+            Button("Delete Day", role: .destructive) {
+                if let target = workoutToDelete {
+                    deleteWorkoutDay(target)
+                    workoutToDelete = nil
+                }
+            }
+        } message: {
+            if let target = workoutToDelete {
+                Text("Are you sure you want to delete \"\(target.name)\"? All exercise slots configured inside this day will be removed.")
+            }
+        }
         .sheet(item: $addingSlotToWorkout) { targetWorkout in
             NavigationStack {
                 List(exercises) { ex in
@@ -527,15 +568,25 @@ private struct ProgramDetailEditorView: View {
         }
     }
 
+    private func deleteWorkoutDay(_ workout: ProgramWorkout) {
+        modelContext.delete(workout)
+        try? modelContext.save()
+
+        // Re-index remaining workouts consecutively
+        let remaining = program.sortedWorkouts
+        for (index, w) in remaining.enumerated() {
+            w.order = index
+        }
+        program.daysPerWeek = max(1, remaining.count)
+        try? modelContext.save()
+        _ = CoachingCoordinator.evaluate(context: modelContext)
+    }
+
     private func shareProgramFile() {
         #if canImport(UIKit)
         do {
             let fileURL = try ProgramImportExportService.exportProgramToFile(program: program)
-            let av = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let root = windowScene.windows.first?.rootViewController {
-                root.present(av, animated: true)
-            }
+            ShareSheetHelper.present(activityItems: [fileURL])
         } catch {}
         #endif
     }
