@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.7.2] - 2026-11-01
+
+### Fixed — Workout Keypad Decimal Weights (Build 23)
+- Decimal point dropped during weight entry (3.5 → 35, 30.5 → 305) and lb round-trip drift; entry now uses a typed-text buffer (`ActiveWorkoutView.swift`).
+- Weight boxes truncated decimals via `Int(...)`, which could also trap on overflow; now formatted to 0.01 with capped, finite input.
+- Backspace followed by a digit overwrote the field instead of appending.
+
+---
+
 ## [1.7.1] - 2026-11-01
 
 ### Fixed — Hour-by-Hour Macros, Plate Staging, Appearance & Readability (Build 22)

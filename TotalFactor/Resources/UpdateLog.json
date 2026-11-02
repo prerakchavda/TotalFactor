@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.7.2",
+    "build": "23",
+    "date": "2026-11-01",
+    "headline": "Workout Keypad: Decimal Weights Fixed",
+    "sections": [
+      {
+        "title": "Gym Keypad Weight Entry",
+        "icon": "dumbbell.fill",
+        "items": [
+          "Decimal weights now work: typing 3.5 or 30.5 keeps the decimal point instead of turning into 35 / 305.",
+          "lb entries no longer drift (30.5 lb was read back as 30.4999... and corrupted the next keypress).",
+          "Weight boxes show decimals (e.g. 22.5) instead of cutting them off, and show exactly what you are typing.",
+          "Entry is capped at 4 whole digits and 2 decimals, so runaway values can no longer crash the set row.",
+          "Backspace now keeps editing the shortened value instead of the next digit overwriting it."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.1",
     "build": "22",
     "date": "2026-11-01",

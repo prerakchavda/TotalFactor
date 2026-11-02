@@ -43,6 +43,9 @@ public struct ActiveWorkoutView: View {
     @State private var focusedSetID: UUID? = nil
     @State private var focusedField: MacroFactorGymKeypad.ActiveField = .weight
     @State private var isFirstDigit: Bool = true
+    /// Exactly what the user has typed into the focused weight field (e.g. "30." or "2.5"), so decimals
+    /// survive between keypresses instead of being rebuilt from the stored kg value.
+    @State private var weightEntryText: String = ""
 
     // Sheets & Overlays
     @State private var showingAddExercise: Bool = false
@@ -689,7 +692,13 @@ public struct ActiveWorkoutView: View {
                 Button {
                     onSelectField(.weight)
                 } label: {
-                    Text(formatLoadDisplay(setLog.weightKg, bodyweightMode: bodyweightMode))
+                    Text(formatLoadDisplay(
+                        setLog.weightKg,
+                        bodyweightMode: bodyweightMode,
+                        editingText: (isFocused && focusedField == .weight && !isFirstDigit) ? weightEntryText : nil
+                    ))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .font(.system(size: 15, weight: .bold))
                         .frame(width: 74, height: 38)
                         .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -765,7 +774,7 @@ public struct ActiveWorkoutView: View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
                 Button { onSelectField(.weightLeft) } label: {
-                    Text("L:\(Int(UnitsFormatter.displayWeight(setLog.weightKgLeft ?? setLog.weightKg, system: profile.unitSystem)))")
+                    Text("L:\(editableWeightText(setLog.weightKgLeft ?? setLog.weightKg))")
                         .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
                         .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
@@ -779,7 +788,7 @@ public struct ActiveWorkoutView: View {
             }
             HStack(spacing: 4) {
                 Button { onSelectField(.weightRight) } label: {
-                    Text("R:\(Int(UnitsFormatter.displayWeight(setLog.weightKgRight ?? setLog.weightKg, system: profile.unitSystem)))")
+                    Text("R:\(editableWeightText(setLog.weightKgRight ?? setLog.weightKg))")
                         .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
                         .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
@@ -833,28 +842,57 @@ public struct ActiveWorkoutView: View {
         )
     }
 
+    private var isWeightFieldFocused: Bool {
+        focusedField == .weight || focusedField == .weightLeft || focusedField == .weightRight
+    }
+
+    private func focusedWeightKg(of targetSet: SetLog) -> Double {
+        (focusedField == .weightLeft ? targetSet.weightKgLeft : (focusedField == .weightRight ? targetSet.weightKgRight : targetSet.weightKg)) ?? targetSet.weightKg
+    }
+
+    private func storeFocusedWeight(displayValue: Double, on targetSet: SetLog) {
+        let internalKg = UnitsFormatter.internalKg(fromDisplay: displayValue, system: profile.unitSystem)
+        if focusedField == .weightLeft {
+            targetSet.weightKgLeft = internalKg
+        } else if focusedField == .weightRight {
+            targetSet.weightKgRight = internalKg
+        } else {
+            targetSet.weightKg = internalKg
+        }
+    }
+
+    /// Display-unit weight as editable text: rounded to 0.01 so kg↔lb round-trips (30.5 lb → 30.4999…)
+    /// read back cleanly, trailing zeros trimmed ("30.5", "135", "0").
+    private func editableWeightText(_ weightKg: Double) -> String {
+        let display = UnitsFormatter.displayWeight(weightKg, system: profile.unitSystem)
+        guard display.isFinite else { return "0" }
+        var text = String(format: "%.2f", (display * 100).rounded() / 100)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text.isEmpty || text == "-0" ? "0" : text
+    }
+
     private func handleKeypadDigit(_ digit: String, on targetSet: SetLog) {
-        if focusedField == .weight || focusedField == .weightLeft || focusedField == .weightRight {
-            let currentKg = (focusedField == .weightLeft ? targetSet.weightKgLeft : (focusedField == .weightRight ? targetSet.weightKgRight : targetSet.weightKg)) ?? targetSet.weightKg
-            let currentDisplay = UnitsFormatter.displayWeight(currentKg, system: profile.unitSystem)
-
-            var str = isFirstDigit ? "" : (currentDisplay > 0 ? "\(currentDisplay)".replacingOccurrences(of: ".0", with: "") : "")
-            if digit == "." && str.contains(".") { return }
-            str += digit
-            if str == "." { str = "0." }
-
-            if let val = Double(str) {
-                let internalKg = UnitsFormatter.internalKg(fromDisplay: val, system: profile.unitSystem)
-                if focusedField == .weightLeft {
-                    targetSet.weightKgLeft = internalKg
-                } else if focusedField == .weightRight {
-                    targetSet.weightKgRight = internalKg
-                } else {
-                    targetSet.weightKg = internalKg
-                }
-                isFirstDigit = false
-                try? modelContext.save()
+        if isWeightFieldFocused {
+            var text = isFirstDigit ? "" : weightEntryText
+            if digit == "." {
+                if text.contains(".") { return }
+                if text.isEmpty { text = "0" }
+            } else {
+                // Max 2 decimal places, and no leading zeros ("05" → "5")
+                if let dot = text.firstIndex(of: "."), text[text.index(after: dot)...].count >= 2 { return }
+                if text == "0" { text = "" }
             }
+            text += digit
+
+            // Cap at 4 whole digits (9999) so the value always stays a sane, finite load
+            let wholePart = text.split(separator: ".", omittingEmptySubsequences: false).first ?? ""
+            guard wholePart.count <= 4, let val = Double(text), val.isFinite else { return }
+
+            weightEntryText = text
+            storeFocusedWeight(displayValue: val, on: targetSet)
+            isFirstDigit = false
+            try? modelContext.save()
         } else {
             // Reps
             let currentReps = (focusedField == .repsLeft ? targetSet.repsLeft : (focusedField == .repsRight ? targetSet.repsRight : targetSet.reps)) ?? targetSet.reps
@@ -875,15 +913,12 @@ public struct ActiveWorkoutView: View {
     }
 
     private func handleKeypadBackspace(on targetSet: SetLog) {
-        if focusedField == .weight || focusedField == .weightLeft || focusedField == .weightRight {
-            let currentKg = (focusedField == .weightLeft ? targetSet.weightKgLeft : (focusedField == .weightRight ? targetSet.weightKgRight : targetSet.weightKg)) ?? targetSet.weightKg
-            let currentDisplay = "\(UnitsFormatter.displayWeight(currentKg, system: profile.unitSystem))".replacingOccurrences(of: ".0", with: "")
-            let newStr = String(currentDisplay.dropLast())
-            let val = Double(newStr) ?? 0.0
-            let internalKg = UnitsFormatter.internalKg(fromDisplay: val, system: profile.unitSystem)
-            if focusedField == .weightLeft { targetSet.weightKgLeft = internalKg }
-            else if focusedField == .weightRight { targetSet.weightKgRight = internalKg }
-            else { targetSet.weightKg = internalKg }
+        if isWeightFieldFocused {
+            var text = isFirstDigit ? editableWeightText(focusedWeightKg(of: targetSet)) : weightEntryText
+            if text == "0" { text = "" }
+            if !text.isEmpty { text.removeLast() }
+            weightEntryText = text
+            storeFocusedWeight(displayValue: Double(text) ?? 0.0, on: targetSet)
         } else {
             let currentReps = (focusedField == .repsLeft ? targetSet.repsLeft : (focusedField == .repsRight ? targetSet.repsRight : targetSet.reps)) ?? targetSet.reps
             let newStr = String("\(currentReps)".dropLast())
@@ -892,6 +927,8 @@ public struct ActiveWorkoutView: View {
             else if focusedField == .repsRight { targetSet.repsRight = val }
             else { targetSet.reps = val }
         }
+        // Keep editing the shortened value: the next digit appends instead of overwriting the field.
+        isFirstDigit = false
         try? modelContext.save()
     }
 
@@ -1373,8 +1410,8 @@ public struct ActiveWorkoutView: View {
         return "—"
     }
 
-    private func formatLoadDisplay(_ weightKg: Double, bodyweightMode: BodyweightMode) -> String {
-        let loadStr = "\(Int(UnitsFormatter.displayWeight(weightKg, system: profile.unitSystem)))"
+    private func formatLoadDisplay(_ weightKg: Double, bodyweightMode: BodyweightMode, editingText: String? = nil) -> String {
+        let loadStr = editingText.map { $0.isEmpty ? "0" : $0 } ?? editableWeightText(weightKg)
         switch bodyweightMode {
         case .standardLoad: return loadStr
         case .bodyweightOnly: return "BW"

@@ -6,6 +6,19 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.7.2 — Build 23 (2026-11-01) — Workout Keypad: Decimal Weights Fixed
+
+### 1. Gym Keypad Weight Entry (`ActiveWorkoutView.swift`)
+- Weight entry now edits a typed-text buffer (`weightEntryText`) instead of rebuilding the number from the stored kg after every keypress.
+  - Fixes the decimal point being dropped (`3` `.` `5` became **35**, `30.5` became **305**).
+  - Fixes lb round-trip drift (`30.5 lb` → `30.4999…`) corrupting the next keypress, and `"100.05"` collapsing to `"1005"`.
+- Weight boxes (including unilateral L/R) show real decimals rounded to 0.01 instead of truncating with `Int(...)`, and show the in-progress text while typing (e.g. `30.`).
+- Input capped at 4 whole digits / 2 decimals with a finite-value guard, removing the `Int(Double)` overflow trap in the set row.
+- Backspace now continues editing (next digit appends) for both weight and reps; leading zeros are dropped.
+- Bumped to v1.7.2 (Build 23) across app, widgets, and Watch.
+
+---
+
 ## v1.7.1 — Build 22 (2026-11-01) — Bug Fixes: Hour-by-Hour Macros, Plate Staging, Appearance & Readability
 
 ### 1. Food Log Accuracy (`NutritionModels.swift`, `HourByHourTimelineSection.swift`, `FoodTimelineView.swift`)
