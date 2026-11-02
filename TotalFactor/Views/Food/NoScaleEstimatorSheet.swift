@@ -72,7 +72,7 @@ struct NoScaleEstimatorSheet: View {
                 macroSummaryBanner
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(AppleTheme.background)
 
                 Divider()
 
@@ -153,7 +153,7 @@ struct NoScaleEstimatorSheet: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                     Text("\(Int(totalCalories.rounded())) kcal")
-                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .font(.system(size: 24, weight: .heavy))
                         .foregroundStyle(.primary)
                 }
                 Spacer()

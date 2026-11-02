@@ -360,7 +360,7 @@ public struct MacroFactorSplitPreviewBar: View {
                         .textCase(.uppercase)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(calories.rounded()))")
-                            .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
+                            .font(.system(size: 32, weight: .bold).monospacedDigit())
                         Text("kcal / day")
                             .font(.headline)
                             .foregroundStyle(.secondary)

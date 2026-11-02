@@ -12,70 +12,46 @@ struct RootTabView: View {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
     }
 
+    @State private var keyboardVisible: Bool = false
+
     var body: some View {
         @Bindable var state = appState
 
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
+            // System tab bar is hidden (MFAppearance + .toolbar(.hidden)); MacroFactor chrome is drawn below.
             TabView(selection: $state.selectedTab) {
                 TodayDashboardView()
-                    .tabItem {
-                        Label("Today", systemImage: "bolt.heart.fill")
-                    }
+                    .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.today)
 
                 FoodTimelineView()
-                    .tabItem {
-                        Label("Food", systemImage: "fork.knife")
-                    }
+                    .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.food)
 
                 TrainHubView()
-                    .tabItem {
-                        Label("Train", systemImage: "dumbbell.fill")
-                    }
+                    .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.train)
 
                 ProgressHubView()
-                    .tabItem {
-                        Label("Progress", systemImage: "chart.xyaxis.line")
-                    }
+                    .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.progress)
 
                 SettingsView()
-                    .tabItem {
-                        Label("Settings", systemImage: "gearshape.fill")
-                    }
+                    .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.settings)
             }
 
-            // Persistent mini-bar when an active workout or rest timer is running, plus thumb-reachable + food button
-            VStack(spacing: 8) {
-                if let activeSession = openSessions.first, !state.showingActiveWorkoutFullScreen {
-                    ActiveWorkoutMiniBar(session: activeSession) {
-                        state.activeWorkoutSessionID = activeSession.id
-                        state.showingActiveWorkoutFullScreen = true
-                    }
-                    .padding(.horizontal, 14)
-                }
-
-                if state.selectedTab == .today || state.selectedTab == .food {
-                    HStack {
-                        Spacer()
-                        Button {
-                            state.openQuickAdd(tab: 0)
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.title2.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 58, height: 58)
-                                .background(Circle().fill(Color.accentColor).shadow(color: .black.opacity(0.25), radius: 8, y: 4))
-                        }
-                        .accessibilityLabel("Quick Add Food")
-                        .padding(.trailing, 18)
-                    }
-                }
+            if !keyboardVisible {
+                bottomChrome
             }
-            .padding(.bottom, 58)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            // Only collapse the bottom chrome for keyboards in the tabs themselves; a keyboard inside a
+            // sheet would otherwise resize the root screen showing behind it.
+            keyboardVisible = !Self.isPresentingModal
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardVisible = false
         }
         .sheet(isPresented: $state.showingQuickAddFood) {
             QuickAddFoodSheet(
@@ -129,6 +105,202 @@ struct RootTabView: View {
             }
         }
     }
+
+    private static var isPresentingModal: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController?
+            .presentedViewController != nil
+    }
+
+    // MARK: - MacroFactor Bottom Chrome (mini-bar, food search dock, tab bar)
+
+    private var bottomChrome: some View {
+        VStack(spacing: 10) {
+            if let activeSession = openSessions.first, !appState.showingActiveWorkoutFullScreen {
+                ActiveWorkoutMiniBar(session: activeSession) {
+                    appState.activeWorkoutSessionID = activeSession.id
+                    appState.showingActiveWorkoutFullScreen = true
+                }
+                .padding(.horizontal, 14)
+            }
+
+            if appState.selectedTab == .today || appState.selectedTab == .food {
+                MFFoodSearchDock(
+                    onSearch: { appState.openQuickAdd(tab: 0) },
+                    onScan: { appState.openQuickAdd(tab: 1) },
+                    onDescribe: { appState.openQuickAdd(tab: 5) }
+                )
+                .padding(.horizontal, 14)
+            }
+
+            MFTabBar(
+                selection: appState.selectedTab,
+                hasOpenWorkout: !openSessions.isEmpty,
+                onSelect: { appState.selectedTab = $0 },
+                onLogFood: { appState.openQuickAdd(tab: 0) },
+                onDescribeMeal: { appState.openQuickAdd(tab: 5) },
+                onScanBarcode: { appState.openQuickAdd(tab: 1) },
+                onQuickAdd: { appState.openQuickAdd(tab: 3) },
+                onLogWeight: { appState.showingWeighInSheet = true },
+                onCheckIn: { appState.showingWeeklyCheckInSheet = true },
+                onWorkout: {
+                    if let open = openSessions.first {
+                        appState.activeWorkoutSessionID = open.id
+                        appState.showingActiveWorkoutFullScreen = true
+                    } else {
+                        appState.selectedTab = .train
+                    }
+                }
+            )
+        }
+        .padding(.top, 8)
+        .background(AppleTheme.background.ignoresSafeArea(edges: .bottom))
+    }
+}
+
+/// MacroFactor floating "Search for a food" pill with inline barcode button and AI describe button
+private struct MFFoodSearchDock: View {
+    let onSearch: () -> Void
+    let onScan: () -> Void
+    let onDescribe: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: onSearch) {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Search for a food")
+                        .font(.subheadline)
+                    Spacer(minLength: 4)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.leading, 16)
+                .padding(.trailing, 52)
+                .frame(height: 46)
+                .background(Capsule().fill(AppleTheme.cardSurface))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Search for a food")
+            .overlay(alignment: .trailing) {
+                Button(action: onScan) {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 4)
+                .accessibilityLabel("Scan Barcode")
+            }
+
+            Button(action: onDescribe) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 46, height: 46)
+                    .background(Circle().fill(AppleTheme.cardSurface))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Describe a Meal")
+        }
+    }
+}
+
+/// MacroFactor bottom navigation: icon + label tabs with a center inverted "+" quick-action button
+private struct MFTabBar: View {
+    let selection: AppTab
+    let hasOpenWorkout: Bool
+    let onSelect: (AppTab) -> Void
+    let onLogFood: () -> Void
+    let onDescribeMeal: () -> Void
+    let onScanBarcode: () -> Void
+    let onQuickAdd: () -> Void
+    let onLogWeight: () -> Void
+    let onCheckIn: () -> Void
+    let onWorkout: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            tabButton(.today, title: "Dashboard", icon: "square.grid.2x2", selectedIcon: "square.grid.2x2.fill")
+            tabButton(.food, title: "Food Log", icon: "fork.knife", selectedIcon: "fork.knife")
+            addMenu
+            tabButton(.train, title: "Workouts", icon: "dumbbell", selectedIcon: "dumbbell.fill")
+            tabButton(.progress, title: "Progress", icon: "chart.xyaxis.line", selectedIcon: "chart.xyaxis.line")
+            tabButton(.settings, title: "More", icon: "ellipsis.circle", selectedIcon: "ellipsis.circle.fill")
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppleTheme.hairline)
+                .frame(height: 0.5)
+        }
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private func tabButton(_ tab: AppTab, title: String, icon: String, selectedIcon: String) -> some View {
+        let isSelected = selection == tab
+        return Button {
+            onSelect(tab)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: isSelected ? selectedIcon : icon)
+                    .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
+                    .frame(height: 24)
+                Text(title)
+                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var addMenu: some View {
+        Menu {
+            Button(action: onLogFood) {
+                Label("Log Food", systemImage: "magnifyingglass")
+            }
+            Button(action: onDescribeMeal) {
+                Label("Describe a Meal", systemImage: "sparkles")
+            }
+            Button(action: onScanBarcode) {
+                Label("Scan Barcode", systemImage: "barcode.viewfinder")
+            }
+            Button(action: onQuickAdd) {
+                Label("Quick Add Macros", systemImage: "bolt.fill")
+            }
+            Divider()
+            Button(action: onLogWeight) {
+                Label("Log Weight", systemImage: "scalemass")
+            }
+            Button(action: onWorkout) {
+                Label(hasOpenWorkout ? "Resume Workout" : "Start a Workout", systemImage: "dumbbell")
+            }
+            Button(action: onCheckIn) {
+                Label("Weekly Check-In", systemImage: "checkmark.seal")
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(AppleTheme.background)
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(Color.primary))
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+        }
+        .menuOrder(.fixed)
+        .accessibilityLabel("Add")
+    }
 }
 
 private struct ActiveWorkoutMiniBar: View {
@@ -141,9 +313,9 @@ private struct ActiveWorkoutMiniBar: View {
             HStack(spacing: 12) {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(.green))
+                    .background(Circle().fill(AppleTheme.exercise))
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
@@ -187,11 +359,7 @@ private struct ActiveWorkoutMiniBar: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
-            )
+            .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }

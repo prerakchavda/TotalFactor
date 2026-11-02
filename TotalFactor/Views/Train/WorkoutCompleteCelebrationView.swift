@@ -75,7 +75,7 @@ struct WorkoutCompleteCelebrationView: View {
                     VStack(spacing: 8) {
                         AnatomicalHumanoidHeatmapView(
                             workedMuscles: workedMuscles,
-                            accentColor: Color(red: 0.18, green: 0.48, blue: 0.96),
+                            accentColor: AppleTheme.accent,
                             height: 240,
                             showLabels: true
                         )
@@ -135,7 +135,7 @@ struct WorkoutCompleteCelebrationView: View {
                         }
                     }
                     .padding(18)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .padding(.horizontal, 16)
 
                     // 4. "Update Workout Plan" Switch (MacroFactor Style)
@@ -172,7 +172,7 @@ struct WorkoutCompleteCelebrationView: View {
                             }
                         }
                         .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .padding(.horizontal, 16)
                     }
 
@@ -196,7 +196,7 @@ struct WorkoutCompleteCelebrationView: View {
                     .padding(.bottom, 30)
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle("Workout Complete")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -221,14 +221,14 @@ struct WorkoutCompleteCelebrationView: View {
             HStack(spacing: 8) {
                 Image(systemName: prIcon(pr.type))
                     .font(.headline)
-                    .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                    .foregroundStyle(AppleTheme.accent)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(formatPRValue(pr))
                         .font(.headline.weight(.heavy).monospacedDigit())
                         .foregroundStyle(.primary)
                     Text("New!")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(AppleTheme.accent)
                 }
             }
 
@@ -243,7 +243,7 @@ struct WorkoutCompleteCelebrationView: View {
         }
         .padding(14)
         .frame(width: 175, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)

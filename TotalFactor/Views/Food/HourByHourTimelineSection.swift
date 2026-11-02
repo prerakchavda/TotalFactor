@@ -38,7 +38,7 @@ struct HourByHourTimelineSection: View {
     private var hourlyNutrients: NutrientsPer100g {
         var total = NutrientsPer100g()
         for e in entries {
-            let sc = e.loggedNutrients.scaled(forGrams: e.grams)
+            let sc = e.loggedNutrients
             total.calories += sc.calories
             total.protein += sc.protein
             total.carbs += sc.carbs
@@ -67,13 +67,13 @@ struct HourByHourTimelineSection: View {
                             .foregroundStyle(.secondary)
 
                         Text(formattedHourTitle)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.primary)
 
                         if !entries.isEmpty {
                             Text("• \(Int(hourlyNutrients.calories.rounded())) kcal")
                                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                                .foregroundStyle(AppleTheme.accent)
 
                             Text("(\(Int(hourlyNutrients.protein.rounded()))P \(Int(hourlyNutrients.carbs.rounded()))C \(Int(hourlyNutrients.fat.rounded()))F)")
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -122,14 +122,14 @@ struct HourByHourTimelineSection: View {
         } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                .foregroundStyle(AppleTheme.accent)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Add food at \(formattedHourTitle)")
     }
 
     private func foodTile(for entry: FoodLogEntry) -> some View {
-        let sc = entry.loggedNutrients.scaled(forGrams: entry.grams)
+        let sc = entry.loggedNutrients
 
         return HStack(spacing: 12) {
             // Leading Color Pill indicating major macro
@@ -155,20 +155,13 @@ struct HourByHourTimelineSection: View {
                     }
                 }
 
-                HStack(spacing: 6) {
-                    Text(entry.servingLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("•")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    Text("\(Int(sc.calories.rounded())) kcal")
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(.primary)
-                    Text("(\(Int(sc.protein.rounded()))P \(Int(sc.carbs.rounded()))C \(Int(sc.fat.rounded()))F)")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+                // MacroFactor row summary: "504 Cal • 33P • 7F • 0C"
+                MFMacroSummaryLine(calories: sc.calories, protein: sc.protein, fat: sc.fat, carbs: sc.carbs)
+
+                Text(entry.servingLabel)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -181,14 +174,14 @@ struct HourByHourTimelineSection: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.secondary)
                     .padding(6)
-                    .background(Color(.tertiarySystemGroupedBackground), in: Circle())
+                    .background(AppleTheme.tertiarySurface, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add to Plate")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(Rectangle())
         .onTapGesture {
             onEditEntry(entry)
@@ -237,7 +230,7 @@ struct HourByHourTimelineSection: View {
             } label: {
                 Label("Plate", systemImage: "plus")
             }
-            .tint(Color(red: 0.18, green: 0.48, blue: 0.96))
+            .tint(AppleTheme.accent)
         }
     }
 
@@ -246,11 +239,11 @@ struct HourByHourTimelineSection: View {
         let cCal = n.carbs * 4
         let fCal = n.fat * 9
         if pCal >= cCal && pCal >= fCal {
-            return .red
+            return AppleTheme.protein
         } else if cCal >= pCal && cCal >= fCal {
-            return .blue
+            return AppleTheme.carbs
         } else {
-            return .yellow
+            return AppleTheme.fat
         }
     }
 }

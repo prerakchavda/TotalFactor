@@ -76,7 +76,7 @@ struct WorkoutChangeLogSheet: View {
                             }
                         }
                         .padding(16)
-                        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16))
                     }
                     .padding()
                 }
@@ -109,7 +109,7 @@ struct WorkoutChangeLogSheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 20)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle("Commit Routine Changes")
             .navigationBarTitleDisplayMode(.inline)
         }

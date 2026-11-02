@@ -13,7 +13,7 @@ struct ExerciseGuideSheet: View {
                 ExerciseGuideContentView(exercise: exercise)
                     .padding(16)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle(exercise.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -174,7 +174,7 @@ struct ExerciseGuideContentView: View {
             #endif
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     #if canImport(UIKit)
@@ -268,7 +268,7 @@ struct ExerciseGuideContentView: View {
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func setupTipCard(tip: String) -> some View {
@@ -293,7 +293,7 @@ struct ExerciseGuideContentView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground))
+                .fill(AppleTheme.cardSurface)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .strokeBorder(Color.purple.opacity(0.25), lineWidth: 1)
@@ -323,7 +323,7 @@ struct ExerciseGuideContentView: View {
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func cuesAndMistakesCard(cues: [String], mistakes: [String]) -> some View {
@@ -375,7 +375,7 @@ struct ExerciseGuideContentView: View {
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -410,7 +410,7 @@ struct TargetMuscleDiagramView: View {
             bodyFigure(isFront: false, label: "Back")
         }
         .padding(8)
-        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func fill(for muscles: [MuscleGroup]) -> Color {
@@ -534,7 +534,7 @@ struct WorkoutOverviewGuideSheet: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                     // Ordered Exercise Guide Cards
                     ForEach(Array(slots.enumerated()), id: \.element.id) { idx, slot in
@@ -578,7 +578,7 @@ struct WorkoutOverviewGuideSheet: View {
                                     }
                                 }
                                 .padding(12)
-                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             }
                             .buttonStyle(.plain)
                         }
@@ -586,7 +586,7 @@ struct WorkoutOverviewGuideSheet: View {
                 }
                 .padding(16)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle("\(workout.name) Guide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

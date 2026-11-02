@@ -441,11 +441,17 @@ public final class FoodLogEntry {
         }
     }
 
+    /// Logged nutrients for the full logged amount (already scaled to `grams` — do not scale again).
     public var loggedNutrients: NutrientsPer100g {
+        snapshotNutrientsPer100g.scaled(forGrams: grams)
+    }
+
+    /// Snapshot nutrients per 100 g, as captured at log time.
+    public var snapshotNutrientsPer100g: NutrientsPer100g {
         let micros = snapshotMicronutrientsJSON.isEmpty
             ? [:]
             : ((try? NutritionModelCoding.decoder.decode([String: Double].self, from: snapshotMicronutrientsJSON)) ?? [:])
-        let base = NutrientsPer100g(
+        return NutrientsPer100g(
             calories: snapshotCaloriesPer100g,
             protein: snapshotProteinPer100g,
             carbs: snapshotCarbsPer100g,
@@ -455,7 +461,6 @@ public final class FoodLogEntry {
             sodiumMg: snapshotSodiumMgPer100g,
             micronutrients: micros
         )
-        return base.scaled(forGrams: grams)
     }
 
     private var gramScaleFactor: Double { max(0, grams) / 100.0 }

@@ -101,7 +101,7 @@ struct WeekAdherenceCalendarStrip: View {
             .padding(.horizontal, 6)
         }
         .padding(.vertical, 8)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var weekHeaderTitle: String {
@@ -152,7 +152,7 @@ struct WeekAdherenceCalendarStrip: View {
 
                     Text("\(calendar.component(.day, from: date))")
                         .font(.system(size: 12, weight: isSelected ? .heavy : (isToday ? .bold : .medium)))
-                        .foregroundStyle(isSelected ? Color.primary : (isToday ? Color(red: 0.18, green: 0.48, blue: 0.96) : Color.primary))
+                        .foregroundStyle(isSelected ? Color.primary : (isToday ? AppleTheme.accent : Color.primary))
                 }
 
                 // Mini Cals Subtitle or Target status
@@ -170,12 +170,12 @@ struct WeekAdherenceCalendarStrip: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
             .background(
-                isSelected ? Color.primary.opacity(0.10) : (isToday ? Color(red: 0.18, green: 0.48, blue: 0.96).opacity(0.06) : Color.clear),
+                isSelected ? Color.primary.opacity(0.10) : (isToday ? AppleTheme.accent.opacity(0.06) : Color.clear),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isSelected ? Color(red: 0.18, green: 0.48, blue: 0.96) : Color.clear, lineWidth: 1.5)
+                    .strokeBorder(isSelected ? AppleTheme.accent : Color.clear, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
@@ -194,7 +194,7 @@ struct WeekAdherenceCalendarStrip: View {
         } else if progress > 1.05 {
             return .orange
         } else if progress > 0.05 {
-            return Color(red: 0.18, green: 0.48, blue: 0.96)
+            return AppleTheme.accent
         } else {
             return .clear
         }

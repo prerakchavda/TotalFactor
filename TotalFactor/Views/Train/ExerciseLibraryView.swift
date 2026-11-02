@@ -225,7 +225,7 @@ private struct ExerciseAnalyticsDetailView: View {
                     }
                 }
                 .padding(14)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 // Personal Records
                 VStack(alignment: .leading, spacing: 8) {
@@ -252,7 +252,7 @@ private struct ExerciseAnalyticsDetailView: View {
                     }
                 }
                 .padding(14)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 // Chronological Per-Exercise Session & Set History (§9 & §11)
                 VStack(alignment: .leading, spacing: 12) {
@@ -290,11 +290,11 @@ private struct ExerciseAnalyticsDetailView: View {
                     }
                 }
                 .padding(14)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(AppleTheme.background)
         .navigationTitle(exercise.name)
     }
 

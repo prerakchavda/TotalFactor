@@ -40,8 +40,8 @@ struct ThePlateDockView: View {
                             .fill(Color.white)
                             .frame(width: 28, height: 28)
                         Text("\(stagedItems.count)")
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(AppleTheme.accent)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -74,7 +74,7 @@ struct ThePlateDockView: View {
                     Text("Log Plate")
                         .font(.system(size: 13, weight: .bold))
                 }
-                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                .foregroundStyle(AppleTheme.accent)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(Color.white, in: Capsule())
@@ -84,7 +84,7 @@ struct ThePlateDockView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(
-            Color(red: 0.18, green: 0.48, blue: 0.96),
+            AppleTheme.accent,
             in: RoundedRectangle(cornerRadius: 18, style: .continuous)
         )
         .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)

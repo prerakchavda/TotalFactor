@@ -106,7 +106,7 @@ struct PhotoCompareView: View {
                 }
                 .padding(.vertical, 8)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle("Progress Photos")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -191,7 +191,7 @@ struct PhotoCompareView: View {
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12))
                 }
 
                 // Delta Summary Pill
@@ -239,7 +239,7 @@ struct PhotoCompareView: View {
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
             .padding(.horizontal)
@@ -393,7 +393,7 @@ struct PhotoCompareView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(
-                        isSelected ? Color(.secondarySystemGroupedBackground) : Color.clear,
+                        isSelected ? AppleTheme.cardSurface : Color.clear,
                         in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                     )
                     .foregroundStyle(isSelected ? Color.primary : Color.secondary)
@@ -403,7 +403,7 @@ struct PhotoCompareView: View {
             }
         }
         .padding(4)
-        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .padding(.horizontal)
     }
 
@@ -455,7 +455,7 @@ struct PhotoCompareView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(0.25), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))

@@ -101,7 +101,7 @@ struct FoodTimelineView: View {
                                     Text(showRemaining ? "Show Consumed" : "Show Remaining")
                                 }
                                 .font(.caption2.weight(.semibold))
-                                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                                .foregroundStyle(AppleTheme.accent)
                             }
                             .buttonStyle(.plain)
 
@@ -127,7 +127,7 @@ struct FoodTimelineView: View {
                             floor: calZone != nil ? calZone!.floor : (targets.calories * 0.92).rounded(),
                             target: targetCals,
                             ceiling: calZone != nil ? calZone!.ceiling : (targets.calories * 1.05).rounded(),
-                            tint: .orange
+                            tint: AppleTheme.calories
                         )
 
                         HStack(spacing: 14) {
@@ -140,21 +140,21 @@ struct FoodTimelineView: View {
                                 current: showRemaining ? max(0, pTarget - eaten.protein) : eaten.protein,
                                 target: pTarget,
                                 floor: zoneByName["protein"]?.floor ?? targets.proteinFloor,
-                                color: .red
+                                color: AppleTheme.protein
                             )
                             compactMacroPill(
                                 "C",
                                 current: showRemaining ? max(0, cTarget - eaten.carbs) : eaten.carbs,
                                 target: cTarget,
                                 floor: zoneByName["carbs"]?.floor,
-                                color: .blue
+                                color: AppleTheme.carbs
                             )
                             compactMacroPill(
                                 "F",
                                 current: showRemaining ? max(0, fTarget - eaten.fat) : eaten.fat,
                                 target: fTarget,
                                 floor: zoneByName["fat"]?.floor ?? targets.fatFloor,
-                                color: .yellow
+                                color: AppleTheme.fat
                             )
                         }
 
@@ -203,7 +203,7 @@ struct FoodTimelineView: View {
                                 .font(.caption2.weight(.semibold))
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 5)
-                                .background(Color.secondary.opacity(0.13), in: Capsule())
+                                .background(AppleTheme.tertiarySurface, in: Capsule())
                                 .foregroundStyle(Color.primary)
                             }
                             .buttonStyle(.plain)
@@ -219,7 +219,7 @@ struct FoodTimelineView: View {
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 5)
                                 .background(
-                                    dayNoteTrimmed.isEmpty ? Color.secondary.opacity(0.13) : Color.orange.opacity(0.16),
+                                    dayNoteTrimmed.isEmpty ? AppleTheme.tertiarySurface : Color.orange.opacity(0.16),
                                     in: Capsule()
                                 )
                                 .foregroundStyle(dayNoteTrimmed.isEmpty ? Color.primary : Color.orange)
@@ -243,7 +243,8 @@ struct FoodTimelineView: View {
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
-                    .background(Color.secondary.opacity(0.06))
+                    .background(AppleTheme.background)
+                    .overlay(alignment: .bottom) { Rectangle().fill(AppleTheme.hairline).frame(height: 0.5) }
 
                 if !dayNoteTrimmed.isEmpty {
                     dailyNotePreviewBanner
@@ -610,7 +611,7 @@ struct FoodTimelineView: View {
                 brand: entry.foodBrand,
                 source: entry.foodSource,
                 servingSizes: [ServingSize(label: entry.servingLabel, grams: entry.grams)],
-                nutrientsPer100g: entry.loggedNutrients
+                nutrientsPer100g: entry.snapshotNutrientsPer100g
             )
             modelContext.insert(temp)
             item = .persisted(temp)
@@ -735,8 +736,7 @@ struct FoodTimelineView: View {
                 Text("\(Int(current.rounded()))/\(Int(target.rounded()))g")
                     .font(.caption.monospacedDigit())
             }
-            ProgressView(value: min(1.0, current / max(1.0, target)))
-                .tint(color)
+            AppleFitnessBar(progress: current / max(1.0, target), color: color, height: 5)
         }
         .frame(maxWidth: .infinity)
     }
@@ -800,39 +800,19 @@ struct FoodTimelineView: View {
                                 .lineLimit(1)
                             FoodSourceBadge(source: entry.foodSource, brand: entry.foodBrand)
                         }
-                        HStack(spacing: 6) {
-                            Text("\(entry.servingLabel) (\(Int(entry.grams.rounded()))g)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        // MacroFactor row summary: "504 Cal • 33P • 7F • 0C"
+                        MFMacroSummaryLine(
+                            calories: entry.calories,
+                            protein: entry.protein,
+                            fat: entry.fat,
+                            carbs: entry.carbs
+                        )
+                        Text("\(entry.servingLabel) (\(Int(entry.grams.rounded()))g)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
 
                     Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text("\(Int(entry.calories.rounded())) kcal")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(AppleTheme.calories)
-
-                        HStack(spacing: 4) {
-                            Text("\(Int(entry.protein.rounded()))P")
-                                .font(.caption2.weight(.bold).monospacedDigit())
-                                .foregroundStyle(AppleTheme.protein)
-                            Text("•")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text("\(Int(entry.carbs.rounded()))C")
-                                .font(.caption2.weight(.bold).monospacedDigit())
-                                .foregroundStyle(AppleTheme.carbs)
-                            Text("•")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text("\(Int(entry.fat.rounded()))F")
-                                .font(.caption2.weight(.bold).monospacedDigit())
-                                .foregroundStyle(AppleTheme.fat)
-                        }
-                    }
                 }
                 .padding(.vertical, 4)
             }
@@ -1234,7 +1214,7 @@ private struct EditLoggedFoodSheet: View {
     }
 
     var body: some View {
-        let preview = entry.loggedNutrients.scaled(forGrams: (gramsInput / max(0.1, entry.grams)) * 100.0)
+        let preview = entry.snapshotNutrientsPer100g.scaled(forGrams: gramsInput)
 
         NavigationStack {
             VStack(spacing: 0) {
@@ -1262,7 +1242,7 @@ private struct EditLoggedFoodSheet: View {
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 Text(calculator.expression)
-                                    .font(.system(size: 26, weight: .bold, design: .rounded).monospacedDigit())
+                                    .font(.system(size: 26, weight: .bold).monospacedDigit())
                                     .foregroundStyle(.primary)
                                     .padding(.horizontal, calculator.isPreselected ? 10 : 4)
                                     .padding(.vertical, 2)

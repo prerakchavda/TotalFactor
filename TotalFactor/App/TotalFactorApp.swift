@@ -8,6 +8,26 @@ struct TotalFactorApp: App {
     @State private var healthService = HealthKitService.shared
     @State private var restTimer = RestTimerService.shared
     @State private var watchSync = PhoneWatchSyncService.shared
+    @AppStorage("totalfactor.appearance") private var appearance: String = "system"
+
+    init() {
+        MFAppearance.configure()
+    }
+
+    /// Applies the Appearance setting to every window. `.preferredColorScheme(nil)` doesn't reliably
+    /// revert a forced Dark/Light scheme until relaunch, so the window style is set directly.
+    private func applyAppearance(_ value: String) {
+        let style: UIUserInterfaceStyle
+        switch value {
+        case "dark": style = .dark
+        case "light": style = .light
+        default: style = .unspecified
+        }
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .forEach { $0.overrideUserInterfaceStyle = style }
+    }
 
     let sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -58,6 +78,9 @@ struct TotalFactorApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .onChange(of: appearance, initial: true) { _, newValue in
+                    applyAppearance(newValue)
+                }
                 .environment(appState)
                 .environment(healthService)
                 .environment(restTimer)

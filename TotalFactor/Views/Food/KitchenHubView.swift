@@ -81,7 +81,7 @@ struct KitchenHubView: View {
                     }
                 }
                 .padding(9)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 6)
 
@@ -160,7 +160,7 @@ struct KitchenHubView: View {
                 } label: {
                     Label("Create Cooked-Weight Recipe", systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .foregroundStyle(AppleTheme.accent)
                 }
             }
 
@@ -206,7 +206,7 @@ struct KitchenHubView: View {
                     Spacer()
                     Text("\(Int(per100.calories.rounded())) kcal/100g")
                         .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .foregroundStyle(AppleTheme.accent)
                 }
 
                 HStack(spacing: 8) {
@@ -242,7 +242,7 @@ struct KitchenHubView: View {
                 } label: {
                     Label("Build New Saved Meal (via The Plate)", systemImage: "tray.and.arrow.down.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .foregroundStyle(AppleTheme.accent)
                 }
             }
 
@@ -284,7 +284,7 @@ struct KitchenHubView: View {
                 Spacer()
                 Text("\(Int(total.calories.rounded())) kcal")
                     .font(.system(size: 14, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                    .foregroundStyle(AppleTheme.accent)
             }
 
             // Quick Log Button
@@ -306,7 +306,7 @@ struct KitchenHubView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color(red: 0.18, green: 0.48, blue: 0.96), in: Capsule())
+                    .background(AppleTheme.accent, in: Capsule())
                 }
                 .buttonStyle(.plain)
             }
@@ -324,7 +324,7 @@ struct KitchenHubView: View {
                 } label: {
                     Label("Create Custom Food", systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .foregroundStyle(AppleTheme.accent)
                 }
             }
 

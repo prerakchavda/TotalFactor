@@ -77,7 +77,7 @@ struct RecipeBuilderSheet: View {
                             Spacer()
                             Text(delta < 0 ? String(format: "%.1f%% water loss (evaporation)", abs(delta)) : String(format: "+%.1f%% water gain (absorption)", delta))
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(delta < 0 ? Color.orange : Color(red: 0.18, green: 0.48, blue: 0.96))
+                                .foregroundStyle(delta < 0 ? Color.orange : AppleTheme.accent)
                         }
 
                         // Quick Presets

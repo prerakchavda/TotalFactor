@@ -206,7 +206,7 @@ struct OnboardingFlowView: View {
                     .padding(.top, 24)
 
                 Text("Total Factor")
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .font(.system(size: 34, weight: .heavy))
 
                 Text("The Adaptive Diet & Training Co-Pilot")
                     .font(.headline)

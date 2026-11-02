@@ -92,13 +92,13 @@ struct ProgressionWandSheet: View {
                         }
                     }
                     .padding(16)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16))
 
                     Spacer(minLength: 20)
                 }
                 .padding()
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(AppleTheme.background)
             .navigationTitle("Progression Wand")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -124,6 +124,6 @@ struct ProgressionWandSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 14))
     }
 }

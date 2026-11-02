@@ -382,7 +382,7 @@ struct QuickAddFoodSheet: View {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
                                 .background(
-                                    isSel ? Color(red: 0.18, green: 0.48, blue: 0.96) : Color.secondary.opacity(0.12),
+                                    isSel ? AppleTheme.accent : Color.secondary.opacity(0.12),
                                     in: Capsule()
                                 )
                                 .foregroundStyle(isSel ? Color.white : Color.primary)
@@ -558,7 +558,7 @@ struct QuickAddFoodSheet: View {
             } label: {
                 Label("Plate", systemImage: "fork.knife")
             }
-            .tint(Color(red: 0.18, green: 0.48, blue: 0.96))
+            .tint(AppleTheme.accent)
         }
     }
 

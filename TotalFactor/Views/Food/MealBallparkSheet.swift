@@ -137,7 +137,7 @@ struct MealBallparkSheet: View {
                             .font(.subheadline)
                     }
                     .padding(12)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12))
 
                     // Tier Selection Cards
                     VStack(alignment: .leading, spacing: 8) {
@@ -197,7 +197,7 @@ struct MealBallparkSheet: View {
                         }
                     }
                     .padding(12)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12))
 
                     // Action Buttons
                     actionButtons
@@ -251,7 +251,7 @@ struct MealBallparkSheet: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(selectedTier.themeColor)
                     Text("\(Int(computedCalories.rounded())) kcal")
-                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .font(.system(size: 32, weight: .heavy))
                         .foregroundStyle(.primary)
                 }
                 Spacer()
@@ -269,7 +269,7 @@ struct MealBallparkSheet: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func macroTile(_ label: String, _ value: Double, _ color: Color) -> some View {
@@ -319,7 +319,7 @@ struct MealBallparkSheet: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? tier.themeColor.opacity(0.12) : Color(.secondarySystemGroupedBackground))
+                    .fill(isSelected ? tier.themeColor.opacity(0.12) : AppleTheme.cardSurface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -337,7 +337,7 @@ struct MealBallparkSheet: View {
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(isOn.wrappedValue ? color : Color(.secondarySystemGroupedBackground), in: Capsule())
+                .background(isOn.wrappedValue ? color : AppleTheme.cardSurface, in: Capsule())
                 .foregroundStyle(isOn.wrappedValue ? .white : .primary)
         }
         .buttonStyle(.plain)

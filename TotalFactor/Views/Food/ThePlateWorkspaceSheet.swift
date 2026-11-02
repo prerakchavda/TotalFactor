@@ -48,14 +48,14 @@ struct ThePlateWorkspaceSheet: View {
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary)
                             Text("\(Int(totalCalories.rounded())) kcal")
-                                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                                .font(.system(size: 26, weight: .heavy))
                                 .foregroundStyle(.primary)
                         }
                         Spacer()
                         HStack(spacing: 12) {
-                            macroPill(label: "P", value: totalProtein, color: .red)
-                            macroPill(label: "C", value: totalCarbs, color: .blue)
-                            macroPill(label: "F", value: totalFat, color: .yellow)
+                            macroPill(label: "P", value: totalProtein, color: AppleTheme.protein)
+                            macroPill(label: "C", value: totalCarbs, color: AppleTheme.carbs)
+                            macroPill(label: "F", value: totalFat, color: AppleTheme.fat)
                         }
                     }
 
@@ -82,7 +82,8 @@ struct ThePlateWorkspaceSheet: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(AppleTheme.background)
+                .overlay(alignment: .bottom) { Rectangle().fill(AppleTheme.hairline).frame(height: 0.5) }
 
                 // Staged Items List
                 List {
@@ -224,7 +225,7 @@ struct ThePlateWorkspaceSheet: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                            .foregroundStyle(AppleTheme.accent)
                     }
                     .buttonStyle(.plain)
                 }
@@ -246,7 +247,7 @@ struct ThePlateWorkspaceSheet: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
-                    .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                    .background(AppleTheme.tertiarySurface, in: Capsule())
                 }
 
                 Spacer()

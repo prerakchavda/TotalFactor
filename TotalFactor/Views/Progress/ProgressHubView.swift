@@ -76,7 +76,7 @@ struct ProgressHubView: View {
                 .padding()
                 .padding(.bottom, 70)
             }
-            .navigationTitle("Progress")
+            .navigationTitle("PROGRESS")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -181,7 +181,7 @@ struct ProgressHubView: View {
                     Spacer()
                     if let latest = summary.latestTrendKg {
                         Text(UnitsFormatter.formatWeight(latest, system: unit))
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .bold))
                             .monospacedDigit()
                             .foregroundStyle(AppleTheme.trend)
                     }

@@ -165,6 +165,7 @@ public struct ActiveWorkoutView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.22), value: focusedSetID != nil)
+            .background(AppleTheme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -216,8 +217,7 @@ public struct ActiveWorkoutView: View {
                         Button("Finish") {
                             finishWorkout()
                         }
-                        .font(.subheadline.weight(.heavy))
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .buttonStyle(.mfPrimaryCompact)
                     }
                 }
             }
@@ -331,7 +331,7 @@ public struct ActiveWorkoutView: View {
                                     .frame(width: 72, height: 26)
 
                                 Text("\(completedCount)/\(totalCount)")
-                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                    .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(isAllDone ? .green : .secondary)
                             }
                             .padding(.vertical, 6)
@@ -356,11 +356,11 @@ public struct ActiveWorkoutView: View {
                         VStack(spacing: 4) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color(.secondarySystemGroupedBackground))
+                                    .fill(AppleTheme.cardSurface)
                                     .frame(width: 44, height: 44)
                                 Image(systemName: "plus")
                                     .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                                    .foregroundStyle(AppleTheme.accent)
                             }
                             Text("Add")
                                 .font(.system(size: 11, weight: .medium))
@@ -377,7 +377,7 @@ public struct ActiveWorkoutView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppleTheme.background)
             .onChange(of: selectedBlockIndex) { _, newIndex in
                 let blocks = groupedBlocks
                 if newIndex < blocks.count {
@@ -404,7 +404,7 @@ public struct ActiveWorkoutView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ex.name)
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(.primary)
 
                         if let sg = block.supersetGroup {
@@ -467,7 +467,7 @@ public struct ActiveWorkoutView: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color.blue.opacity(0.15), in: Capsule())
-                            .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                            .foregroundStyle(AppleTheme.accent)
                         }
                         .buttonStyle(.plain)
 
@@ -485,7 +485,7 @@ public struct ActiveWorkoutView: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 6)
-                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .background(AppleTheme.tertiarySurface, in: Capsule())
                             .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)
@@ -504,7 +504,7 @@ public struct ActiveWorkoutView: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 6)
-                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .background(AppleTheme.tertiarySurface, in: Capsule())
                             .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)
@@ -523,7 +523,7 @@ public struct ActiveWorkoutView: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 6)
-                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .background(AppleTheme.tertiarySurface, in: Capsule())
                             .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)
@@ -542,7 +542,7 @@ public struct ActiveWorkoutView: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 6)
-                            .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                            .background(AppleTheme.tertiarySurface, in: Capsule())
                             .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)
@@ -575,7 +575,7 @@ public struct ActiveWorkoutView: View {
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 7)
-                                .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+                                .background(AppleTheme.tertiarySurface, in: Capsule())
                         }
                     }
                 }
@@ -627,7 +627,7 @@ public struct ActiveWorkoutView: View {
                             Text("Set")
                                 .font(.system(size: 13, weight: .semibold))
                         }
-                        .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .foregroundStyle(AppleTheme.accent)
                         .padding(.vertical, 6)
                         .padding(.horizontal, 8)
                     }
@@ -636,7 +636,7 @@ public struct ActiveWorkoutView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     // MARK: - MacroFactor Set Row
@@ -669,7 +669,7 @@ public struct ActiveWorkoutView: View {
                 }
             } label: {
                 Text(setLog.type == .working ? "\(index + 1)" : setLog.type.badge)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 13, weight: .bold))
                     .frame(width: 34, height: 34)
                     .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .foregroundStyle(.primary)
@@ -690,9 +690,9 @@ public struct ActiveWorkoutView: View {
                     onSelectField(.weight)
                 } label: {
                     Text(formatLoadDisplay(setLog.weightKg, bodyweightMode: bodyweightMode))
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold))
                         .frame(width: 74, height: 38)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(isFocused && focusedField == .weight ? Color.primary : Color.clear, lineWidth: 2)
@@ -707,9 +707,9 @@ public struct ActiveWorkoutView: View {
                 } label: {
                     ZStack(alignment: .bottomTrailing) {
                         Text("\(setLog.reps)")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .font(.system(size: 15, weight: .bold))
                             .frame(width: 74, height: 38)
-                            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .strokeBorder(isFocused && focusedField == .reps ? Color.primary : Color.clear, lineWidth: 2)
@@ -722,7 +722,7 @@ public struct ActiveWorkoutView: View {
                                 .fill(MacroFactorGymKeypad.rirColor(setLog.rir))
                                 .frame(width: 15, height: 15)
                             Text(setLog.rir == 6 ? "6+" : "\(setLog.rir)")
-                                .font(.system(size: 8, weight: .heavy, design: .rounded))
+                                .font(.system(size: 8, weight: .heavy))
                                 .foregroundStyle(.white)
                         }
                         .offset(x: -3, y: -3)
@@ -737,7 +737,7 @@ public struct ActiveWorkoutView: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(setLog.isCompleted ? Color.primary : Color(.tertiarySystemGroupedBackground))
+                        .fill(setLog.isCompleted ? Color.primary : AppleTheme.tertiarySurface)
                         .frame(width: 28, height: 28)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -766,29 +766,29 @@ public struct ActiveWorkoutView: View {
             HStack(spacing: 4) {
                 Button { onSelectField(.weightLeft) } label: {
                     Text("L:\(Int(UnitsFormatter.displayWeight(setLog.weightKgLeft ?? setLog.weightKg, system: profile.unitSystem)))")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 6))
+                        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
                 }
                 Button { onSelectField(.repsLeft) } label: {
                     Text("\(setLog.repsLeft ?? setLog.reps)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 6))
+                        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
                 }
             }
             HStack(spacing: 4) {
                 Button { onSelectField(.weightRight) } label: {
                     Text("R:\(Int(UnitsFormatter.displayWeight(setLog.weightKgRight ?? setLog.weightKg, system: profile.unitSystem)))")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 6))
+                        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
                 }
                 Button { onSelectField(.repsRight) } label: {
                     Text("\(setLog.repsRight ?? setLog.reps)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .bold))
                         .frame(width: 74, height: 26)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 6))
+                        .background(AppleTheme.tertiarySurface, in: RoundedRectangle(cornerRadius: 6))
                 }
             }
         }
@@ -1461,7 +1461,7 @@ public struct ActiveWorkoutView: View {
             Button("Add Exercise") {
                 showingAddExercise = true
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.mfPrimary)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
     }
@@ -1584,10 +1584,10 @@ public struct ActiveCornerHeartRateBadge: View {
                 .foregroundStyle(bpm != nil ? .red : .secondary)
             if let bpm, bpm > 0 {
                 Text("\(Int(bpm.rounded()))")
-                    .font(.system(size: 11, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 11, weight: .bold).monospacedDigit())
             } else {
                 Text("--")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -1643,19 +1643,15 @@ private struct ActiveRestTimerBanner: View {
                 }
                 Spacer()
                 Button("-15s") { restTimer.adjust(bySeconds: -15) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(.mfChip)
                 Button("+30s") { restTimer.adjust(bySeconds: 30) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(.mfChip)
                 Button("Skip") { restTimer.skip() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
-                    .controlSize(.small)
+                    .buttonStyle(.mfPrimaryCompact)
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(Color.orange.opacity(0.14))
+            .background(AppleTheme.cardSurface)
         }
     }
 }

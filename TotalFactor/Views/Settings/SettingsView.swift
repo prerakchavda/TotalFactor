@@ -11,6 +11,7 @@ struct SettingsView: View {
     @Query private var gymProfiles: [GymProfile]
 
     @State private var showingOnboardingSheet: Bool = false
+    @AppStorage("totalfactor.appearance") private var appearance: String = "system"
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -38,6 +39,19 @@ struct SettingsView: View {
             List {
                 Section {
                     profileProgramCard
+                }
+
+                Section {
+                    Picker("Theme", selection: $appearance) {
+                        Text("System").tag("system")
+                        Text("Dark").tag("dark")
+                        Text("Light").tag("light")
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("Dark matches MacroFactor's signature true-black look.")
                 }
 
                 Section("Coaching & Nutrition") {
@@ -205,7 +219,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle("MORE")
             .sheet(isPresented: $showingOnboardingSheet) {
                 OnboardingFlowView(profile: profile)
             }

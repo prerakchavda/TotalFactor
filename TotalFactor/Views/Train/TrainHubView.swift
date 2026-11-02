@@ -38,7 +38,7 @@ struct TrainHubView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
                     gymSelectorStrip
 
                     if let openSession = sessions.first(where: { !$0.isFinished }) {
@@ -47,25 +47,30 @@ struct TrainHubView: View {
                             appState.showingActiveWorkoutFullScreen = true
                         } label: {
                             HStack {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.title2)
+                                Image(systemName: "play.fill")
+                                    .font(.title3.weight(.bold))
                                 VStack(alignment: .leading) {
                                     Text("Resume \(openSession.title)")
-                                        .font(.headline)
+                                        .font(.headline.weight(.bold))
                                     Text("Started \(openSession.start, style: .relative) ago")
                                         .font(.caption)
+                                        .opacity(0.7)
                                 }
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppleTheme.background)
                             .padding(16)
-                            .background(Color.green, in: RoundedRectangle(cornerRadius: 16))
+                            .background(Color.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
 
+                    MFSectionTitle("Program")
+
                     activeProgramCard
+
+                    MFSectionTitle("Weekly Volume")
 
                     let volumeEntries: [HypertrophyVolumeEngine.VolumeSetEntry] = sessions.flatMap { s in
                         (s.sets ?? []).compactMap { set in
@@ -82,14 +87,17 @@ struct TrainHubView: View {
                     let volumeStatuses = HypertrophyVolumeEngine.evaluateWeeklyVolume(entries: volumeEntries)
                     HypertrophyVolumeCardView(statuses: volumeStatuses)
 
+                    MFSectionTitle("Tools")
+
                     quickToolsGrid
 
                     recentSessionsCard
                 }
                 .padding()
-                .padding(.bottom, 70)
+                .padding(.bottom, 16)
             }
-            .navigationTitle("Train")
+            .background(AppleTheme.background)
+            .navigationTitle("WORKOUTS")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -185,11 +193,7 @@ struct TrainHubView: View {
     private var gymSelectorStrip: some View {
         let isPlanetFitness = activeGym?.name.localizedCaseInsensitiveContains("Planet Fitness") == true
         return HStack(spacing: 10) {
-            Image(systemName: "building.2.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isPlanetFitness ? .purple : .accentColor)
-                .frame(width: 32, height: 32)
-                .background((isPlanetFitness ? Color.purple : Color.accentColor).opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            MFCircleIcon("building.2.fill", size: 34)
 
             VStack(alignment: .leading, spacing: 2) {
                 Menu {
@@ -233,12 +237,10 @@ struct TrainHubView: View {
                 .font(.caption2.weight(.bold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background((isPlanetFitness ? Color.purple : Color.green).opacity(0.15), in: Capsule())
-                .foregroundStyle(isPlanetFitness ? .purple : .green)
+                .background(AppleTheme.tertiarySurface, in: Capsule())
+                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .appleHealthCard(padding: 12)
+        .appleHealthCard(padding: 14)
     }
 
     private var activeProgramCard: some View {
@@ -261,7 +263,7 @@ struct TrainHubView: View {
                     showingProgramBuilder = true
                 }
                 .font(.caption.weight(.semibold))
-                .buttonStyle(.bordered)
+                .buttonStyle(.mfChip)
                 .controlSize(.small)
             }
 
@@ -285,15 +287,15 @@ struct TrainHubView: View {
                                                 .font(.system(size: 9, weight: .heavy))
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 2)
-                                                .background(Color.green.opacity(0.18), in: Capsule())
-                                                .foregroundStyle(.green)
+                                                .background(Color.primary, in: Capsule())
+                                                .foregroundStyle(AppleTheme.background)
                                         } else if let wd = workout.scheduledWeekday {
                                             Text(shortWeekdayName(wd))
                                                 .font(.caption2.weight(.bold))
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 2)
-                                                .background(Color.accentColor.opacity(0.14), in: Capsule())
-                                                .foregroundStyle(Color.accentColor)
+                                                .background(AppleTheme.tertiarySurface, in: Capsule())
+                                                .foregroundStyle(.primary)
                                         }
                                     }
                                     let names = slots.compactMap { $0.exercise?.name }.prefix(3).joined(separator: " • ")
@@ -313,7 +315,7 @@ struct TrainHubView: View {
                                 Label("Guide", systemImage: "photo")
                                     .font(.caption.weight(.semibold))
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.mfChip)
                             .controlSize(.small)
 
                             Button {
@@ -322,7 +324,7 @@ struct TrainHubView: View {
                                 Text("Start")
                                     .font(.caption.weight(.bold))
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.mfPrimaryCompact)
                             .controlSize(.small)
                         }
 
@@ -349,7 +351,7 @@ struct TrainHubView: View {
                         }
                     }
                     .padding(12)
-                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppleTheme.tertiarySurface.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
         }
@@ -378,7 +380,7 @@ struct TrainHubView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundStyle(color)
+                    .foregroundStyle(.primary)
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)

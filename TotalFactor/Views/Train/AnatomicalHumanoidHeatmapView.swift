@@ -5,13 +5,13 @@ import SwiftUI
 /// illuminating worked muscle groups in vibrant MacroFactor royal blue (`#2F7CF6`).
 struct AnatomicalHumanoidHeatmapView: View {
     let workedMuscles: Set<MuscleGroup>
-    var accentColor: Color = Color(red: 0.18, green: 0.48, blue: 0.96) // MacroFactor Royal Blue
+    var accentColor: Color = AppleTheme.accent // MacroFactor Royal Blue
     var height: CGFloat = 260
     var showLabels: Bool = true
 
     init(
         workedMuscles: Set<MuscleGroup>,
-        accentColor: Color = Color(red: 0.18, green: 0.48, blue: 0.96),
+        accentColor: Color = AppleTheme.accent,
         height: CGFloat = 260,
         showLabels: Bool = true
     ) {
@@ -39,7 +39,7 @@ struct AnatomicalHumanoidHeatmapView: View {
 
             if showLabels {
                 Text(label.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .tracking(1.0)
             }

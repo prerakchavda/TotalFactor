@@ -95,7 +95,7 @@ struct WeightDetailView: View {
 
                     if let trend = summary.latestTrendKg {
                         Text(UnitsFormatter.formatWeight(trend, system: unit))
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 34, weight: .bold))
                             .monospacedDigit()
                             .foregroundStyle(.primary)
                     } else {
@@ -471,7 +471,7 @@ struct WeightDetailView: View {
             // Scale Weight & Delta
             VStack(alignment: .trailing, spacing: 2) {
                 Text(UnitsFormatter.formatWeight(item.weightKg, system: unit))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.system(size: 17, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
 
@@ -565,7 +565,7 @@ struct AddWeighInSheet: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             TextField("0.0", text: $weightText)
                                 .keyboardType(.decimalPad)
-                                .font(.system(size: 38, weight: .bold, design: .rounded).monospacedDigit())
+                                .font(.system(size: 38, weight: .bold).monospacedDigit())
                                 .multilineTextAlignment(.center)
                                 .focused($focused)
 
@@ -668,7 +668,7 @@ struct EditWeighInSheet: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             TextField("0.0", text: $weightText)
                                 .keyboardType(.decimalPad)
-                                .font(.system(size: 38, weight: .bold, design: .rounded).monospacedDigit())
+                                .font(.system(size: 38, weight: .bold).monospacedDigit())
                                 .multilineTextAlignment(.center)
                                 .focused($focused)
 

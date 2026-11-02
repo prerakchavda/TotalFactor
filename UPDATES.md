@@ -6,6 +6,58 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.7.1 — Build 22 (2026-11-01) — Bug Fixes: Hour-by-Hour Macros, Plate Staging, Appearance & Readability
+
+### 1. Food Log Accuracy (`NutritionModels.swift`, `HourByHourTimelineSection.swift`, `FoodTimelineView.swift`)
+- Fixed Hour-by-Hour rows and hourly totals scaling `loggedNutrients` by grams a second time (values were multiplied by grams/100 again — a 250 g entry showed 2.5× its real calories and macros).
+- Added `FoodLogEntry.snapshotNutrientsPer100g`; `loggedNutrients` is now documented as already scaled.
+- Fixed "Add to Plate" from the log building a temporary food whose per-100 g nutrients were the logged totals.
+- Edit Entry preview now scales from the per-100 g snapshot (also correct for 0 g entries).
+
+### 2. MacroFactor UI Fixes (`TotalFactorApp.swift`, `RootTabView.swift`, `AppleDesignSystem.swift`, `ThePlateWorkspaceSheet.swift`, `NoScaleEstimatorSheet.swift`)
+- Appearance setting now sets each window's interface style directly, so returning to System applies immediately.
+- Bottom chrome only collapses for keyboards in the main tabs, not when typing inside a sheet.
+- Light-mode variants of carbs, fat, trend, and training colors; nutrient bar labels use primary text with a color dot.
+- Plate / No-Scale Estimator header banners use the page background (with a hairline) instead of blending into the list.
+- Active-workout mini bar icon switched to black for contrast on the green badge.
+- Bumped to v1.7.1 (Build 22) across app, widgets, and Watch.
+
+---
+
+## v1.7.0 — Build 21 (2026-11-01) — MacroFactor-Style UI Overhaul (Food & Workouts)
+
+### 1. MacroFactor Design System (`AppleDesignSystem.swift`, `TotalFactorApp.swift`, `AccentColor`)
+- Rebuilt the theme around MacroFactor's look: true-black (dark) / pure-white (light) page backgrounds, flat borderless charcoal cards (`#1C1C1E`), neutral chip/track wells.
+- New MacroFactor nutrient palette used app-wide: blue calories, coral protein, amber fat, green carbs (plus violet expenditure, teal weight trend, lime training).
+- Added `MFDisplayTitle` (wide all-caps black titles), `MFSectionTitle`, `MFPillButtonStyle` (`.mfPrimary`, `.mfSecondary`, `.mfChip`, `.mfPrimaryCompact` inverted pills), `MFCircleIcon`, `MFNutrientBarColumn`, `MFMacroSummaryLine`, and `.mfCard()`.
+- `MFAppearance.configure()` sets wide black large navigation titles and transparent borderless nav bars globally.
+- Accent color updated to MacroFactor blue; replaced hardcoded blue and system grouped backgrounds across Food, Train, Progress, Onboarding, and Settings views with theme tokens; dropped SF Rounded digits for MacroFactor's flat numerals.
+- New **More → Appearance** setting (System / Dark / Light).
+
+### 2. MacroFactor Navigation (`RootTabView.swift`)
+- Replaced the system tab bar with a MacroFactor bottom bar: Dashboard, Food Log, center inverted **+** menu, Workouts, Progress, More.
+- **+** menu: Log Food, Describe a Meal, Scan Barcode, Quick Add Macros, Log Weight, Start/Resume Workout, Weekly Check-In.
+- Floating **"Search for a food"** dock (inline barcode button + AI sparkle describe button) on Dashboard and Food Log replaces the old floating + button.
+- Bottom chrome hides while the keyboard is up; active-workout mini bar restyled to a flat card.
+
+### 3. Dashboard (`TodayDashboardView.swift`)
+- Wide **DASHBOARD** header with round Check-In and Weigh-In buttons; simplified day switcher pill with inverted "day complete" toggle.
+- New **Nutrition** card: calories remaining plus four tall MacroFactor bars (Calories, Protein, Fat, Carbs) with value / target; Micros shortcut in the section header.
+- Sections reorganized into Nutrition, Insights & Analytics, Training, and Health; MacroFactor "Check In — it's time" hero circle when the weekly check-in is due.
+
+### 4. Food Log (`FoodTimelineView.swift`, `HourByHourTimelineSection.swift`, `ThePlateWorkspaceSheet.swift`)
+- Food rows now use the MacroFactor summary line (`504 Cal • 33P • 7F • 0C`) with the serving underneath.
+- Header macro bars, major-macro pills, and Plate pills use the new palette; header sits on the page background with a hairline divider.
+
+### 5. Workouts (`TrainHubView.swift`, `ActiveWorkoutView.swift`)
+- Train tab renamed **WORKOUTS** with Program / Weekly Volume / Tools sections, inverted Resume card, neutral gym selector and "Next Up" badge, monochrome tool tiles.
+- Active workout: true-black canvas, charcoal exercise cards, inverted **Finish** and **Skip** pills, neutral rest-timer bar.
+
+### 6. Build
+- Bumped to v1.7.0 (Build 21) across the app, widgets, and Watch Info.plists.
+
+---
+
 ## v1.6.0 — Build 20 (2026-10-29) — Instant Local Meal Description & 1-Tap Import Engine ("Describe & Import")
 
 ### 1. Search Bar Live Meal Description & 1-Tap Import (`QuickAddFoodSheet.swift`)

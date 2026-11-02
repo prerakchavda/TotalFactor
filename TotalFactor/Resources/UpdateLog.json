@@ -1,5 +1,77 @@
 [
   {
+    "version": "1.7.1",
+    "build": "22",
+    "date": "2026-11-01",
+    "headline": "Bug Fixes: Hour-by-Hour Macros, Plate Staging, Appearance & Readability",
+    "sections": [
+      {
+        "title": "Food Log Accuracy",
+        "icon": "checkmark.seal.fill",
+        "items": [
+          "Fixed Hour-by-Hour view applying serving size twice, which inflated row and hourly calories/macros (e.g. a 250 g entry showed 2.5x its real totals).",
+          "Fixed 'Add to Plate' from the log creating a food with logged totals as its per-100 g values, which mis-scaled staged amounts.",
+          "Edit Entry preview now scales from the per-100 g snapshot, so it also works for entries logged at 0 g."
+        ]
+      },
+      {
+        "title": "MacroFactor UI Polish",
+        "icon": "paintbrush.fill",
+        "items": [
+          "Switching Appearance back to System now takes effect immediately instead of after relaunch.",
+          "Bottom tab bar no longer collapses behind sheets when typing in a sheet (e.g. weigh-in, food search).",
+          "Darker light-mode carbs, fat, trend, and training colors plus neutral nutrient labels for readable contrast.",
+          "Plate and No-Scale Estimator header banners no longer blend into the list background.",
+          "Active-workout mini bar icon is now readable on its green badge."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.7.0",
+    "build": "21",
+    "date": "2026-11-01",
+    "headline": "MacroFactor-Style UI Overhaul (Food & Workouts)",
+    "sections": [
+      {
+        "title": "New MacroFactor Design System",
+        "icon": "paintpalette.fill",
+        "items": [
+          "True-black (dark) / pure-white (light) surfaces with flat, borderless charcoal cards.",
+          "MacroFactor nutrient palette everywhere: blue calories, coral protein, amber fat, green carbs.",
+          "Wide all-caps display titles (DASHBOARD, WORKOUTS, PROGRESS, MORE) and inverted pill buttons.",
+          "New Appearance setting (System / Dark / Light) under More."
+        ]
+      },
+      {
+        "title": "MacroFactor Navigation",
+        "icon": "square.grid.2x2.fill",
+        "items": [
+          "Custom bottom tab bar: Dashboard, Food Log, center + quick-action menu, Workouts, Progress, More.",
+          "Floating 'Search for a food' dock with inline barcode scan and AI describe buttons on Dashboard and Food Log.",
+          "Center + menu: Log Food, Describe a Meal, Scan Barcode, Quick Add, Log Weight, Start/Resume Workout, Weekly Check-In."
+        ]
+      },
+      {
+        "title": "Dashboard & Food Log",
+        "icon": "fork.knife",
+        "items": [
+          "Dashboard rebuilt: Nutrition card with four tall MacroFactor bars (Calories, Protein, Fat, Carbs), Insights & Analytics, Training and Health sections.",
+          "'Check In \u2014 it's time' hero circle when the weekly check-in is due.",
+          "Food rows now use the MacroFactor summary line (e.g. 504 Cal \u2022 33P \u2022 7F \u2022 0C) with serving below."
+        ]
+      },
+      {
+        "title": "Workouts",
+        "icon": "dumbbell.fill",
+        "items": [
+          "Workouts hub restyled after MacroFactor Workouts: inverted Resume card, neutral gym selector, Program / Weekly Volume / Tools sections.",
+          "Active workout: true-black canvas, charcoal exercise cards, inverted Finish and Skip buttons, neutral rest-timer bar."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.6.0",
     "build": "20",
     "date": "2026-10-29",
@@ -167,7 +239,7 @@
         "icon": "heart.text.square.fill",
         "items": [
           "Auto-Prompt on Import: tapping 'Import Nutrition from Apple Health' now immediately prompts iOS for HealthKit permissions if not previously granted.",
-          "Apple Health Sources Registration: ensures Total Factor appears in iOS Settings → Health → Data Access & Devices immediately on first interaction."
+          "Apple Health Sources Registration: ensures Total Factor appears in iOS Settings \u2192 Health \u2192 Data Access & Devices immediately on first interaction."
         ]
       }
     ]
@@ -211,7 +283,7 @@
         "title": "SideStore & AltStore Visual Makeover",
         "icon": "sparkles",
         "items": [
-          "Fixed missing logo in SideStore / AltStore: published high-res 1024×1024 icon.png to eliminate 404 raw GitHub links.",
+          "Fixed missing logo in SideStore / AltStore: published high-res 1024\u00d71024 icon.png to eliminate 404 raw GitHub links.",
           "Official 16:9 widescreen store header & news banner (banner.png) with radiant flame orange glow and typography.",
           "Full Retina iPhone screenshot gallery showcasing Today rings, Food log & The Plate dock, Strength Tracker, and Dynamic TDEE progress."
         ]

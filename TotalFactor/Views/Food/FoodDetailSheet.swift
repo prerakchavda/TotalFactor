@@ -326,7 +326,7 @@ struct FoodDetailSheet: View {
                 Spacer()
                 Text("\(Int(before.rounded())) + \(Int(delta.rounded())) → \(Int(projected.rounded())) / \(Int(target.rounded())) kcal")
                     .font(.caption2.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(projected > target * 1.05 ? .orange : Color(red: 0.18, green: 0.48, blue: 0.96))
+                    .foregroundStyle(projected > target * 1.05 ? .orange : AppleTheme.accent)
             }
 
             GeometryReader { geo in
@@ -337,12 +337,12 @@ struct FoodDetailSheet: View {
 
                     let wBefore = min(geo.size.width, geo.size.width * CGFloat(before / target))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(red: 0.18, green: 0.48, blue: 0.96).opacity(0.45))
+                        .fill(AppleTheme.accent.opacity(0.45))
                         .frame(width: wBefore, height: 6)
 
                     let wDelta = min(geo.size.width - wBefore, geo.size.width * CGFloat(delta / target))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(red: 0.18, green: 0.48, blue: 0.96))
+                        .fill(AppleTheme.accent)
                         .frame(width: max(2, wDelta), height: 6)
                         .offset(x: wBefore)
                 }
@@ -388,7 +388,7 @@ struct FoodDetailSheet: View {
         } label: {
             Label("Micronutrients & Vitamins", systemImage: "leaf.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color(red: 0.18, green: 0.48, blue: 0.96))
+                .foregroundStyle(AppleTheme.accent)
         }
         .padding(10)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
@@ -427,7 +427,7 @@ struct FoodDetailSheet: View {
 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(calculator.expression)
-                        .font(.system(size: 28, weight: .bold, design: .rounded).monospacedDigit())
+                        .font(.system(size: 28, weight: .bold).monospacedDigit())
                         .foregroundStyle(.primary)
                         .padding(.horizontal, calculator.isPreselected ? 10 : 4)
                         .padding(.vertical, 2)
@@ -707,7 +707,7 @@ struct InlineFoodKeypadView: View {
                         .font(.system(size: 18, weight: .semibold))
                 } else {
                     Text(key.rawValue)
-                        .font(.system(size: 20, weight: isUtility ? .bold : .semibold, design: .rounded).monospacedDigit())
+                        .font(.system(size: 20, weight: isUtility ? .bold : .semibold).monospacedDigit())
                 }
             }
             .foregroundStyle(foregroundColor(for: key))
@@ -790,7 +790,7 @@ private struct MacroRatioDonutView: View {
 
                 VStack(spacing: 0) {
                     Text("\(Int(nutrients.calories.rounded()))")
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(.primary)
                     Text("kcal")
                         .font(.system(size: 8, weight: .bold))

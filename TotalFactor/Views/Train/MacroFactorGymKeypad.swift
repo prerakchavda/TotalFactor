@@ -91,7 +91,7 @@ struct MacroFactorGymKeypad: View {
                         Image(systemName: "keyboard.chevron.compact.down")
                             .font(.system(size: 18, weight: .semibold))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
@@ -104,7 +104,7 @@ struct MacroFactorGymKeypad: View {
                         Image(systemName: "circle.grid.cross")
                             .font(.system(size: 16, weight: .semibold))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
@@ -115,7 +115,7 @@ struct MacroFactorGymKeypad: View {
                         onCycleSetType()
                     } label: {
                         Text(setType.badge)
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .font(.system(size: 15, weight: .heavy))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(setTypeBackground(setType), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .foregroundStyle(setTypeForeground(setType))
@@ -141,7 +141,7 @@ struct MacroFactorGymKeypad: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color(.systemGroupedBackground))
+        .background(AppleTheme.background)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -164,7 +164,7 @@ struct MacroFactorGymKeypad: View {
                             .fill(rirColor(rir))
                             .frame(width: 32, height: 32)
                         Text(rir == 6 ? "6+" : "\(rir)")
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .font(.system(size: 13, weight: .heavy))
                             .foregroundStyle(.white)
                     }
                     .overlay(
@@ -188,7 +188,7 @@ struct MacroFactorGymKeypad: View {
                         .fill(Color(.systemGray4))
                         .frame(width: 32, height: 32)
                     Text("?")
-                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .font(.system(size: 14, weight: .heavy))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -206,9 +206,9 @@ struct MacroFactorGymKeypad: View {
             onDigit(digit)
         } label: {
             Text(digit)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .font(.system(size: 22, weight: .semibold))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .foregroundStyle(.primary)
         }
         .buttonStyle(.plain)
@@ -222,9 +222,9 @@ struct MacroFactorGymKeypad: View {
                 onDigit(".")
             } label: {
                 Text(".")
-                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .font(.system(size: 24, weight: .heavy))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .foregroundStyle(.primary)
             }
             .buttonStyle(.plain)
@@ -243,7 +243,7 @@ struct MacroFactorGymKeypad: View {
             Image(systemName: "delete.left.fill")
                 .font(.system(size: 18, weight: .semibold))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .foregroundStyle(.primary)
         }
         .buttonStyle(.plain)

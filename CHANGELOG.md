@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.7.1] - 2026-11-01
+
+### Fixed — Hour-by-Hour Macros, Plate Staging, Appearance & Readability (Build 22)
+- Hour-by-Hour timeline double-scaled logged nutrients by grams (`HourByHourTimelineSection.swift`).
+- "Add to Plate" from the log used logged totals as per-100 g values (`FoodTimelineView.swift`); added `FoodLogEntry.snapshotNutrientsPer100g`.
+- Appearance "System" not reverting a forced Dark/Light scheme until relaunch (`TotalFactorApp.swift`).
+- Custom tab bar collapsing behind sheets when their keyboard appeared (`RootTabView.swift`).
+- Low light-mode contrast for carbs/fat/trend/training colors and nutrient labels (`AppleDesignSystem.swift`).
+- Plate and No-Scale Estimator banners blending into list backgrounds; mini bar icon contrast.
+
+---
+
+## [1.7.0] - 2026-11-01
+
+### Changed — MacroFactor-Style UI Overhaul for Food & Workouts (Build 21)
+
+#### Added
+- MacroFactor design components in `AppleDesignSystem.swift`: `MFDisplayTitle`, `MFSectionTitle`, `MFPillButtonStyle` (+ `.mfPrimary` / `.mfSecondary` / `.mfChip` / `.mfPrimaryCompact`), `MFCircleIcon`, `MFNutrientBarColumn`, `MFMacroSummaryLine`, `.mfCard()`, and `MFAppearance.configure()`.
+- Custom MacroFactor bottom tab bar with center **+** quick-action menu and floating "Search for a food" dock (`RootTabView.swift`).
+- Appearance setting (System / Dark / Light) in More (`SettingsView.swift`, `TotalFactorApp.swift`).
+
+#### Changed
+- `AppleTheme` now adaptive true-black / white surfaces, flat borderless cards, and the MacroFactor nutrient palette (blue calories, coral protein, amber fat, green carbs); accent color updated to MacroFactor blue.
+- Dashboard rebuilt with MacroFactor Nutrition bars and Insights & Analytics / Training / Health sections.
+- Food log rows use the `Cal • P • F • C` summary line.
+- Train hub retitled **WORKOUTS** and restyled; active workout uses theme surfaces, inverted Finish / Skip pills, and a neutral rest timer.
+- Hardcoded blues, system grouped backgrounds, and SF Rounded digits replaced with theme tokens across Food, Train, Progress, Onboarding, and Settings views.
+- Version bumped to 1.7.0 (Build 21) for app, widgets, and Watch.
+
+---
+
 ## [1.6.0] - 2026-10-29
 
 ### Added — Instant Local Natural-Language Meal Description & 1-Tap Import Engine ("Describe & Import") (Build 20)

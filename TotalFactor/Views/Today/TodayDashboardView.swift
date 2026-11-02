@@ -63,7 +63,9 @@ struct TodayDashboardView: View {
 
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
+                    dashboardHeader
+
                     dayHeaderBar(isComplete: dayNote?.isComplete ?? false)
 
                     if yesterdayUnmarkedWithFood {
@@ -72,6 +74,10 @@ struct TodayDashboardView: View {
 
                     if isCheckInDue {
                         checkInReadyBanner
+                    }
+
+                    MFSectionTitle("Nutrition", actionTitle: "Micros") {
+                        showingMicronutrients = true
                     }
 
                     macroZonesCard(eaten: eaten, targets: targets, isTrainingDay: digest.isTodayTrainingDay)
@@ -99,6 +105,8 @@ struct TodayDashboardView: View {
                         )
                     }
 
+                    MFSectionTitle("Insights & Analytics")
+
                     coachingMetricsRow(digest: digest)
 
                     energyBalanceCard(digest: digest)
@@ -107,15 +115,20 @@ struct TodayDashboardView: View {
                         intermittentFastingCard
                     }
 
+                    MFSectionTitle("Training")
+
                     todayWorkoutCard(digest: digest)
 
                     externalWorkoutsSection
 
+                    MFSectionTitle("Health")
+
                     healthTelemetryCard
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 96)
+                .padding(.bottom, 24)
             }
+            .background(AppleTheme.background)
             .refreshable {
                 await healthService.refreshTodayDashboardTelemetry()
             }
@@ -123,24 +136,7 @@ struct TodayDashboardView: View {
                 await healthService.refreshTodayDashboardTelemetry()
                 healthService.startLiveHeartRateObserver()
             }
-            .navigationTitle("Total Factor")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        appState.showingWeeklyCheckInSheet = true
-                    } label: {
-                        Label("Check-In", systemImage: "checkmark.seal")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        appState.showingWeighInSheet = true
-                    } label: {
-                        Label("Weigh In", systemImage: "scalemass")
-                    }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingMicronutrients) {
                 MicronutrientDetailSheet(dayKey: activeDayKey, entries: dayEntries, targets: targets, sex: profile.biologicalSex)
             }
@@ -154,74 +150,85 @@ struct TodayDashboardView: View {
 
     // MARK: - Subviews
 
+    /// MacroFactor-style wide all-caps page title with round quick-action buttons
+    private var dashboardHeader: some View {
+        HStack(alignment: .center, spacing: 10) {
+            MFDisplayTitle("Dashboard")
+            Spacer()
+            Button {
+                appState.showingWeeklyCheckInSheet = true
+            } label: {
+                MFCircleIcon("checkmark.seal")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Weekly Check-In")
+
+            Button {
+                appState.showingWeighInSheet = true
+            } label: {
+                MFCircleIcon("scalemass")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Log Weight")
+        }
+        .padding(.top, 8)
+    }
+
     private func dayHeaderBar(isComplete: Bool) -> some View {
         HStack(spacing: 8) {
             Button {
                 appState.selectedDayKey = DayKey.addingDays(-1, to: activeDayKey)
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Color.secondary.opacity(0.10), in: Circle())
+                MFCircleIcon("chevron.left", size: 32)
             }
             .buttonStyle(.plain)
-
-            Spacer()
+            .accessibilityLabel("Previous Day")
 
             Button {
                 appState.selectedDayKey = DayKey.today
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
                     Text(DayKey.displayTitle(for: activeDayKey))
                         .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.primary)
                     if activeDayKey != DayKey.today {
-                        Text("• Today")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color.accentColor)
+                        Text("Jump to Today")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(Capsule().strokeBorder(AppleTheme.hairline, lineWidth: 0.5))
+                .frame(maxWidth: .infinity)
+                .frame(height: 32)
+                .background(Capsule().fill(AppleTheme.cardSurface))
             }
             .buttonStyle(.plain)
-
-            Spacer()
 
             Button {
                 toggleDayComplete()
             } label: {
-                Image(systemName: isComplete ? "checkmark.circle.fill" : "circle.dashed")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(isComplete ? .green : .secondary)
+                Image(systemName: isComplete ? "checkmark" : "circle.dashed")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(isComplete ? AppleTheme.background : Color.secondary)
                     .frame(width: 32, height: 32)
-                    .background((isComplete ? Color.green : Color.secondary).opacity(0.12), in: Circle())
+                    .background(Circle().fill(isComplete ? Color.primary : AppleTheme.tertiarySurface))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(isComplete ? "Day Complete" : "Mark Day Complete")
 
             Button {
                 appState.selectedDayKey = DayKey.addingDays(1, to: activeDayKey)
             } label: {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Color.secondary.opacity(0.10), in: Circle())
+                MFCircleIcon("chevron.right", size: 32)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Next Day")
         }
-        .padding(.vertical, 4)
     }
 
     private var yesterdayCompleteBanner: some View {
-        HStack {
+        HStack(spacing: 10) {
             Image(systemName: "sparkles")
-                .foregroundStyle(.blue)
+                .foregroundStyle(AppleTheme.accent)
             Text("Yesterday has logged meals — mark complete so it feeds your expenditure?")
                 .font(.caption)
             Spacer()
@@ -235,34 +242,40 @@ struct TodayDashboardView: View {
                 try? modelContext.save()
                 _ = CoachingCoordinator.evaluate(forDayKey: activeDayKey, context: modelContext)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.mini)
+            .buttonStyle(.mfPrimaryCompact)
         }
-        .padding(12)
-        .background(Color.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+        .mfCard(padding: 12, cornerRadius: 14)
     }
 
+    /// MacroFactor "Check In — it's time" hero: inverted circle on a flat card
     private var checkInReadyBanner: some View {
         Button {
             appState.showingWeeklyCheckInSheet = true
         } label: {
-            HStack {
-                Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.green)
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    Text("Check In")
+                        .font(.system(size: 15, weight: .heavy))
+                    Text("it's time")
+                        .font(.system(size: 10, weight: .medium))
+                        .opacity(0.7)
+                }
+                .foregroundStyle(AppleTheme.background)
+                .frame(width: 84, height: 84)
+                .background(Circle().fill(Color.primary))
+
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Weekly Check-In Ready")
-                        .font(.subheadline.weight(.bold))
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.primary)
                     Text("Review expenditure, weight velocity, training volume & updated macro targets.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
-            .padding(14)
-            .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+            .mfCard(padding: 16)
         }
         .buttonStyle(.plain)
     }
@@ -288,9 +301,7 @@ struct TodayDashboardView: View {
             Spacer()
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(color)
-                    .controlSize(.small)
+                    .buttonStyle(.mfPrimaryCompact)
             }
         }
         .appleHealthCard(padding: 14)
@@ -298,88 +309,60 @@ struct TodayDashboardView: View {
 
     private func macroZonesCard(eaten: NutrientsPer100g, targets: MacroTargets, isTrainingDay: Bool) -> some View {
         let caloriesRemaining = max(0, targets.calories - eaten.calories)
-        let calorieRatio = targets.calories > 0 ? min(1.2, eaten.calories / targets.calories) : 0
 
+        // MacroFactor Nutrition widget: calories, protein, fat, carbs as tall bars
         return VStack(alignment: .leading, spacing: 16) {
-            // Header Row: Category Badge + Carb Cycling / Micronutrients Shortcut
-            HStack {
-                HStack(spacing: 8) {
-                    AppleIconBadge(icon: "flame.fill", color: AppleTheme.calories, size: 28)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Energy & Macros")
-                            .font(.headline.weight(.bold))
-                        if profile.enableTrainingDayCarbCycling {
-                            Text(isTrainingDay ? "Training-Day Target" : "Rest-Day Target")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(isTrainingDay ? AppleTheme.calories : AppleTheme.carbs)
-                        }
-                    }
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(Int(caloriesRemaining.rounded()))")
+                    .font(.system(size: 34, weight: .heavy))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                Text("Cal remaining")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 Spacer()
-                Button {
-                    showingMicronutrients = true
-                } label: {
-                    Label("Micronutrients", systemImage: "pills.fill")
-                        .font(.caption2.weight(.semibold))
+                if profile.enableTrainingDayCarbCycling {
+                    Text(isTrainingDay ? "Training Day" : "Rest Day")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(AppleTheme.tertiarySurface))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
             }
 
-            // Hero Metric Row: 38pt SF Rounded Numerals + Unit Label
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(Int(caloriesRemaining.rounded()))")
-                        .font(.system(size: 38, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(AppleTheme.calories)
-
-                    Text("CAL REMAINING")
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("Goal \(Int(targets.calories.rounded()))")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(eaten.calories.rounded())) eaten")
-                            .font(.caption2.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(.primary)
-                    }
-                }
-
-                // Apple Fitness Smooth Progress Track
-                AppleFitnessBar(progress: calorieRatio, color: AppleTheme.calories, height: 9)
-            }
-
-            Divider()
-                .padding(.vertical, 2)
-
-            // Spacious 3-Column Macro Grid with SF Rounded Digits & Micro Progress Tracks
-            HStack(spacing: 14) {
-                AppleMacroColumnView(
+            HStack(alignment: .bottom, spacing: 8) {
+                MFNutrientBarColumn(
+                    title: "Calories",
+                    value: eaten.calories,
+                    target: targets.calories,
+                    unit: "",
+                    color: AppleTheme.calories
+                )
+                MFNutrientBarColumn(
                     title: "Protein",
-                    eaten: eaten.protein,
+                    value: eaten.protein,
                     target: targets.protein,
+                    unit: "g",
                     color: AppleTheme.protein
                 )
-                AppleMacroColumnView(
-                    title: "Carbs",
-                    eaten: eaten.carbs,
-                    target: targets.carbs,
-                    color: AppleTheme.carbs
-                )
-                AppleMacroColumnView(
+                MFNutrientBarColumn(
                     title: "Fat",
-                    eaten: eaten.fat,
+                    value: eaten.fat,
                     target: targets.fat,
+                    unit: "g",
                     color: AppleTheme.fat
+                )
+                MFNutrientBarColumn(
+                    title: "Carbs",
+                    value: eaten.carbs,
+                    target: targets.carbs,
+                    unit: "g",
+                    color: AppleTheme.carbs
                 )
             }
         }
-        .appleHealthCard(padding: 20)
+        .mfCard(padding: 18)
     }
 
     private func coachingMetricsRow(digest: CoachingDashboardDigest) -> some View {
@@ -388,10 +371,9 @@ struct TodayDashboardView: View {
             NavigationLink(destination: WeightDetailView()) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        AppleIconBadge(icon: "scalemass.fill", color: AppleTheme.trend, size: 26)
                         Text("Weight Trend")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.primary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption2.weight(.bold))
@@ -400,7 +382,7 @@ struct TodayDashboardView: View {
 
                     if let trendKg = digest.weightSummary.latestTrendKg {
                         Text(UnitsFormatter.formatWeight(trendKg, system: profile.unitSystem))
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .bold))
                             .monospacedDigit()
                             .foregroundStyle(.primary)
 
@@ -435,7 +417,7 @@ struct TodayDashboardView: View {
                             Label("Log", systemImage: "plus")
                                 .font(.caption2.weight(.semibold))
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.mfChip)
                         .controlSize(.mini)
                     }
                 }
@@ -447,15 +429,14 @@ struct TodayDashboardView: View {
             // Adaptive Expenditure Card (Apple Health Style)
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    AppleIconBadge(icon: "waveform.path.ecg", color: AppleTheme.expenditure, size: 26)
-                    Text("Expenditure (TDEE)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
+                    Text("Expenditure")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.primary)
                     Spacer()
                 }
 
                 Text("\(Int(digest.expenditure.expenditureKcal.rounded())) kcal")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 24, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
 
@@ -481,7 +462,7 @@ struct TodayDashboardView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
-                AppleIconBadge(icon: "flame.fill", color: isDeficit ? .blue : .orange, size: 24)
+                AppleIconBadge(icon: "flame.fill", color: isDeficit ? AppleTheme.calories : AppleTheme.protein, size: 24)
                 Text("Energy Balance (Intake vs. TDEE)")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
@@ -490,15 +471,15 @@ struct TodayDashboardView: View {
                     .font(.caption2.weight(.bold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background((isDeficit ? Color.blue : Color.orange).opacity(0.15), in: Capsule())
-                    .foregroundStyle(isDeficit ? Color.blue : Color.orange)
+                    .background((isDeficit ? AppleTheme.calories : AppleTheme.protein).opacity(0.15), in: Capsule())
+                    .foregroundStyle(isDeficit ? AppleTheme.calories : AppleTheme.protein)
             }
 
             HStack(alignment: .firstTextBaseline) {
                 Text("\(isDeficit ? "−" : "+")\(absDelta) kcal")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold))
                     .monospacedDigit()
-                    .foregroundStyle(isDeficit ? Color.blue : Color.orange)
+                    .foregroundStyle(isDeficit ? AppleTheme.calories : AppleTheme.protein)
 
                 Text(isDeficit ? "net daily deficit" : "net daily surplus")
                     .font(.caption.weight(.semibold))
@@ -541,7 +522,7 @@ struct TodayDashboardView: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(String(format: "%.1fh", hoursFasted))
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(Color.purple)
 
@@ -557,7 +538,7 @@ struct TodayDashboardView: View {
                     Text(isFasting ? "End Fast" : "Start Fast")
                         .font(.caption2.weight(.bold))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.mfChip)
                 .controlSize(.small)
             }
 
@@ -679,7 +660,7 @@ struct TodayDashboardView: View {
                         Image(systemName: "photo")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.mfChip)
                     .accessibilityLabel("Workout Guide")
 
                     Button {
@@ -689,7 +670,7 @@ struct TodayDashboardView: View {
                             .font(.subheadline.weight(.bold))
                             .padding(.horizontal, 8)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.mfPrimaryCompact)
                 }
             } else {
                 HStack {
@@ -700,7 +681,7 @@ struct TodayDashboardView: View {
                     Button("Freestyle") {
                         startWorkoutSession(from: nil)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.mfChip)
                 }
             }
         }
@@ -813,7 +794,7 @@ struct TodayDashboardView: View {
             AppleIconBadge(icon: icon, color: color, size: 26)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.caption2).foregroundStyle(.secondary)
-                Text(value).font(.system(size: 15, weight: .bold, design: .rounded)).monospacedDigit()
+                Text(value).font(.system(size: 15, weight: .bold)).monospacedDigit()
             }
             Spacer()
         }
