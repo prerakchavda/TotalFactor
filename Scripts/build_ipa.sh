@@ -31,6 +31,8 @@ if ! xcodebuild \
   -configuration Debug \
   -destination "generic/platform=iOS" \
   -derivedDataPath "$DERIVED_DATA" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGN_IDENTITY="" \
   build > "$BUILD_LOG" 2>&1; then
   echo "Build failed! Output:"
   tail -n 25 "$BUILD_LOG"
