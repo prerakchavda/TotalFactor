@@ -70,28 +70,44 @@ struct TrainHubView: View {
 
                     activeProgramCard
 
-                    MFSectionTitle("Weekly Volume")
+                    Group {
+                        MFSectionTitle("Muscle Recovery")
 
-                    let volumeEntries: [HypertrophyVolumeEngine.VolumeSetEntry] = sessions.flatMap { s in
-                        (s.sets ?? []).compactMap { set in
-                            guard let ex = set.exercise else { return nil }
-                            return HypertrophyVolumeEngine.VolumeSetEntry(
-                                timestamp: s.start,
-                                primaryMuscles: ex.primaryMuscles,
-                                secondaryMuscles: ex.secondaryMuscles,
-                                isCompleted: set.isCompleted,
-                                setType: set.type
-                            )
-                        }
+                        MuscleRecoveryCard(sessions: sessions)
                     }
-                    let volumeStatuses = HypertrophyVolumeEngine.evaluateWeeklyVolume(entries: volumeEntries)
-                    HypertrophyVolumeCardView(statuses: volumeStatuses)
+
+                    Group {
+                        MFSectionTitle("Weekly Volume")
+
+                        let volumeEntries: [HypertrophyVolumeEngine.VolumeSetEntry] = sessions.flatMap { s in
+                            (s.sets ?? []).compactMap { set in
+                                guard let ex = set.exercise else { return nil }
+                                return HypertrophyVolumeEngine.VolumeSetEntry(
+                                    timestamp: s.start,
+                                    primaryMuscles: ex.primaryMuscles,
+                                    secondaryMuscles: ex.secondaryMuscles,
+                                    isCompleted: set.isCompleted,
+                                    setType: set.type
+                                )
+                            }
+                        }
+                        let volumeStatuses = HypertrophyVolumeEngine.evaluateWeeklyVolume(entries: volumeEntries)
+                        HypertrophyVolumeCardView(statuses: volumeStatuses)
+                    }
 
                     MFSectionTitle("Tools")
 
                     quickToolsGrid
 
-                    recentSessionsCard
+                    Group {
+                        MFSectionTitle("History")
+
+                        WorkoutCalendarCard(sessions: sessions) { session in
+                            selectedHistorySession = session
+                        }
+
+                        recentSessionsCard
+                    }
                 }
                 .padding()
                 .padding(.bottom, 16)
@@ -482,6 +498,12 @@ struct TrainHubView: View {
     }
 
     private func startWorkout(from programWorkout: ProgramWorkout?) {
+        // Only one workout can be open: resume it instead of starting a second, orphaned session.
+        if let open = WorkoutHistoryService.openSession(context: modelContext) {
+            appState.activeWorkoutSessionID = open.id
+            appState.showingActiveWorkoutFullScreen = true
+            return
+        }
         let gym = activeGym
         let session = WorkoutSession(
             title: programWorkout?.name ?? "Freestyle Session",

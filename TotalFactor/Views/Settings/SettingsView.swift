@@ -12,6 +12,7 @@ struct SettingsView: View {
 
     @State private var showingOnboardingSheet: Bool = false
     @AppStorage("totalfactor.appearance") private var appearance: String = "system"
+    @AppStorage(FoodTrackingPreference.key) private var foodTrackingEnabled: Bool = true
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -52,6 +53,22 @@ struct SettingsView: View {
                     Text("Appearance")
                 } footer: {
                     Text("Dark matches MacroFactor's signature true-black look.")
+                }
+
+                Section {
+                    Toggle(isOn: $foodTrackingEnabled) {
+                        settingsRow(
+                            icon: "fork.knife",
+                            color: .orange,
+                            title: "Food Tracking",
+                            subtitle: foodTrackingEnabled ? "Food Log, macros & check-ins shown" : "Off — food history is kept"
+                        )
+                    }
+                    .onChange(of: foodTrackingEnabled) { _, _ in
+                        NotificationService.shared.scheduleMealReminders()
+                    }
+                } footer: {
+                    Text("Turn off to hide the Food Log, nutrition cards, meal reminders and weekly check-ins. Nothing is deleted — turn it back on any time.")
                 }
 
                 Section("Coaching & Nutrition") {

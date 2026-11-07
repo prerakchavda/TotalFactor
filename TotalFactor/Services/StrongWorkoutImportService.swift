@@ -172,12 +172,19 @@ public enum StrongWorkoutImportService {
         return "\(minuteBucket)|\(normalizedTitle)"
     }
 
-    private static func rebuildExerciseAnalytics(for exercises: [Exercise], context: ModelContext) {
+    /// Refits each exercise's rep curve and replays its finished sessions to rebuild PRs.
+    /// Also used after a past workout is edited or deleted, so stale PRs are cleared.
+    static func rebuildExerciseAnalytics(for exercises: [Exercise], context: ModelContext) {
         for ex in exercises {
             let completedLogs = (ex.setLogs ?? []).filter { log in
                 log.isCompleted && (log.session?.isFinished ?? true)
             }
-            guard !completedLogs.isEmpty else { continue }
+            guard !completedLogs.isEmpty else {
+                for oldPR in ex.personalRecords ?? [] {
+                    context.delete(oldPR)
+                }
+                continue
+            }
 
             let allSamples: [LoggedSetSample] = completedLogs.map { log in
                 LoggedSetSample(

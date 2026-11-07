@@ -13,6 +13,7 @@ struct RootTabView: View {
     }
 
     @State private var keyboardVisible: Bool = false
+    @AppStorage(FoodTrackingPreference.key) private var foodTrackingEnabled: Bool = true
 
     var body: some View {
         @Bindable var state = appState
@@ -24,9 +25,11 @@ struct RootTabView: View {
                     .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.today)
 
-                FoodTimelineView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(AppTab.food)
+                if foodTrackingEnabled {
+                    FoodTimelineView()
+                        .toolbar(.hidden, for: .tabBar)
+                        .tag(AppTab.food)
+                }
 
                 TrainHubView()
                     .toolbar(.hidden, for: .tabBar)
@@ -96,11 +99,19 @@ struct RootTabView: View {
                     state.selectedTab = tab
                 }
             }
+            if !foodTrackingEnabled && state.selectedTab == .food {
+                state.selectedTab = .today
+            }
+        }
+        .onChange(of: foodTrackingEnabled) { _, enabled in
+            if !enabled && state.selectedTab == .food {
+                state.selectedTab = .today
+            }
         }
         .onOpenURL { url in
             guard url.scheme == "totalfactor" else { return }
             let tabKey = url.host ?? url.pathComponents.dropFirst().first ?? ""
-            if let tab = AppTab(rawValue: tabKey) {
+            if let tab = AppTab(rawValue: tabKey), tab != .food || foodTrackingEnabled {
                 state.selectedTab = tab
             }
         }
@@ -127,7 +138,7 @@ struct RootTabView: View {
                 .padding(.horizontal, 14)
             }
 
-            if appState.selectedTab == .today || appState.selectedTab == .food {
+            if foodTrackingEnabled && (appState.selectedTab == .today || appState.selectedTab == .food) {
                 MFFoodSearchDock(
                     onSearch: { appState.openQuickAdd(tab: 0) },
                     onScan: { appState.openQuickAdd(tab: 1) },
@@ -139,6 +150,7 @@ struct RootTabView: View {
             MFTabBar(
                 selection: appState.selectedTab,
                 hasOpenWorkout: !openSessions.isEmpty,
+                foodTrackingEnabled: foodTrackingEnabled,
                 onSelect: { appState.selectedTab = $0 },
                 onLogFood: { appState.openQuickAdd(tab: 0) },
                 onDescribeMeal: { appState.openQuickAdd(tab: 5) },
@@ -214,6 +226,7 @@ private struct MFFoodSearchDock: View {
 private struct MFTabBar: View {
     let selection: AppTab
     let hasOpenWorkout: Bool
+    let foodTrackingEnabled: Bool
     let onSelect: (AppTab) -> Void
     let onLogFood: () -> Void
     let onDescribeMeal: () -> Void
@@ -226,7 +239,9 @@ private struct MFTabBar: View {
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             tabButton(.today, title: "Dashboard", icon: "square.grid.2x2", selectedIcon: "square.grid.2x2.fill")
-            tabButton(.food, title: "Food Log", icon: "fork.knife", selectedIcon: "fork.knife")
+            if foodTrackingEnabled {
+                tabButton(.food, title: "Food Log", icon: "fork.knife", selectedIcon: "fork.knife")
+            }
             addMenu
             tabButton(.train, title: "Workouts", icon: "dumbbell", selectedIcon: "dumbbell.fill")
             tabButton(.progress, title: "Progress", icon: "chart.xyaxis.line", selectedIcon: "chart.xyaxis.line")
@@ -267,27 +282,31 @@ private struct MFTabBar: View {
 
     private var addMenu: some View {
         Menu {
-            Button(action: onLogFood) {
-                Label("Log Food", systemImage: "magnifyingglass")
+            if foodTrackingEnabled {
+                Button(action: onLogFood) {
+                    Label("Log Food", systemImage: "magnifyingglass")
+                }
+                Button(action: onDescribeMeal) {
+                    Label("Describe a Meal", systemImage: "sparkles")
+                }
+                Button(action: onScanBarcode) {
+                    Label("Scan Barcode", systemImage: "barcode.viewfinder")
+                }
+                Button(action: onQuickAdd) {
+                    Label("Quick Add Macros", systemImage: "bolt.fill")
+                }
+                Divider()
             }
-            Button(action: onDescribeMeal) {
-                Label("Describe a Meal", systemImage: "sparkles")
-            }
-            Button(action: onScanBarcode) {
-                Label("Scan Barcode", systemImage: "barcode.viewfinder")
-            }
-            Button(action: onQuickAdd) {
-                Label("Quick Add Macros", systemImage: "bolt.fill")
-            }
-            Divider()
             Button(action: onLogWeight) {
                 Label("Log Weight", systemImage: "scalemass")
             }
             Button(action: onWorkout) {
                 Label(hasOpenWorkout ? "Resume Workout" : "Start a Workout", systemImage: "dumbbell")
             }
-            Button(action: onCheckIn) {
-                Label("Weekly Check-In", systemImage: "checkmark.seal")
+            if foodTrackingEnabled {
+                Button(action: onCheckIn) {
+                    Label("Weekly Check-In", systemImage: "checkmark.seal")
+                }
             }
         } label: {
             Image(systemName: "plus")

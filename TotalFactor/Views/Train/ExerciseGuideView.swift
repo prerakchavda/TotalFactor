@@ -687,7 +687,9 @@ struct WorkoutHistoryListView: View {
                 }
             }
             .sheet(item: $selectedSession) { session in
-                WorkoutSessionDetailSheet(session: session, unitSystem: unitSystem)
+                WorkoutSessionDetailSheet(session: session, unitSystem: unitSystem) {
+                    dismiss()
+                }
             }
         }
     }
@@ -695,10 +697,16 @@ struct WorkoutHistoryListView: View {
 
 struct WorkoutSessionDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(AppState.self) private var appState
     let session: WorkoutSession
     let unitSystem: UnitSystem
+    /// Called after "Repeat Workout" starts a new session, so a presenting sheet can close too.
+    var onWorkoutStarted: (() -> Void)? = nil
 
-    @State private var guideExercise: Exercise? = nil
+    @State private var showingEditor: Bool = false
+    @State private var confirmingDelete: Bool = false
+    @State private var showingOpenWorkoutAlert: Bool = false
 
     private struct ExerciseSetGroup: Identifiable {
         var id: UUID
@@ -757,8 +765,8 @@ struct WorkoutSessionDetailSheet: View {
 
                 ForEach(groupedSets) { group in
                     Section {
-                        Button {
-                            guideExercise = group.exercise
+                        NavigationLink {
+                            ExerciseAnalyticsDetailView(exercise: group.exercise, unitSystem: unitSystem)
                         } label: {
                             HStack(spacing: 10) {
                                 ExerciseThumbnailView(exercise: group.exercise, size: 44, cornerRadius: 10)
@@ -766,13 +774,10 @@ struct WorkoutSessionDetailSheet: View {
                                     Text(group.exercise.name)
                                         .font(.subheadline.bold())
                                         .foregroundStyle(.primary)
-                                    Text("Tap for photo & form guide")
+                                    Text("Charts, records & form guide")
                                         .font(.caption2)
                                         .foregroundStyle(Color.accentColor)
                                 }
-                                Spacer()
-                                Image(systemName: "info.circle")
-                                    .foregroundStyle(Color.accentColor)
                             }
                         }
 
@@ -789,17 +794,93 @@ struct WorkoutSessionDetailSheet: View {
                         }
                     }
                 }
+
+                Section {
+                    Button {
+                        repeatWorkout()
+                    } label: {
+                        Label("Repeat Workout", systemImage: "arrow.clockwise")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
             }
             .navigationTitle(session.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Menu {
+                        Button {
+                            showingEditor = true
+                        } label: {
+                            Label("Edit Workout", systemImage: "pencil")
+                        }
+                        Button {
+                            repeatWorkout()
+                        } label: {
+                            Label("Repeat Workout", systemImage: "arrow.clockwise")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            confirmingDelete = true
+                        } label: {
+                            Label("Delete Workout", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Workout Options")
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(item: $guideExercise) { ex in
-                ExerciseGuideSheet(exercise: ex)
+            .sheet(isPresented: $showingEditor) {
+                WorkoutSessionEditorSheet(session: session, unitSystem: unitSystem)
             }
+            .confirmationDialog(
+                "Delete this workout?",
+                isPresented: $confirmingDelete,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Workout", role: .destructive) {
+                    deleteWorkout()
+                }
+            } message: {
+                Text("Its sets are removed from your history and personal records are recalculated. This can't be undone.")
+            }
+            .alert("Workout in progress", isPresented: $showingOpenWorkoutAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Finish or discard your current workout before repeating another one.")
+            }
+        }
+    }
+
+    private func repeatWorkout() {
+        guard WorkoutHistoryService.openSession(context: modelContext) == nil else {
+            showingOpenWorkoutAlert = true
+            return
+        }
+        let newSession = WorkoutHistoryService.startRepeat(of: session, gym: nil, context: modelContext)
+        appState.activeWorkoutSessionID = newSession.id
+        let state = appState
+        dismiss()
+        onWorkoutStarted?()
+        // Present the workout once the sheet(s) have finished dismissing.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(600))
+            state.showingActiveWorkoutFullScreen = true
+        }
+    }
+
+    private func deleteWorkout() {
+        let context = modelContext
+        let target = session
+        dismiss()
+        // Delete after the sheet closes so nothing renders a deleted model.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            WorkoutHistoryService.delete(target, context: context)
         }
     }
 }

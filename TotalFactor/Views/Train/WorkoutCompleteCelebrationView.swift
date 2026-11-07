@@ -46,13 +46,29 @@ struct WorkoutCompleteCelebrationView: View {
     }
 
     private var workedMuscles: Set<MuscleGroup> {
-        var set = Set<MuscleGroup>()
-        for s in (session.sets ?? []) where s.isCompleted {
+        Set(muscleLoad.keys)
+    }
+
+    /// Working sets per muscle this session (primary 1.0, secondary 0.5); warm-ups and partials don't count.
+    private var muscleLoad: [MuscleGroup: Double] {
+        var load: [MuscleGroup: Double] = [:]
+        for s in (session.sets ?? []) where s.isCompleted && s.type.countsTowardWorkingStats {
             guard let ex = s.exercise else { continue }
-            set.formUnion(ex.primaryMuscles)
-            set.formUnion(ex.secondaryMuscles)
+            for m in ex.primaryMuscles {
+                load[m, default: 0] += 1.0
+            }
+            for m in ex.secondaryMuscles where !ex.primaryMuscles.contains(m) {
+                load[m, default: 0] += 0.5
+            }
         }
-        return set
+        return load
+    }
+
+    /// Deeper accent for the muscles that did the most work, lighter for ones that only assisted.
+    private var muscleColors: [MuscleGroup: Color] {
+        let load = muscleLoad
+        let maxLoad = max(load.values.max() ?? 1, 1)
+        return load.mapValues { AppleTheme.accent.opacity(0.3 + 0.7 * min(1, $0 / maxLoad)) }
     }
 
     private var durationString: String {
@@ -74,8 +90,8 @@ struct WorkoutCompleteCelebrationView: View {
                     // 1. Anatomical Humanoid Heatmap (Front & Back)
                     VStack(spacing: 8) {
                         AnatomicalHumanoidHeatmapView(
-                            workedMuscles: workedMuscles,
-                            accentColor: AppleTheme.accent,
+                            muscleColors: muscleColors,
+                            muscleWeights: muscleLoad,
                             height: 240,
                             showLabels: true
                         )

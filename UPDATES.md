@@ -6,6 +6,60 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.9.0 — Build 25 (2026-11-06) — Muscle Recovery Map
+
+### 1. Muscle Recovery Map (`MuscleRecoveryEngine.swift`, `MuscleRecoveryCard.swift`, `TrainHubView.swift`)
+- New **Muscle Recovery** card on the Workouts tab with the front/back body figure.
+- **Recovery** view: each muscle is colored by estimated fatigue — red (fatigued) → orange (recovering) → yellow (nearly) → green (fresh) — and fades over the following days. Muscles not trained this week stay grey.
+- **+1 / +2 / +3 day** preview shows how the map will fade.
+- **This Week** view: muscles shaded by how many sets they got in the last 7 days (full color at 16+ sets).
+- Muscle list shows sets this week, when each was last trained, and when it should be fresh (e.g. "Fresh in 14h", "Fresh Sat 6 PM").
+- Rules: a working set adds 1.0 to its main muscles and 0.5 to helper muscles, scaled by effort (RIR 0 → 1.0 … RIR 4 → 0.5, 5+ → 0.3); warm-ups and partials don't count. Each set's fatigue fades to zero over ~72 h for chest/back/legs/glutes, 48 h for traps/front delts/triceps, 36 h for side & rear delts, arms, calves and abs. Fatigue tops out at about 6 hard sets.
+
+### 2. Workout Complete Body Map (`WorkoutCompleteCelebrationView.swift`, `AnatomicalHumanoidHeatmapView.swift`)
+- The post-workout body map is now shaded by how much work each muscle did: darker for main targets, lighter for muscles that only assisted. Warm-up sets no longer light up muscles.
+- `AnatomicalHumanoidHeatmapView` accepts per-muscle colors (shapes covering several muscles use the most-worked one).
+
+### 3. Workouts Tab Layout (`TrainHubView.swift`)
+- Grouped the Recovery, Weekly Volume and History sections so the tab stays within SwiftUI's view-count limit on older Xcode versions.
+
+### 4. Tests (`TotalFactorAlgorithmTests.swift`)
+- Added recovery-engine tests: fade timing over the chest window, faster small-muscle recovery, half credit for helper muscles, warm-ups ignored, and RIR effort scaling.
+
+### 5. Build
+- Bumped to v1.9.0 (Build 25) across app, widgets, and Watch.
+
+---
+
+## v1.8.0 — Build 24 (2026-11-06) — Edit Past Workouts, Repeat, Training Calendar & Food Tracking Switch
+
+### 1. Food Tracking On/Off (`AppState.swift`, `RootTabView.swift`, `TodayDashboardView.swift`, `SettingsView.swift`, `NotificationService.swift`)
+- New **More → Food Tracking** switch. Off hides the Food Log tab, the "Search for a food" dock, food items and Weekly Check-In in the **+** menu, the Dashboard's Nutrition / Insights cards, day-complete toggle and check-in button, and meal-logging reminders.
+- Nothing is deleted; turning it back on restores everything. Deep links to the Food tab are ignored while it's off.
+
+### 2. Edit & Delete Finished Workouts (`WorkoutSessionEditorSheet.swift`, `ExerciseGuideView.swift`, `WorkoutHistoryService.swift`, `StrongWorkoutImportService.swift`, `HealthKitService.swift`)
+- Workout detail now has a **⋯** menu: Edit Workout, Repeat Workout, Delete Workout.
+- Edit: title, start date/time, duration, notes; change any set's type, weight and reps; add or swipe-delete sets; remove a whole exercise. Cancel discards all changes.
+- Saving or deleting rebuilds personal records and rep curves for the affected exercises, so a typo'd set no longer sticks as a PR.
+- Deleting a workout also removes its Apple Health workout; moving a workout's time re-writes it in Apple Health.
+- Tapping an exercise in a past workout now opens its charts, records and form guide.
+
+### 3. Repeat Workout & Freestyle Fixes (`WorkoutHistoryService.swift`, `ActiveWorkoutView.swift`, `TrainHubView.swift`, `TodayDashboardView.swift`)
+- **Repeat Workout** starts a new session with the same exercises, set counts, weights and reps as the past one.
+- Adding an exercise to a freestyle workout pre-fills the sets, weights and reps from the last time you did it (instead of 3 × 40 kg × 8).
+- Freestyle / Start no longer creates a second open workout when one is already running — it resumes the open one.
+- Finishing with unchecked sets now asks first: Complete All & Finish, Discard Unfinished & Finish, or Keep Logging (previously they were silently deleted).
+
+### 4. Strong-Style Training Calendar & Charts (`WorkoutCalendarCard.swift`, `TrainHubView.swift`, `ExerciseLibraryView.swift`)
+- New **History** calendar on the Workouts tab: month grid with workout days filled in (tap one to open it), this week / month / week-streak / all-time counts, and a 12-week workouts-per-week bar chart.
+- Exercise progress chart now switches between Est. 1RM, Heaviest, Volume and Most Reps, with Best and Latest values.
+
+### 5. Build
+- Bumped to v1.8.0 (Build 24) across app, widgets, and Watch.
+- Removed two empty iCloud leftover files (`TotalFactor.xcodeproj`, `TotalFactor 2(1).xcodeproj`) that were blocking Xcode, and restored the committed `TotalFactor.xcodeproj`. Run `xcodegen generate` (or `./Scripts/update_iphone.sh`) to add this build's new Swift files.
+
+---
+
 ## v1.7.2 — Build 23 (2026-11-01) — Workout Keypad: Decimal Weights Fixed
 
 ### 1. Gym Keypad Weight Entry (`ActiveWorkoutView.swift`)

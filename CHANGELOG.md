@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.9.0] - 2026-11-06
+
+### Added — Muscle Recovery Map (Build 25)
+- `MuscleRecoveryEngine` (Core/Engines, unit-tested): per-muscle fatigue from recent working sets with role weighting (1.0 / 0.5), RIR effort scaling, linear per-muscle recovery windows (72 / 48 / 36 h), weekly set totals, last-trained and estimated recovered-at times.
+- `MuscleRecoveryCard` on the Workouts tab: Recovery / This Week body map, +1–3 day fade preview, legend and per-muscle list.
+- `AnatomicalHumanoidHeatmapView(muscleColors:muscleWeights:)` for per-muscle fills.
+
+### Changed
+- Workout Complete body map is shaded by per-muscle working-set load and ignores warm-ups.
+- Workouts tab sections wrapped in `Group`s to stay under the 10-child `ViewBuilder` limit.
+
+---
+
+## [1.8.0] - 2026-11-06
+
+### Added — Edit Past Workouts, Repeat, Training Calendar & Food Tracking Switch (Build 24)
+- `FoodTrackingPreference` (`totalfactor.foodTrackingEnabled`) and More → Food Tracking switch; hides food UI in `RootTabView`, `TodayDashboardView`, and meal reminders in `NotificationService` without deleting data.
+- `WorkoutSessionEditorSheet` for editing finished workouts (metadata and sets, draft-based so Cancel is safe).
+- `WorkoutHistoryService`: open-session lookup, delete (incl. Apple Health workout), Repeat Workout, and last-performed sets lookup.
+- `HealthKitService.deleteStrengthWorkout(uuid:)`.
+- `WorkoutCalendarCard`: month calendar, week streak, and 12-week workouts-per-week chart on the Workouts tab.
+- Exercise progress chart metric picker (Est. 1RM / Heaviest / Volume / Most Reps) in `ExerciseAnalyticsDetailView`.
+
+### Changed
+- `StrongWorkoutImportService.rebuildExerciseAnalytics` is now shared and clears PRs for exercises left with no sets.
+- Freestyle exercises pre-fill from the last session; starting a workout resumes an open one instead of creating a second.
+- Finish prompts before discarding unchecked sets.
+
+### Fixed
+- Removed 0-byte iCloud artifacts `TotalFactor.xcodeproj` / `TotalFactor 2(1).xcodeproj` and restored the committed project bundle; regenerate with XcodeGen to pick up new files.
+
+---
+
 ## [1.7.2] - 2026-11-01
 
 ### Fixed — Workout Keypad Decimal Weights (Build 23)

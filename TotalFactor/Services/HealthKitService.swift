@@ -662,6 +662,15 @@ public final class HealthKitService {
         #endif
     }
 
+    /// Removes the Apple Health workout written for an edited or deleted session.
+    public func deleteStrengthWorkout(uuid: UUID) async {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let pred = HKQuery.predicateForObjects(with: [uuid])
+        _ = try? await store.deleteObjects(of: HKObjectType.workoutType(), predicate: pred)
+        #endif
+    }
+
     // MARK: - Full History Sync to Apple Health (v1.5.3)
 
     public func syncAllHistoryToAppleHealth(context: ModelContext) async -> (foodSynced: Int, weighInsSynced: Int, workoutsSynced: Int) {

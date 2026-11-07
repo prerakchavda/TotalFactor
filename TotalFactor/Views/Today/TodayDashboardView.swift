@@ -17,6 +17,7 @@ struct TodayDashboardView: View {
 
     @State private var showingMicronutrients: Bool = false
     @State private var previewGuideWorkout: ProgramWorkout? = nil
+    @AppStorage(FoodTrackingPreference.key) private var foodTrackingEnabled: Bool = true
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -68,48 +69,50 @@ struct TodayDashboardView: View {
 
                     dayHeaderBar(isComplete: dayNote?.isComplete ?? false)
 
-                    if yesterdayUnmarkedWithFood {
-                        yesterdayCompleteBanner
-                    }
-
-                    if isCheckInDue {
-                        checkInReadyBanner
-                    }
-
-                    MFSectionTitle("Nutrition", actionTitle: "Micros") {
-                        showingMicronutrients = true
-                    }
-
-                    macroZonesCard(eaten: eaten, targets: targets, isTrainingDay: digest.isTodayTrainingDay)
-
-                    if let snackNudge = digest.preWorkoutSnackNudge {
-                        nudgeCard(
-                            icon: "bolt.badge.clock.fill",
-                            color: AppleTheme.calories,
-                            title: "Pre-Workout Fuel Nudge",
-                            message: snackNudge,
-                            actionTitle: "Log Snack"
-                        ) {
-                            appState.openQuickAdd(tab: 0)
+                    if foodTrackingEnabled {
+                        if yesterdayUnmarkedWithFood {
+                            yesterdayCompleteBanner
                         }
+
+                        if isCheckInDue {
+                            checkInReadyBanner
+                        }
+
+                        MFSectionTitle("Nutrition", actionTitle: "Micros") {
+                            showingMicronutrients = true
+                        }
+
+                        macroZonesCard(eaten: eaten, targets: targets, isTrainingDay: digest.isTodayTrainingDay)
+
+                        if let snackNudge = digest.preWorkoutSnackNudge {
+                            nudgeCard(
+                                icon: "bolt.badge.clock.fill",
+                                color: AppleTheme.calories,
+                                title: "Pre-Workout Fuel Nudge",
+                                message: snackNudge,
+                                actionTitle: "Log Snack"
+                            ) {
+                                appState.openQuickAdd(tab: 0)
+                            }
+                        }
+
+                        if digest.isProteinGateActive {
+                            nudgeCard(
+                                icon: "shield.lefthalf.filled",
+                                color: AppleTheme.protein,
+                                title: "Protein Gate Active",
+                                message: "Last 7 days averaged \(Int((digest.avgProteinLast7d ?? 0).rounded()))g protein vs. your \(Int(targets.proteinFloor))g floor. Aggressive load jumps are paused until protein rebounds.",
+                                actionTitle: nil,
+                                action: nil
+                            )
+                        }
+
+                        MFSectionTitle("Insights & Analytics")
+
+                        coachingMetricsRow(digest: digest)
+
+                        energyBalanceCard(digest: digest)
                     }
-
-                    if digest.isProteinGateActive {
-                        nudgeCard(
-                            icon: "shield.lefthalf.filled",
-                            color: AppleTheme.protein,
-                            title: "Protein Gate Active",
-                            message: "Last 7 days averaged \(Int((digest.avgProteinLast7d ?? 0).rounded()))g protein vs. your \(Int(targets.proteinFloor))g floor. Aggressive load jumps are paused until protein rebounds.",
-                            actionTitle: nil,
-                            action: nil
-                        )
-                    }
-
-                    MFSectionTitle("Insights & Analytics")
-
-                    coachingMetricsRow(digest: digest)
-
-                    energyBalanceCard(digest: digest)
 
                     if profile.enableIntermittentFasting {
                         intermittentFastingCard
@@ -155,13 +158,15 @@ struct TodayDashboardView: View {
         HStack(alignment: .center, spacing: 10) {
             MFDisplayTitle("Dashboard")
             Spacer()
-            Button {
-                appState.showingWeeklyCheckInSheet = true
-            } label: {
-                MFCircleIcon("checkmark.seal")
+            if foodTrackingEnabled {
+                Button {
+                    appState.showingWeeklyCheckInSheet = true
+                } label: {
+                    MFCircleIcon("checkmark.seal")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Weekly Check-In")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Weekly Check-In")
 
             Button {
                 appState.showingWeighInSheet = true
@@ -203,17 +208,19 @@ struct TodayDashboardView: View {
             }
             .buttonStyle(.plain)
 
-            Button {
-                toggleDayComplete()
-            } label: {
-                Image(systemName: isComplete ? "checkmark" : "circle.dashed")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(isComplete ? AppleTheme.background : Color.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(isComplete ? Color.primary : AppleTheme.tertiarySurface))
+            if foodTrackingEnabled {
+                Button {
+                    toggleDayComplete()
+                } label: {
+                    Image(systemName: isComplete ? "checkmark" : "circle.dashed")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(isComplete ? AppleTheme.background : Color.secondary)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(isComplete ? Color.primary : AppleTheme.tertiarySurface))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isComplete ? "Day Complete" : "Mark Day Complete")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isComplete ? "Day Complete" : "Mark Day Complete")
 
             Button {
                 appState.selectedDayKey = DayKey.addingDays(1, to: activeDayKey)
@@ -826,6 +833,11 @@ struct TodayDashboardView: View {
     }
 
     private func startWorkoutSession(from programWorkout: ProgramWorkout?) {
+        if let open = WorkoutHistoryService.openSession(context: modelContext) {
+            appState.activeWorkoutSessionID = open.id
+            appState.showingActiveWorkoutFullScreen = true
+            return
+        }
         let defaultGym = gymProfiles.first(where: \.isDefault) ?? gymProfiles.first
         let session = WorkoutSession(
             title: programWorkout?.name ?? "Freestyle Strength",

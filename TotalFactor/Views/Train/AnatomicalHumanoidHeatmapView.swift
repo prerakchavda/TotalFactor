@@ -4,8 +4,10 @@ import SwiftUI
 /// Renders crisp vector front-and-back anatomical human silhouettes in SwiftUI `Canvas`,
 /// illuminating worked muscle groups in vibrant MacroFactor royal blue (`#2F7CF6`).
 struct AnatomicalHumanoidHeatmapView: View {
-    let workedMuscles: Set<MuscleGroup>
-    var accentColor: Color = AppleTheme.accent // MacroFactor Royal Blue
+    /// Fill per muscle; muscles missing from the map draw in the neutral base color.
+    let muscleColors: [MuscleGroup: Color]
+    /// When one shape covers several muscles (e.g. front + side delts), the highest-weighted muscle's color wins.
+    var muscleWeights: [MuscleGroup: Double] = [:]
     var height: CGFloat = 260
     var showLabels: Bool = true
 
@@ -15,8 +17,19 @@ struct AnatomicalHumanoidHeatmapView: View {
         height: CGFloat = 260,
         showLabels: Bool = true
     ) {
-        self.workedMuscles = workedMuscles
-        self.accentColor = accentColor
+        self.muscleColors = Dictionary(uniqueKeysWithValues: workedMuscles.map { ($0, accentColor) })
+        self.height = height
+        self.showLabels = showLabels
+    }
+
+    init(
+        muscleColors: [MuscleGroup: Color],
+        muscleWeights: [MuscleGroup: Double],
+        height: CGFloat = 260,
+        showLabels: Bool = true
+    ) {
+        self.muscleColors = muscleColors
+        self.muscleWeights = muscleWeights
         self.height = height
         self.showLabels = showLabels
     }
@@ -46,15 +59,12 @@ struct AnatomicalHumanoidHeatmapView: View {
         }
     }
 
-    private func isWorked(_ muscles: [MuscleGroup]) -> Bool {
-        muscles.contains { workedMuscles.contains($0) }
-    }
-
     private func color(for muscles: [MuscleGroup], baseInactive: Color) -> Color {
-        if isWorked(muscles) {
-            return accentColor
+        let colored = muscles.filter { muscleColors[$0] != nil }
+        guard let winner = colored.max(by: { (muscleWeights[$0] ?? 0) < (muscleWeights[$1] ?? 0) }) else {
+            return baseInactive
         }
-        return baseInactive
+        return muscleColors[winner] ?? baseInactive
     }
 
     private func drawHumanoid(in ctx: inout GraphicsContext, size: CGSize, isFront: Bool) {

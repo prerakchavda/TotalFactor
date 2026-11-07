@@ -61,6 +61,7 @@ public struct ActiveWorkoutView: View {
     @State private var swappingBlock: ExerciseBlock? = nil
     @State private var setupNotesExercise: Exercise? = nil
     @State private var showingDiscardConfirmation: Bool = false
+    @State private var showingUnfinishedSetsAlert: Bool = false
 
     // Celebration Sheet State
     @State private var showingCelebrationSheet: Bool = false
@@ -282,6 +283,19 @@ public struct ActiveWorkoutView: View {
             }
             .onDisappear {
                 healthService.stopLiveHeartRateObserver()
+            }
+            .alert("Unfinished Sets", isPresented: $showingUnfinishedSetsAlert) {
+                Button("Complete All & Finish") {
+                    completeUnfinishedSets()
+                    finishWorkout(skipUnfinishedCheck: true)
+                }
+                Button("Discard Unfinished & Finish", role: .destructive) {
+                    finishWorkout(skipUnfinishedCheck: true)
+                }
+                Button("Keep Logging", role: .cancel) {}
+            } message: {
+                let count = session.sortedSets.filter { !$0.isCompleted }.count
+                Text("\(count) \(count == 1 ? "set isn't" : "sets aren't") checked off. Unchecked sets are removed when you finish.")
             }
             .alert("Discard Workout?", isPresented: $showingDiscardConfirmation) {
                 Button("Discard Workout", role: .destructive) {
@@ -1026,12 +1040,24 @@ public struct ActiveWorkoutView: View {
         dismiss()
     }
 
-    private func finishWorkout() {
+    private func finishWorkout(skipUnfinishedCheck: Bool = false) {
+        if !skipUnfinishedCheck && session.sortedSets.contains(where: { !$0.isCompleted }) {
+            showingUnfinishedSetsAlert = true
+            return
+        }
         let diffs = evaluateRoutineDiff()
         let prs = collectSessionPRs()
         sessionPRsForCelebration = prs
         routineDiffsForCelebration = diffs
         showingCelebrationSheet = true
+    }
+
+    private func completeUnfinishedSets() {
+        for s in session.sortedSets where !s.isCompleted {
+            s.isCompleted = true
+            s.timestamp = .now
+        }
+        try? modelContext.save()
     }
 
     private func performFinishWorkout() {
@@ -1277,18 +1303,41 @@ public struct ActiveWorkoutView: View {
 
     private func appendExerciseToSession(_ ex: Exercise, digest: CoachingDashboardDigest) {
         let nextOrder = (session.sortedSets.map(\.order).max() ?? -1) + 1
-        for i in 0..<3 {
-            let s = SetLog(
-                order: nextOrder + i,
-                session: session,
-                exercise: ex,
-                weightKg: 40.0,
-                reps: 8,
-                rir: 2,
-                type: .working,
-                isCompleted: false
-            )
-            modelContext.insert(s)
+        // Pre-fill from the last time this exercise was done (Strong-style), else 3 blank-ish working sets.
+        let lastTime = WorkoutHistoryService.lastPerformedSets(of: ex, excludingSessionID: session.id).prefix(10)
+        if lastTime.isEmpty {
+            for i in 0..<3 {
+                let s = SetLog(
+                    order: nextOrder + i,
+                    session: session,
+                    exercise: ex,
+                    weightKg: 40.0,
+                    reps: 8,
+                    rir: 2,
+                    type: .working,
+                    isCompleted: false
+                )
+                modelContext.insert(s)
+            }
+        } else {
+            for (i, previous) in lastTime.enumerated() {
+                let s = SetLog(
+                    order: nextOrder + i,
+                    session: session,
+                    exercise: ex,
+                    weightKg: previous.weightKg,
+                    reps: previous.reps,
+                    rir: previous.rir,
+                    type: previous.type,
+                    isCompleted: false,
+                    isUnilateral: previous.isUnilateral,
+                    weightKgLeft: previous.weightKgLeft,
+                    repsLeft: previous.repsLeft,
+                    weightKgRight: previous.weightKgRight,
+                    repsRight: previous.repsRight
+                )
+                modelContext.insert(s)
+            }
         }
         try? modelContext.save()
         PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)

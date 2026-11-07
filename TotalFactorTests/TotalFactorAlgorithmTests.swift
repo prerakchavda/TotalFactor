@@ -889,4 +889,57 @@ final class TotalFactorAlgorithmTests: XCTestCase {
         let totalCalories = items.reduce(0.0) { $0 + $1.scaledNutrients.calories }
         XCTAssertTrue(totalCalories >= 350 && totalCalories <= 550, "Total calories should be realistic snack amount (~436 kcal), got \(totalCalories)")
     }
+
+    // MARK: - Muscle Recovery Map
+
+    func testMuscleRecoveryFadesOverChestWindow() {
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let samples = (0..<6).map { _ in
+            MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.chest], rir: 0)
+        }
+
+        let justAfter = MuscleRecoveryEngine.evaluate(samples: samples, now: t0.addingTimeInterval(3600))
+        XCTAssertEqual(justAfter[.chest]?.fatigue ?? 0, 6 * (1 - 1.0 / 72) / 6, accuracy: 0.001)
+        XCTAssertFalse(justAfter[.chest]?.isRecovered ?? true)
+
+        // 6 × (1 − t/72) / 6 < 0.1 once t > 64.8 h → first whole hour is 65 h.
+        let atSession = MuscleRecoveryEngine.evaluate(samples: samples, now: t0)
+        XCTAssertEqual(atSession[.chest]?.recoveredAt, t0.addingTimeInterval(65 * 3600))
+
+        let threeDaysLater = MuscleRecoveryEngine.evaluate(samples: samples, now: t0.addingTimeInterval(73 * 3600))
+        XCTAssertEqual(threeDaysLater[.chest]?.fatigue ?? 1, 0, accuracy: 0.0001)
+        XCTAssertTrue(threeDaysLater[.chest]?.isRecovered ?? false)
+        XCTAssertNil(threeDaysLater[.chest]?.recoveredAt)
+        XCTAssertEqual(threeDaysLater[.chest]?.weeklySets ?? 0, 6, accuracy: 0.001)
+    }
+
+    func testMuscleRecoverySmallMusclesClearFasterAndSecondaryCountsHalf() {
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        var samples = (0..<4).map { _ in
+            MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.chest], secondaryMuscles: [.triceps], rir: 1)
+        }
+        samples += (0..<4).map { _ in
+            MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.biceps], rir: 1)
+        }
+        // Warm-ups add neither fatigue nor weekly sets.
+        samples.append(MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.chest], rir: 5, setType: .warmup))
+
+        let status = MuscleRecoveryEngine.evaluate(samples: samples, now: t0.addingTimeInterval(40 * 3600))
+        XCTAssertEqual(status[.chest]?.weeklySets ?? 0, 4, accuracy: 0.001)
+        XCTAssertEqual(status[.triceps]?.weeklySets ?? 0, 2, accuracy: 0.001)
+        // Biceps (36 h window) are fully clear at 40 h; chest (72 h) is not.
+        XCTAssertEqual(status[.biceps]?.fatigue ?? 1, 0, accuracy: 0.0001)
+        XCTAssertGreaterThan(status[.chest]?.fatigue ?? 0, 0.1)
+    }
+
+    func testMuscleRecoveryEffortScalesWithRIR() {
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let hard = (0..<3).map { _ in MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.quads], rir: 0) }
+        let easy = (0..<3).map { _ in MuscleRecoveryEngine.SetSample(timestamp: t0, primaryMuscles: [.quads], rir: 4) }
+
+        let hardFatigue = MuscleRecoveryEngine.evaluate(samples: hard, now: t0)[.quads]?.fatigue ?? 0
+        let easyFatigue = MuscleRecoveryEngine.evaluate(samples: easy, now: t0)[.quads]?.fatigue ?? 0
+        XCTAssertEqual(hardFatigue, 0.5, accuracy: 0.001)
+        XCTAssertEqual(easyFatigue, 0.25, accuracy: 0.001)
+    }
 }

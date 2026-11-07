@@ -181,7 +181,7 @@ public final class NotificationService {
             Self.missedFoodCheckNotificationID
         ])
 
-        guard isFoodLoggingReminderEnabled else { return }
+        guard isFoodLoggingReminderEnabled, FoodTrackingPreference.isEnabled else { return }
 
         // 1. Lunch
         let lunchContent = UNMutableNotificationContent()

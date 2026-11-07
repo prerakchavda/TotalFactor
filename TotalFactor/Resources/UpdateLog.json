@@ -1,5 +1,76 @@
 [
   {
+    "version": "1.9.0",
+    "build": "25",
+    "date": "2026-11-06",
+    "headline": "Muscle Recovery Map",
+    "sections": [
+      {
+        "title": "Muscle Recovery Map",
+        "icon": "figure.strengthtraining.traditional",
+        "items": [
+          "New Muscle Recovery card on Workouts: muscles go red → orange → yellow → green as they recover over the days.",
+          "Preview +1, +2 or +3 days to see how the map fades.",
+          "This Week view shades each muscle by how many sets it got in the last 7 days.",
+          "Each muscle shows sets this week, when you last trained it, and when it should be fresh.",
+          "Estimates use your sets, how close to failure they were (RIR), and typical recovery times (~3 days for big muscles, 1.5–2 for small)."
+        ]
+      },
+      {
+        "title": "Workout Complete Body Map",
+        "icon": "flame.fill",
+        "items": [
+          "The post-workout body map is now darker for main muscles and lighter for helpers.",
+          "Warm-up sets no longer light up muscles."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.8.0",
+    "build": "24",
+    "date": "2026-11-06",
+    "headline": "Edit Past Workouts, Repeat, Training Calendar & Food Tracking Switch",
+    "sections": [
+      {
+        "title": "Food Tracking On/Off",
+        "icon": "fork.knife",
+        "items": [
+          "New More → Food Tracking switch hides the Food Log tab, food search dock, food menu items, nutrition cards, check-ins and meal reminders.",
+          "Nothing is deleted — turn it back on any time and everything returns."
+        ]
+      },
+      {
+        "title": "Edit & Delete Past Workouts",
+        "icon": "pencil",
+        "items": [
+          "Workout detail has a ⋯ menu with Edit, Repeat and Delete.",
+          "Edit the title, date, duration, notes and every set's type, weight and reps; add or remove sets and exercises. Cancel discards changes.",
+          "Personal records are recalculated after editing or deleting, and Apple Health is kept in sync.",
+          "Tap an exercise in a past workout to see its charts and records."
+        ]
+      },
+      {
+        "title": "Repeat & Freestyle",
+        "icon": "arrow.clockwise",
+        "items": [
+          "Repeat Workout starts a new session pre-filled with the same exercises, weights and reps.",
+          "Adding an exercise in a freestyle workout pre-fills last time's sets.",
+          "Starting a workout while one is open now resumes it instead of creating a second.",
+          "Finishing with unchecked sets now asks before removing them."
+        ]
+      },
+      {
+        "title": "Training Calendar & Charts",
+        "icon": "calendar",
+        "items": [
+          "New History calendar on Workouts: workout days filled in, week streak, and a workouts-per-week chart.",
+          "Exercise charts switch between Est. 1RM, Heaviest, Volume and Most Reps."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.2",
     "build": "23",
     "date": "2026-11-01",

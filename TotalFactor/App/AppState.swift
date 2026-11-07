@@ -11,6 +11,16 @@ public enum AppTab: String, CaseIterable, Identifiable {
     public var id: String { rawValue }
 }
 
+/// More → Food Tracking switch. When off, the Food Log tab, food dock, nutrition cards, check-ins and
+/// meal reminders are hidden. Logged food is never deleted, so turning it back on restores everything.
+public enum FoodTrackingPreference {
+    public static let key = "totalfactor.foodTrackingEnabled"
+
+    public static var isEnabled: Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? true
+    }
+}
+
 @MainActor
 @Observable
 public final class AppState {

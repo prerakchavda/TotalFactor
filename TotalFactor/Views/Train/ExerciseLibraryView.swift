@@ -110,13 +110,26 @@ private struct ExerciseSessionHistoryGroup: Identifiable {
     let sets: [SetLog]
     let workingVolumeKg: Double
     let topE1RMKg: Double
+    let heaviestKg: Double
+    let bestReps: Int
 }
 
-private struct ExerciseAnalyticsDetailView: View {
+/// Strong-style chart options on an exercise's page.
+private enum ExerciseChartMetric: String, CaseIterable, Identifiable {
+    case e1RM = "Est. 1RM"
+    case heaviest = "Heaviest"
+    case volume = "Volume"
+    case reps = "Most Reps"
+
+    var id: String { rawValue }
+}
+
+struct ExerciseAnalyticsDetailView: View {
     let exercise: Exercise
     let unitSystem: UnitSystem
 
     @State private var showAllHistorySessions: Bool = false
+    @State private var chartMetric: ExerciseChartMetric = .e1RM
 
     private var completedAllTypes: [SetLog] {
         (exercise.setLogs ?? []).filter(\.isCompleted)
@@ -142,8 +155,12 @@ private struct ExerciseAnalyticsDetailView: View {
 
             var volKg = 0.0
             var bestE1RM = 0.0
+            var heaviest = 0.0
+            var mostReps = 0
             for s in orderedSets where s.type.countsTowardWorkingStats {
                 volKg += max(0, s.weightKg) * Double(max(0, s.reps))
+                heaviest = max(heaviest, s.weightKg)
+                mostReps = max(mostReps, s.reps)
                 let est = ProgressionEngine.e1RM(
                     weight: s.weightKg,
                     reps: s.reps,
@@ -162,27 +179,19 @@ private struct ExerciseAnalyticsDetailView: View {
                 sessionTitle: title,
                 sets: orderedSets,
                 workingVolumeKg: volKg,
-                topE1RMKg: bestE1RM
+                topE1RMKg: bestE1RM,
+                heaviestKg: heaviest,
+                bestReps: mostReps
             )
         }
         .sorted { $0.date > $1.date }
     }
 
     var body: some View {
-        let completedWorking = completedAllTypes
-            .filter { $0.type.countsTowardWorkingStats }
-            .sorted { ($0.session?.start ?? $0.timestamp) < ($1.session?.start ?? $1.timestamp) }
-        let samples = completedWorking.map {
-            LoggedSetSample(
-                sessionDate: $0.session?.start ?? $0.timestamp,
-                weightKg: $0.weightKg,
-                reps: $0.reps,
-                rir: $0.rir,
-                setType: $0.type
-            )
-        }
-        let sessionSeries = ProgressionEngine.sessionTopE1RMs(samples: samples, k: exercise.personalRepCurveK)
         let historyGroups = sessionHistoryGroups
+        let chartPoints = historyGroups
+            .filter { metricValue($0, chartMetric) > 0 }
+            .sorted { $0.date < $1.date }
         let visibleGroups = showAllHistorySessions ? historyGroups : Array(historyGroups.prefix(15))
 
         ScrollView {
@@ -190,38 +199,55 @@ private struct ExerciseAnalyticsDetailView: View {
                 // Visual Demonstration Photos, Muscle Map, Planet Fitness Setup & Step-by-Step Guide
                 ExerciseGuideContentView(exercise: exercise)
 
-                // Swift Charts e1RM Trend (§9 & §11)
+                // Swift Charts progress per session: e1RM, heaviest load, volume or most reps (Strong-style)
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("Estimated 1RM Progression")
+                        Text("Progress")
                             .font(.headline)
                         Spacer()
-                        Text(String(format: "Curve k = %.1f", exercise.personalRepCurveK))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                        if chartMetric == .e1RM {
+                            Text(String(format: "Curve k = %.1f", exercise.personalRepCurveK))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
-                    if sessionSeries.isEmpty {
-                        Text("Log working sets for \(exercise.name) to plot your effort-adjusted e1RM curve.")
+                    Picker("Chart", selection: $chartMetric) {
+                        ForEach(ExerciseChartMetric.allCases) { metric in
+                            Text(metric.rawValue).tag(metric)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if chartPoints.isEmpty {
+                        Text("Log working sets for \(exercise.name) to chart your progress.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        Chart {
-                            ForEach(sessionSeries, id: \.dayKey) { item in
-                                if let dt = DayKey.date(from: item.dayKey) {
-                                    LineMark(
-                                        x: .value("Date", dt),
-                                        y: .value("e1RM", UnitsFormatter.displayWeight(item.topE1RM, system: unitSystem))
-                                    )
-                                    .interpolationMethod(.catmullRom)
-                                    PointMark(
-                                        x: .value("Date", dt),
-                                        y: .value("e1RM", UnitsFormatter.displayWeight(item.topE1RM, system: unitSystem))
-                                    )
-                                }
-                            }
+                        Chart(chartPoints) { group in
+                            LineMark(
+                                x: .value("Date", group.date),
+                                y: .value(chartMetric.rawValue, chartValue(group, chartMetric))
+                            )
+                            .interpolationMethod(.catmullRom)
+                            PointMark(
+                                x: .value("Date", group.date),
+                                y: .value(chartMetric.rawValue, chartValue(group, chartMetric))
+                            )
                         }
+                        .chartYScale(domain: .automatic(includesZero: false))
                         .frame(height: 200)
+
+                        if let best = chartPoints.max(by: { metricValue($0, chartMetric) < metricValue($1, chartMetric) }),
+                           let latest = chartPoints.last {
+                            HStack {
+                                Text("Best \(formattedMetric(metricValue(best, chartMetric), chartMetric))")
+                                Spacer()
+                                Text("Latest \(formattedMetric(metricValue(latest, chartMetric), chartMetric))")
+                            }
+                            .font(.caption.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(14)
@@ -368,6 +394,29 @@ private struct ExerciseAnalyticsDetailView: View {
         }
         .padding(10)
         .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// Raw value for a session: kg for load metrics, rep count for `.reps`.
+    private func metricValue(_ group: ExerciseSessionHistoryGroup, _ metric: ExerciseChartMetric) -> Double {
+        switch metric {
+        case .e1RM: return group.topE1RMKg
+        case .heaviest: return group.heaviestKg
+        case .volume: return group.workingVolumeKg
+        case .reps: return Double(group.bestReps)
+        }
+    }
+
+    private func chartValue(_ group: ExerciseSessionHistoryGroup, _ metric: ExerciseChartMetric) -> Double {
+        let raw = metricValue(group, metric)
+        return metric == .reps ? raw : UnitsFormatter.displayWeight(raw, system: unitSystem)
+    }
+
+    private func formattedMetric(_ raw: Double, _ metric: ExerciseChartMetric) -> String {
+        switch metric {
+        case .reps: return "\(Int(raw)) reps"
+        case .volume: return UnitsFormatter.formatWeight(raw, system: unitSystem, decimals: 0)
+        case .e1RM, .heaviest: return UnitsFormatter.formatWeight(raw, system: unitSystem)
+        }
     }
 
     private func setBadgeColor(_ type: SetType) -> Color {
