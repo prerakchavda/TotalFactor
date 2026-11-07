@@ -17,17 +17,21 @@ public enum ProgramImportExportService {
         public var daysPerWeek: Int
         public var scheduleMode: String
         public var workouts: [ExportableWorkoutDTO]
+        /// Weeks per training block for linear rep schemes (absent in older files).
+        public var blockLengthWeeks: Int?
 
         public init(
             name: String,
             daysPerWeek: Int,
             scheduleMode: String,
-            workouts: [ExportableWorkoutDTO]
+            workouts: [ExportableWorkoutDTO],
+            blockLengthWeeks: Int? = nil
         ) {
             self.name = name
             self.daysPerWeek = daysPerWeek
             self.scheduleMode = scheduleMode
             self.workouts = workouts
+            self.blockLengthWeeks = blockLengthWeeks
         }
     }
 
@@ -61,6 +65,8 @@ public enum ProgramImportExportService {
         public var targetRIR: Int
         public var restSeconds: Int
         public var progressionRule: String
+        /// Rep progression scheme raw value (absent in older files = static).
+        public var repScheme: String?
 
         public init(
             order: Int,
@@ -72,7 +78,8 @@ public enum ProgramImportExportService {
             repRangeHigh: Int = 10,
             targetRIR: Int = 2,
             restSeconds: Int = 120,
-            progressionRule: String = "doubleProgression"
+            progressionRule: String = "doubleProgression",
+            repScheme: String? = nil
         ) {
             self.order = order
             self.exerciseName = exerciseName
@@ -84,6 +91,7 @@ public enum ProgramImportExportService {
             self.targetRIR = targetRIR
             self.restSeconds = restSeconds
             self.progressionRule = progressionRule
+            self.repScheme = repScheme
         }
     }
 
@@ -102,7 +110,8 @@ public enum ProgramImportExportService {
                     repRangeHigh: s.repRangeHigh,
                     targetRIR: s.targetRIR,
                     restSeconds: s.restSeconds,
-                    progressionRule: s.progressionRuleRaw
+                    progressionRule: s.progressionRuleRaw,
+                    repScheme: s.repSchemeRaw
                 )
             }
             return ExportableWorkoutDTO(
@@ -117,7 +126,8 @@ public enum ProgramImportExportService {
             name: program.name,
             daysPerWeek: program.daysPerWeek,
             scheduleMode: program.scheduleModeRaw,
-            workouts: workoutDTOs
+            workouts: workoutDTOs,
+            blockLengthWeeks: program.blockLengthWeeks
         )
     }
 
@@ -159,6 +169,9 @@ public enum ProgramImportExportService {
             isActive: false,
             scheduleMode: ProgramScheduleMode(rawValue: dto.scheduleMode) ?? .rollingSplit
         )
+        if let weeks = dto.blockLengthWeeks {
+            newProgram.blockLengthWeeks = max(2, min(12, weeks))
+        }
         context.insert(newProgram)
 
         for wDTO in dto.workouts.sorted(by: { $0.order < $1.order }) {
@@ -202,7 +215,8 @@ public enum ProgramImportExportService {
                     repRangeHigh: max(sDTO.repRangeLow, sDTO.repRangeHigh),
                     targetRIR: max(0, min(5, sDTO.targetRIR)),
                     restSeconds: max(15, sDTO.restSeconds),
-                    progressionRule: ProgressionRule(rawValue: sDTO.progressionRule) ?? .doubleProgression
+                    progressionRule: ProgressionRule(rawValue: sDTO.progressionRule) ?? .doubleProgression,
+                    repScheme: sDTO.repScheme.flatMap(RepProgressionScheme.init(rawValue:)) ?? .staticReps
                 )
                 slot.workout = workout
                 context.insert(slot)

@@ -13,6 +13,7 @@ struct RootTabView: View {
     }
 
     @State private var keyboardVisible: Bool = false
+    @State private var showingCardioLog: Bool = false
     @AppStorage(FoodTrackingPreference.key) private var foodTrackingEnabled: Bool = true
 
     var body: some View {
@@ -70,6 +71,9 @@ struct RootTabView: View {
         }
         .sheet(isPresented: $state.showingWeeklyCheckInSheet) {
             WeeklyCheckInSheet()
+        }
+        .sheet(isPresented: $showingCardioLog) {
+            CardioLogSheet(unitSystem: profile.unitSystem)
         }
         .fullScreenCover(isPresented: $state.showingActiveWorkoutFullScreen) {
             if let session = openSessions.first(where: { $0.id == state.activeWorkoutSessionID }) ?? openSessions.first {
@@ -165,7 +169,8 @@ struct RootTabView: View {
                     } else {
                         appState.selectedTab = .train
                     }
-                }
+                },
+                onLogCardio: { showingCardioLog = true }
             )
         }
         .padding(.top, 8)
@@ -235,6 +240,7 @@ private struct MFTabBar: View {
     let onLogWeight: () -> Void
     let onCheckIn: () -> Void
     let onWorkout: () -> Void
+    let onLogCardio: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
@@ -302,6 +308,9 @@ private struct MFTabBar: View {
             }
             Button(action: onWorkout) {
                 Label(hasOpenWorkout ? "Resume Workout" : "Start a Workout", systemImage: "dumbbell")
+            }
+            Button(action: onLogCardio) {
+                Label("Log Cardio", systemImage: "figure.run")
             }
             if foodTrackingEnabled {
                 Button(action: onCheckIn) {

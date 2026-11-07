@@ -219,6 +219,9 @@ public final class PhoneWatchSyncService: NSObject {
             } else {
                 setLog.restTakenSeconds = 0
             }
+            if setLog.isCompleted, let session = setLog.session {
+                WorkoutPlannerService.adjustRemainingSets(after: setLog, in: session)
+            }
             try? ctx.save()
 
             if setLog.isCompleted {
@@ -311,55 +314,10 @@ public final class PhoneWatchSyncService: NSObject {
         )
         context.insert(session)
 
-        let digest = CoachingCoordinator.evaluate(context: context)
         let allExercises = (try? context.fetch(FetchDescriptor<Exercise>())) ?? []
-        let exerciseByID = Dictionary(allExercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let allowedEquip = Set(activeGym?.availableEquipment ?? Equipment.allCases)
 
         if let pw = chosenWorkout {
-            var order = 0
-            for slot in pw.sortedSlots {
-                guard let baseEx = slot.exercise else { continue }
-                let swapped = ProgramGeneratorEngine.autoSwapIfNeeded(
-                    exercise: baseEx.asBlueprint,
-                    availableEquipment: allowedEquip,
-                    maxDumbbellKg: activeGym?.maxDumbbellKg ?? 50,
-                    pool: allExercises.map(\.asBlueprint)
-                )
-                let resolvedEx = exerciseByID[swapped.id] ?? baseEx
-                let history = (resolvedEx.setLogs ?? [])
-                    .filter(\.isCompleted)
-                    .map { LoggedSetSample(sessionDate: $0.session?.start ?? $0.timestamp, weightKg: $0.weightKg, reps: $0.reps, rir: $0.rir, setType: $0.type) }
-
-                let inc = activeGym?.effectiveIncrementKg(for: resolvedEx) ?? resolvedEx.loadIncrementKg
-                let suggestion = ProgressionEngine.suggestNextSession(
-                    history: history,
-                    repRangeLow: slot.repRangeLow,
-                    repRangeHigh: slot.repRangeHigh,
-                    targetRIR: slot.targetRIR,
-                    loadIncrementKg: inc,
-                    personalK: resolvedEx.personalRepCurveK,
-                    weeklyWeightChangePercentBW: digest.weightSummary.weeklyRatePercentBW,
-                    avgProteinLast7d: digest.avgProteinLast7d,
-                    proteinFloor: digest.todayTargets.proteinFloor
-                )
-
-                for _ in 0..<slot.sets {
-                    let setLog = SetLog(
-                        order: order,
-                        session: session,
-                        exercise: resolvedEx,
-                        weightKg: suggestion.suggestedWeightKg,
-                        reps: suggestion.suggestedReps,
-                        rir: slot.targetRIR,
-                        type: .working,
-                        supersetGroup: slot.supersetGroup,
-                        isCompleted: false
-                    )
-                    context.insert(setLog)
-                    order += 1
-                }
-            }
+            WorkoutPlannerService.populate(session: session, from: pw, gym: activeGym, context: context)
         } else {
             // Seed a quick freestyle compound trio so Watch immediately has sets ready to log
             let starterExercises = allExercises.filter(\.movementPattern.isCompound).prefix(3)

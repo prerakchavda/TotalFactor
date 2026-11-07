@@ -6,9 +6,32 @@ struct WorkoutPreferencesSettingsView: View {
     @Query private var gymProfiles: [GymProfile]
 
     @State private var notifService = NotificationService.shared
+    @AppStorage(SetAdjustmentPreference.key) private var setAdjustmentRaw: String = SetAdjustmentMode.weightFirst.rawValue
+
+    private var setAdjustmentMode: Binding<SetAdjustmentMode> {
+        Binding(
+            get: { SetAdjustmentMode(rawValue: setAdjustmentRaw) ?? .weightFirst },
+            set: { setAdjustmentRaw = $0.rawValue }
+        )
+    }
 
     var body: some View {
         Form {
+            Section {
+                Picker("When a Set Goes Off-Target", selection: setAdjustmentMode) {
+                    ForEach(SetAdjustmentMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                Text(setAdjustmentMode.wrappedValue.explanation)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Set-to-Set Adjustments")
+            } footer: {
+                Text("After you log a set that was clearly easier or harder than planned, the rest of that exercise's sets are updated. Sets you've already edited are left alone.")
+            }
+
             Section("Rest Timers & Apple Watch") {
                 Toggle("Rest Timer Sound & Watch Vibration", isOn: Binding(
                     get: { notifService.isRestTimerAlertEnabled },

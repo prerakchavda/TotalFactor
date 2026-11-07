@@ -6,6 +6,51 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.10.0 — Build 26 (2026-11-07) — MacroFactor Workouts Parity: Rep Schemes, Cardio, Machine Stacks
+
+### 1. Rep Progression Schemes (`ProgressionEngine.swift`, `WorkoutPlannerService.swift`, `ProgramBuilderView.swift`)
+- Each exercise in a program can now use a **Static**, **Linear**, **Reverse Linear** or **Undulating** rep scheme (tap the exercise in the program editor → Rep Scheme), with a week-by-week preview.
+- Linear goes from more reps (lighter) to fewer reps (heavier) over the block; reverse linear does the opposite; undulating rotates heavy / medium / light sessions.
+- New **Block Length** setting (2–12 weeks, default 4) and a **Set Rep Scheme for All Exercises** shortcut in Program Settings.
+- On non-static schemes the weight for each session is worked out from your estimated 1RM for that day's reps.
+- Program export/import now keeps rep schemes and block length (older files still import as Static).
+
+### 2. Set-to-Set Adjustments: Weight First or Reps First (`WorkoutPreferencesSettingsView.swift`, `ActiveWorkoutView.swift`)
+- New setting in **Settings → Workouts & Training**: when a set is clearly easier or harder than planned, the rest of that exercise's sets update.
+- **Weight First** keeps the planned reps and changes the weight; **Reps First** keeps the weight and changes reps (and only changes weight if reps would leave the rep range); **Off** never changes anything.
+- A banner shows what changed. Sets you've edited yourself are never overwritten. Also works when logging from the Apple Watch.
+
+### 3. Machine Weight Stacks & Equipment Editing Mid-Workout (`ExerciseEquipmentSheet.swift`)
+- New **Equipment & Weights** screen from any exercise's ⋯ menu during a workout (and from exercise history): change equipment type, load mode, smallest jump, and the exact weights a machine can be set to.
+- **Machine Stack Builder** fills weights from first plate + step + plate count, with an optional add-on weight (e.g. a 2.5 magnet plate).
+- Targets, auto-adjustments and progression only suggest weights the machine can actually do; unfinished sets move onto real weights after you save.
+- Link to edit your gym's equipment without leaving the workout.
+
+### 4. Wider Rep Ranges, Fixed All at Once (`WorkoutPlannerService.swift`, `ProgressionWandSheet.swift`)
+- Workout menu → **Check Rep Ranges** finds every exercise in your program whose next weight jump is too big (≥ 12.5%) and offers to widen all of their rep ranges (+3 reps) in one tap.
+- The Progression Wand now has a **Widen Rep Range (+3 Reps)** button, uses each exercise's real rep range (it was fixed at 6–10), and measures the real jump to the next machine weight.
+
+### 5. Cardio Logging (`CardioModels.swift`, `CardioLogSheet.swift`, `HealthKitService.swift`)
+- Log runs, walks, incline walks, cycling, elliptical, stair climber, rowing, swimming and other cardio with duration, distance, average heart rate, calories and notes.
+- New **Cardio** card in the Workouts tab (this week's minutes and distance, recent sessions, tap to edit) and **Log Cardio** in the + menu.
+- Cardio days show on the workout calendar with a teal dot.
+- Sessions are saved to Apple Health as workouts with distance and active energy; edits and deletes update Health too.
+
+### 6. Form Videos
+- **Watch Form Video** in the exercise ⋯ menu, exercise guide and exercise history opens a YouTube search for that exercise's technique.
+
+### 7. Fixes
+- **Update Workout Plan** after a workout no longer resets each exercise's rep range, RIR, rest time, progression rule and rep scheme. It now only changes set counts, order, and added/removed exercises (removals are now listed too).
+- Starting a program workout from the Today tab, Workouts tab and Apple Watch now shares one planner, so all three get the same targets.
+
+### 8. Tests
+- Added tests for rep scheme targets, rep-scheme weight solving, weight-first / reps-first adjustments, and machine stack snapping.
+
+### 9. Build
+- Bumped to v1.10.0 (Build 26) across app, widgets, and Watch.
+
+---
+
 ## v1.9.0 — Build 25 (2026-11-06) — Muscle Recovery Map
 
 ### 1. Muscle Recovery Map (`MuscleRecoveryEngine.swift`, `MuscleRecoveryCard.swift`, `TrainHubView.swift`)

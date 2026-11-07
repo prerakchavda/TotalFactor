@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.10.0] - 2026-11-07
+
+### Added — MacroFactor Workouts parity (Build 26)
+- `RepProgressionScheme` (static / linear / reverse linear / undulating) on `ExerciseSlot.repSchemeRaw`, `Program.blockLengthWeeks`; `ProgressionEngine.schemeRepTarget` and `applyRepScheme` (weight solved from e1RM at the session's mid-range reps).
+- `SetAdjustmentMode` + `SetAdjustmentPreference` (weight first / reps first / off) and `ProgressionEngine.adjustRemainingSet`; applied after every phone and Watch set completion via `WorkoutPlannerService.adjustRemainingSets`.
+- `Exercise.availableWeightsKgJSON` (exact machine weights), `ProgressionEngine.snapToAvailable`, `nextJumpKg`, `machineStack`; `ExerciseEquipmentSheet` (mid-workout equipment edit + stack builder).
+- `WorkoutPlannerService.repRangeFixes` / `apply` (bulk rep-range widening) and Progression Wand apply button.
+- `CardioSession` model (registered in the schema), `CardioLogSheet`, `CardioHistoryCard`, `HealthKitService.saveCardioWorkout` / `deleteCardioWorkout`; cardio days on `WorkoutCalendarCard`.
+- `Exercise.formVideoSearchURL` form-video links.
+- Program export DTOs carry optional `repScheme` and `blockLengthWeeks`.
+
+### Changed
+- `WorkoutPlannerService.populate` replaces three copies of program-workout set planning (Today, Workouts tab, Watch).
+- Progression Wand uses the slot's scheme-adjusted rep range and the real next-weight jump.
+
+### Fixed
+- `commitChangesToRoutine` preserves slot settings instead of deleting and recreating slots.
+
+---
+
 ## [1.9.0] - 2026-11-06
 
 ### Added — Muscle Recovery Map (Build 25)

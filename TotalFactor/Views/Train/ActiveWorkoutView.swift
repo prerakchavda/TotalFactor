@@ -62,6 +62,11 @@ public struct ActiveWorkoutView: View {
     @State private var setupNotesExercise: Exercise? = nil
     @State private var showingDiscardConfirmation: Bool = false
     @State private var showingUnfinishedSetsAlert: Bool = false
+    @State private var equipmentExercise: Exercise? = nil
+    @State private var setAdjustmentBannerText: String? = nil
+    @State private var pendingRepRangeFixes: [WorkoutPlannerService.RepRangeFix] = []
+    @State private var showingRepRangeFixes: Bool = false
+    @Environment(\.openURL) private var openURL
 
     // Celebration Sheet State
     @State private var showingCelebrationSheet: Bool = false
@@ -112,6 +117,10 @@ public struct ActiveWorkoutView: View {
 
                 if let prText = livePRBannerText {
                     livePRBanner(prText)
+                }
+
+                if let adjustText = setAdjustmentBannerText {
+                    setAdjustmentBanner(adjustText)
                 }
 
                 if let snackNudge = digest.preWorkoutSnackNudge {
@@ -187,6 +196,11 @@ public struct ActiveWorkoutView: View {
                             } label: {
                                 Label(session.isPaused ? "Resume Workout" : "Pause Workout", systemImage: session.isPaused ? "play.fill" : "pause.fill")
                             }
+                            Button {
+                                checkRepRanges()
+                            } label: {
+                                Label("Check Rep Ranges", systemImage: "arrow.left.and.right.circle")
+                            }
                             Divider()
                             Button(role: .destructive) {
                                 showingDiscardConfirmation = true
@@ -245,8 +259,34 @@ public struct ActiveWorkoutView: View {
                 .presentationDetents([.medium])
             }
             .sheet(item: $activeWandDiagnostic) { diag in
-                ProgressionWandSheet(diagnostic: diag, unitSystem: profile.unitSystem)
-                    .presentationDetents([.medium, .large])
+                ProgressionWandSheet(
+                    diagnostic: diag,
+                    unitSystem: profile.unitSystem,
+                    onApplyWiderRange: diag.isRepRangeExpanded ? { applyWandWidening(diag) } : nil
+                )
+                .presentationDetents([.medium, .large])
+            }
+            .sheet(item: $equipmentExercise) { ex in
+                ExerciseEquipmentSheet(
+                    exercise: ex,
+                    gymProfile: session.gymProfile,
+                    unitSystem: profile.unitSystem,
+                    onSaved: { resnapUnfinishedSets(of: ex) }
+                )
+            }
+            .alert(repRangeFixTitle, isPresented: $showingRepRangeFixes) {
+                if !pendingRepRangeFixes.isEmpty {
+                    Button("Widen All (\(pendingRepRangeFixes.count))") {
+                        WorkoutPlannerService.apply(pendingRepRangeFixes, session: session, context: modelContext)
+                        PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
+                        pendingRepRangeFixes = []
+                    }
+                    Button("Not Now", role: .cancel) { pendingRepRangeFixes = [] }
+                } else {
+                    Button("OK", role: .cancel) {}
+                }
+            } message: {
+                Text(repRangeFixMessage)
             }
             .sheet(item: $swappingBlock) { block in
                 ExerciseSwapSheet(
@@ -576,6 +616,18 @@ public struct ActiveWorkoutView: View {
                                     plateCalcWeightKg = block.sets.first(where: { $0.type == .working })?.weightKg ?? 60.0
                                 } label: {
                                     Label("Plate Calculator", systemImage: "circle.grid.cross")
+                                }
+                            }
+                            Button {
+                                equipmentExercise = ex
+                            } label: {
+                                Label("Equipment & Weights", systemImage: "slider.horizontal.3")
+                            }
+                            if let videoURL = ex.formVideoSearchURL {
+                                Button {
+                                    openURL(videoURL)
+                                } label: {
+                                    Label("Watch Form Video", systemImage: "play.rectangle.fill")
                                 }
                             }
                             Divider()
@@ -961,6 +1013,7 @@ public struct ActiveWorkoutView: View {
         targetSet.restTakenSeconds = RestTimerService.shared.consumeElapsedRestSeconds()
         try? modelContext.save()
         checkLiveSetPR(for: targetSet, exercise: currentBlock.exercise)
+        applySetAdjustment(after: targetSet)
 
         // 2. Start Rest Timer
         let restSec = effectiveRestSeconds(for: targetSet, exercise: currentBlock.exercise)
@@ -1231,6 +1284,7 @@ public struct ActiveWorkoutView: View {
         }
 
         checkLiveSetPR(for: setLog, exercise: block.exercise)
+        applySetAdjustment(after: setLog)
 
         // Superset auto-alternation
         var nextSummary = ""
@@ -1373,12 +1427,25 @@ public struct ActiveWorkoutView: View {
         let samples = pastLogs.map {
             LoggedSetSample(sessionDate: $0.session?.start ?? $0.timestamp, weightKg: $0.weightKg, reps: $0.reps, rir: $0.rir, setType: $0.type)
         }
-        let inc = session.gymProfile?.effectiveIncrementKg(for: ex) ?? ex.loadIncrementKg
+        let slot = WorkoutPlannerService.slot(for: ex, in: session)
+        let target = slot.map { WorkoutPlannerService.repTarget(for: $0, excludingSessionID: session.id) }
+        let repLow = target?.low ?? 6
+        let repHigh = target?.high ?? 10
+        let rir = slot?.targetRIR ?? 2
+        let inc = WorkoutPlannerService.increment(for: ex, gym: session.gymProfile)
+        let previousWorking = WorkoutPlannerService.lastWorkingWeight(of: ex, excludingSessionID: session.id)
+            ?? block.sets.first(where: { $0.type == .working })?.weightKg
+        // The real jump to the next weight this equipment allows (uneven machine stacks included).
+        let jump = ProgressionEngine.nextJumpKg(
+            from: previousWorking ?? 0,
+            available: ex.availableWeightsKg,
+            fallbackIncrement: inc
+        )
         let suggestion = ProgressionEngine.suggestNextSession(
             history: samples,
-            repRangeLow: 6,
-            repRangeHigh: 10,
-            targetRIR: 2,
+            repRangeLow: repLow,
+            repRangeHigh: repHigh,
+            targetRIR: rir,
             loadIncrementKg: inc,
             personalK: ex.personalRepCurveK,
             weeklyWeightChangePercentBW: digest.weightSummary.weeklyRatePercentBW,
@@ -1388,12 +1455,102 @@ public struct ActiveWorkoutView: View {
         let diag = ProgressionEngine.evaluateProgressionWand(
             exerciseName: ex.name,
             suggestion: suggestion,
-            repRangeLow: 6,
-            repRangeHigh: 10,
-            loadIncrementKg: inc,
-            lastWorkingWeightKg: block.sets.first(where: { $0.type == .working })?.weightKg
+            repRangeLow: repLow,
+            repRangeHigh: repHigh,
+            loadIncrementKg: jump,
+            lastWorkingWeightKg: previousWorking
         )
         activeWandDiagnostic = diag
+    }
+
+    /// Program slots (across the whole program) that use this exercise.
+    private func programSlots(for exercise: Exercise) -> [ExerciseSlot] {
+        let program = session.programWorkout?.program
+        return (program?.sortedWorkouts ?? []).flatMap(\.sortedSlots).filter { $0.exercise?.id == exercise.id }
+    }
+
+    /// Progression wand → "Use wider rep range": widens the ceiling on this exercise everywhere in the
+    /// program and keeps today's unfinished sets at the current weight.
+    private func applyWandWidening(_ diag: ProgressionEngine.ProgressionWandDiagnostic) {
+        guard let block = groupedBlocks.first(where: { $0.exercise.name == diag.exerciseName }) else { return }
+        let ex = block.exercise
+        let slots = programSlots(for: ex).filter { $0.repRangeHigh - $0.repRangeLow < 8 }
+        let baseHigh = slots.first?.repRangeHigh ?? max(diag.repRangeLow, diag.repRangeHigh - 3)
+        let fix = WorkoutPlannerService.RepRangeFix(
+            exercise: ex,
+            slots: slots,
+            repRangeLow: slots.first?.repRangeLow ?? diag.repRangeLow,
+            oldHigh: baseHigh,
+            newHigh: baseHigh + 3,
+            workingWeightKg: diag.suggestedWeightKg,
+            jumpKg: diag.rawIncrementKg
+        )
+        WorkoutPlannerService.apply([fix], session: session, context: modelContext)
+        PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
+    }
+
+    private func checkRepRanges() {
+        pendingRepRangeFixes = WorkoutPlannerService.repRangeFixes(for: session, context: modelContext)
+        showingRepRangeFixes = true
+    }
+
+    private var repRangeFixTitle: String {
+        pendingRepRangeFixes.isEmpty ? "Rep Ranges Look Good" : "Widen Rep Ranges?"
+    }
+
+    private var repRangeFixMessage: String {
+        guard !pendingRepRangeFixes.isEmpty else {
+            return session.programWorkout == nil
+                ? "Rep-range checks use your program's rep ranges. Start a program workout to check them."
+                : "No exercise in this program has a weight jump that's too big for its rep range."
+        }
+        let lines = pendingRepRangeFixes.map { fix -> String in
+            let pct = fix.workingWeightKg > 0 ? Int((fix.jumpKg / fix.workingWeightKg * 100).rounded()) : 0
+            return "• \(fix.exercise.name): \(fix.repRangeLow)–\(fix.oldHigh) → \(fix.repRangeLow)–\(fix.newHigh) reps (next jump +\(pct)%)"
+        }
+        return "The next weight jump on these is big, so adding a few reps first works better:\n\n" + lines.joined(separator: "\n")
+    }
+
+    /// After a set is logged, re-target the rest of that exercise's sets (Settings → Workouts → Set Adjustments).
+    private func applySetAdjustment(after setLog: SetLog) {
+        guard let adjustment = WorkoutPlannerService.adjustRemainingSets(after: setLog, in: session) else { return }
+        try? modelContext.save()
+        PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
+        let name = setLog.exercise?.name ?? "Next sets"
+        let load = UnitsFormatter.formatGymLoad(adjustment.weightKg, system: profile.unitSystem)
+        withAnimation { setAdjustmentBannerText = "\(name): next sets updated to \(load) × \(adjustment.reps)" }
+    }
+
+    /// After equipment changes, move unfinished sets onto weights the machine can actually do.
+    private func resnapUnfinishedSets(of exercise: Exercise) {
+        guard !exercise.availableWeightsKg.isEmpty else { return }
+        for set in session.sortedSets where !set.isCompleted && set.exercise?.id == exercise.id && set.weightKg > 0 {
+            set.weightKg = WorkoutPlannerService.snap(set.weightKg, for: exercise, gym: session.gymProfile)
+        }
+        try? modelContext.save()
+        PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
+    }
+
+    private func setAdjustmentBanner(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "slider.horizontal.below.rectangle")
+                .font(.subheadline)
+                .foregroundStyle(AppleTheme.accent)
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+            Spacer()
+            Button {
+                withAnimation { setAdjustmentBannerText = nil }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(AppleTheme.accent.opacity(0.12))
     }
 
     private func evaluateRoutineDiff() -> [WorkoutChangeLogSheet.ChangeLogDiffItem] {
@@ -1402,6 +1559,7 @@ public struct ActiveWorkoutView: View {
         let routineSlots = pw.sortedSlots
         let sessionBlocks = groupedBlocks
         let routineExerciseIDs = Set(routineSlots.compactMap { $0.exercise?.id })
+        let sessionExerciseIDs = Set(sessionBlocks.map(\.exercise.id))
 
         for block in sessionBlocks where !routineExerciseIDs.contains(block.exercise.id) {
             diffs.append(.init(kind: .addedExercise, title: "Added \(block.exercise.name)", detail: "\(block.sets.count) sets logged"))
@@ -1414,31 +1572,53 @@ public struct ActiveWorkoutView: View {
                 if workingCount != slot.sets && workingCount > 0 {
                     diffs.append(.init(kind: .setStructureChanged, title: "\(ex.name) Set Target", detail: "Adjusted from \(slot.sets) to \(workingCount) sets"))
                 }
+            } else if !sessionExerciseIDs.contains(ex.id) {
+                diffs.append(.init(kind: .setStructureChanged, title: "Removed \(ex.name)", detail: "Not done in this workout"))
             }
         }
         return diffs
     }
 
+    /// "Update Workout Plan": match the session's exercises and set counts while keeping every existing slot's
+    /// rep range, RIR, rest time, progression rule and rep scheme.
     private func commitChangesToRoutine(pw: ProgramWorkout) {
-        for slot in (pw.slots ?? []) { modelContext.delete(slot) }
-        pw.slots = []
+        var existingByExercise: [UUID: ExerciseSlot] = [:]
+        for slot in pw.sortedSlots {
+            if let id = slot.exercise?.id, existingByExercise[id] == nil {
+                existingByExercise[id] = slot
+            }
+        }
+
+        var keptSlotIDs = Set<UUID>()
         for (order, block) in groupedBlocks.enumerated() {
             let workingSets = block.sets.filter { $0.type.countsTowardWorkingStats }
             let setCount = max(1, workingSets.count)
-            let avgReps = workingSets.isEmpty ? 8 : (workingSets.map(\.reps).reduce(0, +) / workingSets.count)
-            let slot = ExerciseSlot(
-                order: order,
-                exercise: block.exercise,
-                sets: setCount,
-                repRangeLow: max(4, avgReps - 2),
-                repRangeHigh: min(20, avgReps + 2),
-                targetRIR: 2,
-                restSeconds: 120,
-                progressionRule: .doubleProgression,
-                supersetGroup: block.supersetGroup
-            )
-            slot.workout = pw
-            modelContext.insert(slot)
+            if let slot = existingByExercise[block.exercise.id] {
+                slot.order = order
+                slot.sets = setCount
+                slot.supersetGroup = block.supersetGroup
+                keptSlotIDs.insert(slot.id)
+            } else {
+                let avgReps = workingSets.isEmpty ? 8 : (workingSets.map(\.reps).reduce(0, +) / workingSets.count)
+                let slot = ExerciseSlot(
+                    order: order,
+                    exercise: block.exercise,
+                    sets: setCount,
+                    repRangeLow: max(4, avgReps - 2),
+                    repRangeHigh: min(20, avgReps + 2),
+                    targetRIR: 2,
+                    restSeconds: 120,
+                    progressionRule: .doubleProgression,
+                    supersetGroup: block.supersetGroup
+                )
+                slot.workout = pw
+                modelContext.insert(slot)
+                keptSlotIDs.insert(slot.id)
+            }
+        }
+
+        for slot in (pw.slots ?? []) where !keptSlotIDs.contains(slot.id) {
+            modelContext.delete(slot)
         }
         try? modelContext.save()
     }

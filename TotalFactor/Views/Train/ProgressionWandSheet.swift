@@ -6,6 +6,9 @@ struct ProgressionWandSheet: View {
 
     let diagnostic: ProgressionEngine.ProgressionWandDiagnostic
     let unitSystem: UnitSystem
+    /// Shown when the wand recommends a wider rep range: saves it to every program slot for this exercise.
+    var onApplyWiderRange: (() -> Void)? = nil
+    @State private var didApply = false
 
     private var statusColor: Color {
         switch diagnostic.status {
@@ -93,6 +96,28 @@ struct ProgressionWandSheet: View {
                     }
                     .padding(16)
                     .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 16))
+
+                    if let onApplyWiderRange {
+                        Button {
+                            onApplyWiderRange()
+                            withAnimation { didApply = true }
+                        } label: {
+                            Label(
+                                didApply ? "Rep Range Widened" : "Widen Rep Range (+3 Reps)",
+                                systemImage: didApply ? "checkmark.circle.fill" : "arrow.left.and.right"
+                            )
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .disabled(didApply)
+
+                        Text("Updates this exercise everywhere in your program and keeps today's remaining sets at the current weight.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
 
                     Spacer(minLength: 20)
                 }

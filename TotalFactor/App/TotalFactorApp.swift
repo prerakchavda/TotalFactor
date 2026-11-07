@@ -50,6 +50,7 @@ struct TotalFactorApp: App {
             ProgramWorkout.self,
             ExerciseSlot.self,
             WorkoutSession.self,
+            CardioSession.self,
             SetLog.self,
             PersonalRecord.self,
             SavedMeal.self,

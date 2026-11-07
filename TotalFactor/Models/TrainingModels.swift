@@ -24,6 +24,8 @@ public final class Exercise {
     /// Whether this exercise defaults to unilateral (Left / Right) tracking.
     public var isUnilateralDefault: Bool = false
     public var bodyweightModeRaw: String = BodyweightMode.standardLoad.rawValue
+    /// Exact weights this exercise's machine/stack can be set to (kg). Empty = use the load increment.
+    public var availableWeightsKgJSON: Data = Data()
 
     @Transient private var _cachedPrimaryMuscles: [MuscleGroup]? = nil
     @Transient private var _cachedSecondaryMuscles: [MuscleGroup]? = nil
@@ -101,6 +103,18 @@ public final class Exercise {
     public var equipment: Equipment {
         get { Equipment(rawValue: equipmentRaw) ?? .barbell }
         set { equipmentRaw = newValue.rawValue }
+    }
+
+    /// Exact selectable weights (kg, ascending) for machines with uneven stacks; empty when not set.
+    public var availableWeightsKg: [Double] {
+        get {
+            guard !availableWeightsKgJSON.isEmpty else { return [] }
+            return ((try? TrainingModelCoding.decoder.decode([Double].self, from: availableWeightsKgJSON)) ?? []).sorted()
+        }
+        set {
+            let cleaned = Array(Set(newValue.filter { $0 > 0 })).sorted()
+            availableWeightsKgJSON = cleaned.isEmpty ? Data() : ((try? TrainingModelCoding.encoder.encode(cleaned)) ?? Data())
+        }
     }
 
     public var movementPattern: MovementPattern {
@@ -212,6 +226,8 @@ public final class Program {
     public var createdAt: Date = Date()
     public var scheduleModeRaw: String = ProgramScheduleMode.fixedWeekdays.rawValue
     public var lastCompletedWorkoutOrder: Int = -1
+    /// Length of one training block in weeks, used by linear / reverse-linear rep schemes.
+    public var blockLengthWeeks: Int = 4
 
     @Relationship(deleteRule: .cascade, inverse: \ProgramWorkout.program)
     public var workouts: [ProgramWorkout]? = []
@@ -293,6 +309,8 @@ public final class ExerciseSlot {
     public var restSeconds: Int = 120
     public var progressionRuleRaw: String = ProgressionRule.doubleProgression.rawValue
     public var supersetGroup: Int? = nil
+    /// How the rep target moves across the program's block (static / linear / reverse linear / undulating).
+    public var repSchemeRaw: String = RepProgressionScheme.staticReps.rawValue
 
     public var workout: ProgramWorkout? = nil
     public var exercise: Exercise? = nil
@@ -306,7 +324,8 @@ public final class ExerciseSlot {
         targetRIR: Int = 2,
         restSeconds: Int = 120,
         progressionRule: ProgressionRule = .doubleProgression,
-        supersetGroup: Int? = nil
+        supersetGroup: Int? = nil,
+        repScheme: RepProgressionScheme = .staticReps
     ) {
         self.order = order
         self.exercise = exercise
@@ -317,11 +336,17 @@ public final class ExerciseSlot {
         self.restSeconds = restSeconds
         self.progressionRuleRaw = progressionRule.rawValue
         self.supersetGroup = supersetGroup
+        self.repSchemeRaw = repScheme.rawValue
     }
 
     public var progressionRule: ProgressionRule {
         get { ProgressionRule(rawValue: progressionRuleRaw) ?? .doubleProgression }
         set { progressionRuleRaw = newValue.rawValue }
+    }
+
+    public var repScheme: RepProgressionScheme {
+        get { RepProgressionScheme(rawValue: repSchemeRaw) ?? .staticReps }
+        set { repSchemeRaw = newValue.rawValue }
     }
 }
 

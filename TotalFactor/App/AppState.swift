@@ -21,6 +21,19 @@ public enum FoodTrackingPreference {
     }
 }
 
+/// Settings → Workouts → "When a set goes off-target": weight first (default), reps first, or off.
+public enum SetAdjustmentPreference {
+    public static let key = "totalfactor.setAdjustmentMode"
+
+    public static var mode: SetAdjustmentMode {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: key) else { return .weightFirst }
+            return SetAdjustmentMode(rawValue: raw) ?? .weightFirst
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+    }
+}
+
 @MainActor
 @Observable
 public final class AppState {

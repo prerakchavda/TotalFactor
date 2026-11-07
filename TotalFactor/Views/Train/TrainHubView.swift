@@ -10,6 +10,7 @@ struct TrainHubView: View {
     @Query private var programs: [Program]
     @Query private var gymProfiles: [GymProfile]
     @Query(sort: \WorkoutSession.start, order: .reverse) private var sessions: [WorkoutSession]
+    @Query(sort: \CardioSession.start, order: .reverse) private var cardioSessions: [CardioSession]
 
     @State private var showingPlanGenerator: Bool = false
     @State private var showingProgramBuilder: Bool = false
@@ -22,6 +23,8 @@ struct TrainHubView: View {
 
     @State private var previewGuideWorkout: ProgramWorkout? = nil
     @State private var selectedHistorySession: WorkoutSession? = nil
+    @State private var showingCardioLog: Bool = false
+    @State private var selectedCardioSession: CardioSession? = nil
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -102,11 +105,29 @@ struct TrainHubView: View {
                     Group {
                         MFSectionTitle("History")
 
-                        WorkoutCalendarCard(sessions: sessions) { session in
-                            selectedHistorySession = session
-                        }
+                        WorkoutCalendarCard(
+                            sessions: sessions,
+                            cardioSessions: cardioSessions,
+                            onSelect: { session in
+                                selectedHistorySession = session
+                            },
+                            onSelectCardio: { cardio in
+                                selectedCardioSession = cardio
+                            }
+                        )
 
                         recentSessionsCard
+
+                        MFSectionTitle("Cardio")
+
+                        CardioHistoryCard(
+                            sessions: cardioSessions,
+                            unitSystem: profile.unitSystem,
+                            onLog: { showingCardioLog = true },
+                            onSelect: { cardio in
+                                selectedCardioSession = cardio
+                            }
+                        )
                     }
                 }
                 .padding()
@@ -169,6 +190,12 @@ struct TrainHubView: View {
             }
             .sheet(item: $selectedHistorySession) { session in
                 WorkoutSessionDetailSheet(session: session, unitSystem: profile.unitSystem)
+            }
+            .sheet(isPresented: $showingCardioLog) {
+                CardioLogSheet(unitSystem: profile.unitSystem)
+            }
+            .sheet(item: $selectedCardioSession) { cardio in
+                CardioLogSheet(session: cardio, unitSystem: profile.unitSystem)
             }
             .fileImporter(
                 isPresented: $showingCSVImporter,
@@ -514,54 +541,7 @@ struct TrainHubView: View {
         modelContext.insert(session)
 
         if let pw = programWorkout {
-            let digest = CoachingCoordinator.evaluate(context: modelContext)
-            let allExercises = (try? modelContext.fetch(FetchDescriptor<Exercise>())) ?? []
-            let exerciseByID = Dictionary(allExercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            let allowedEquip = Set(gym?.availableEquipment ?? Equipment.allCases)
-
-            var order = 0
-            for slot in pw.sortedSlots {
-                guard let baseEx = slot.exercise else { continue }
-                let swapped = ProgramGeneratorEngine.autoSwapIfNeeded(
-                    exercise: baseEx.asBlueprint,
-                    availableEquipment: allowedEquip,
-                    maxDumbbellKg: gym?.maxDumbbellKg ?? 50,
-                    pool: allExercises.map(\.asBlueprint)
-                )
-                let resolvedEx = exerciseByID[swapped.id] ?? baseEx
-                let history = (resolvedEx.setLogs ?? [])
-                    .filter(\.isCompleted)
-                    .map { LoggedSetSample(sessionDate: $0.session?.start ?? $0.timestamp, weightKg: $0.weightKg, reps: $0.reps, rir: $0.rir, setType: $0.type) }
-
-                let inc = gym?.effectiveIncrementKg(for: resolvedEx) ?? resolvedEx.loadIncrementKg
-                let suggestion = ProgressionEngine.suggestNextSession(
-                    history: history,
-                    repRangeLow: slot.repRangeLow,
-                    repRangeHigh: slot.repRangeHigh,
-                    targetRIR: slot.targetRIR,
-                    loadIncrementKg: inc,
-                    personalK: resolvedEx.personalRepCurveK,
-                    weeklyWeightChangePercentBW: digest.weightSummary.weeklyRatePercentBW,
-                    avgProteinLast7d: digest.avgProteinLast7d,
-                    proteinFloor: digest.todayTargets.proteinFloor
-                )
-
-                for _ in 0..<slot.sets {
-                    let setLog = SetLog(
-                        order: order,
-                        session: session,
-                        exercise: resolvedEx,
-                        weightKg: suggestion.suggestedWeightKg,
-                        reps: suggestion.suggestedReps,
-                        rir: slot.targetRIR,
-                        type: .working,
-                        supersetGroup: slot.supersetGroup,
-                        isCompleted: false
-                    )
-                    modelContext.insert(setLog)
-                    order += 1
-                }
-            }
+            WorkoutPlannerService.populate(session: session, from: pw, gym: gym, context: modelContext)
         }
 
         try? modelContext.save()

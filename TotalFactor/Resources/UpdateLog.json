@@ -1,5 +1,56 @@
 [
   {
+    "version": "1.10.0",
+    "build": "26",
+    "date": "2026-11-07",
+    "headline": "Rep Schemes, Cardio & Machine Stacks",
+    "sections": [
+      {
+        "title": "Rep Progression Schemes",
+        "icon": "chart.line.uptrend.xyaxis",
+        "items": [
+          "Choose Static, Linear, Reverse Linear or Undulating reps for each exercise in a program, with a week-by-week preview.",
+          "New Block Length setting and a shortcut to set the rep scheme for every exercise at once.",
+          "Weights for each session are worked out from your estimated 1RM for that day's reps."
+        ]
+      },
+      {
+        "title": "Set-to-Set Adjustments",
+        "icon": "slider.horizontal.below.rectangle",
+        "items": [
+          "Settings → Workouts: Weight First, Reps First or Off for when a set goes better or worse than planned.",
+          "Your remaining sets update automatically (sets you edited are left alone), including from Apple Watch."
+        ]
+      },
+      {
+        "title": "Machine Stacks & Equipment",
+        "icon": "square.stack.3d.up.fill",
+        "items": [
+          "Edit an exercise's equipment and exact machine weights mid-workout from the ⋯ menu.",
+          "Machine Stack Builder handles uneven stacks and add-on plates, so suggestions are always weights the machine can do.",
+          "Check Rep Ranges widens rep ranges for every exercise with a big weight jump in one tap."
+        ]
+      },
+      {
+        "title": "Cardio",
+        "icon": "figure.run",
+        "items": [
+          "Log runs, walks, cycling, rowing, swimming and more with time, distance, heart rate and calories.",
+          "Cardio card on the Workouts tab, Log Cardio in the + menu, and cardio days on the calendar.",
+          "Cardio sessions save to Apple Health."
+        ]
+      },
+      {
+        "title": "Also New & Fixed",
+        "icon": "wrench.and.screwdriver.fill",
+        "items": [
+          "Watch Form Video opens technique videos for any exercise.",
+          "Update Workout Plan no longer resets your rep ranges, RIR, rest times or rep schemes."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.9.0",
     "build": "25",
     "date": "2026-11-06",

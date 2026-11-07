@@ -676,6 +676,63 @@ public enum ProgressionRule: String, Codable, CaseIterable, Identifiable, Sendab
     }
 }
 
+/// How an exercise slot's rep target moves from session to session across a training block.
+public enum RepProgressionScheme: String, Codable, CaseIterable, Identifiable, Sendable {
+    /// Same rep range every session (classic double progression).
+    case staticReps
+    /// Starts with more reps / lighter, ends the block with fewer reps / heavier.
+    case linear
+    /// Starts with fewer reps / heavier, ends the block with more reps / lighter.
+    case reverseLinear
+    /// Rotates heavy → medium → light sessions.
+    case undulating
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .staticReps: return "Static"
+        case .linear: return "Linear"
+        case .reverseLinear: return "Reverse Linear"
+        case .undulating: return "Undulating"
+        }
+    }
+
+    public var explanation: String {
+        switch self {
+        case .staticReps: return "Same rep range every session. Add reps until you hit the top, then add weight."
+        case .linear: return "Each week of the block uses fewer reps and heavier weight than the last, then the block restarts."
+        case .reverseLinear: return "Each week of the block uses more reps and lighter weight than the last, then the block restarts."
+        case .undulating: return "Rotates heavy (fewer reps), medium and light (more reps) sessions."
+        }
+    }
+}
+
+/// What changes on your remaining sets when a set goes better or worse than planned.
+public enum SetAdjustmentMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case off
+    case weightFirst
+    case repsFirst
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .off: return "Off"
+        case .weightFirst: return "Weight First"
+        case .repsFirst: return "Reps First"
+        }
+    }
+
+    public var explanation: String {
+        switch self {
+        case .off: return "Remaining sets are never changed for you."
+        case .weightFirst: return "Keep the planned reps and change the weight on your remaining sets."
+        case .repsFirst: return "Keep the weight and change the target reps; only change weight if reps would leave the rep range."
+        }
+    }
+}
+
 public enum PRType: String, Codable, CaseIterable, Identifiable, Sendable {
     case e1RM
     case heaviestWeight

@@ -10,8 +10,19 @@ struct ExerciseGuideSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                ExerciseGuideContentView(exercise: exercise)
-                    .padding(16)
+                VStack(spacing: 12) {
+                    ExerciseGuideContentView(exercise: exercise)
+                    if let videoURL = exercise.formVideoSearchURL {
+                        Link(destination: videoURL) {
+                            Label("Watch Form Video", systemImage: "play.rectangle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                    }
+                }
+                .padding(16)
             }
             .background(AppleTheme.background)
             .navigationTitle(exercise.name)

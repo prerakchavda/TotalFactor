@@ -130,6 +130,7 @@ struct ExerciseAnalyticsDetailView: View {
 
     @State private var showAllHistorySessions: Bool = false
     @State private var chartMetric: ExerciseChartMetric = .e1RM
+    @State private var showingEquipmentSheet: Bool = false
 
     private var completedAllTypes: [SetLog] {
         (exercise.setLogs ?? []).filter(\.isCompleted)
@@ -322,6 +323,27 @@ struct ExerciseAnalyticsDetailView: View {
         }
         .background(AppleTheme.background)
         .navigationTitle(exercise.name)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showingEquipmentSheet = true
+                    } label: {
+                        Label("Equipment & Weights", systemImage: "slider.horizontal.3")
+                    }
+                    if let videoURL = exercise.formVideoSearchURL {
+                        Link(destination: videoURL) {
+                            Label("Watch Form Video", systemImage: "play.rectangle.fill")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $showingEquipmentSheet) {
+            ExerciseEquipmentSheet(exercise: exercise, gymProfile: nil, unitSystem: unitSystem)
+        }
     }
 
     private func sessionHistoryCard(_ group: ExerciseSessionHistoryGroup) -> some View {

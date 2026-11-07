@@ -401,6 +401,26 @@ private struct ProgramDetailEditorView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                Stepper("Block Length: \(program.blockLengthWeeks) weeks", value: $program.blockLengthWeeks, in: 2...12)
+                    .onChange(of: program.blockLengthWeeks) { _, _ in try? modelContext.save() }
+
+                Menu {
+                    ForEach(RepProgressionScheme.allCases) { scheme in
+                        Button(scheme.displayName) {
+                            for slot in program.sortedWorkouts.flatMap(\.sortedSlots) {
+                                slot.repScheme = scheme
+                            }
+                            try? modelContext.save()
+                        }
+                    }
+                } label: {
+                    Label("Set Rep Scheme for All Exercises", systemImage: "chart.line.uptrend.xyaxis")
+                }
+
+                Text("Rep schemes change reps from week to week. Linear and reverse linear repeat every \(program.blockLengthWeeks) weeks; undulating rotates heavy, medium and light sessions. Set each exercise's scheme by tapping it.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
 
             ForEach(program.sortedWorkouts) { workout in
@@ -621,6 +641,11 @@ private struct SlotEditorView: View {
                         Text(r.displayName).tag(r)
                     }
                 }
+                Picker("Rep Scheme", selection: $slot.repScheme) {
+                    ForEach(RepProgressionScheme.allCases) { scheme in
+                        Text(scheme.displayName).tag(scheme)
+                    }
+                }
                 Stepper(
                     "Superset Group: \(slot.supersetGroup.map(String.init) ?? "None")",
                     value: Binding(
@@ -629,6 +654,35 @@ private struct SlotEditorView: View {
                     ),
                     in: 0...6
                 )
+            }
+
+            Section {
+                Text(slot.repScheme.explanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if slot.repScheme != .staticReps {
+                    let weeks = slot.workout?.program?.blockLengthWeeks ?? 4
+                    let count = slot.repScheme == .undulating ? 3 : max(2, weeks)
+                    ForEach(0..<count, id: \.self) { index in
+                        let target = ProgressionEngine.schemeRepTarget(
+                            scheme: slot.repScheme,
+                            baseLow: slot.repRangeLow,
+                            baseHigh: slot.repRangeHigh,
+                            sessionIndex: index,
+                            blockLengthWeeks: weeks
+                        )
+                        HStack {
+                            Text(target.label)
+                            Spacer()
+                            Text("\(target.low)–\(target.high) reps")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.subheadline)
+                    }
+                }
+            } header: {
+                Text("Rep Scheme Preview")
             }
         }
         .navigationTitle("Slot Prescription")

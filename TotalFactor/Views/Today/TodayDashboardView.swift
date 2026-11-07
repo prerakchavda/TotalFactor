@@ -848,54 +848,7 @@ struct TodayDashboardView: View {
         modelContext.insert(session)
 
         if let pw = programWorkout {
-            let digest = CoachingCoordinator.evaluate(context: modelContext)
-            let allExercises = (try? modelContext.fetch(FetchDescriptor<Exercise>())) ?? []
-            let exerciseByID = Dictionary(allExercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            let allowedEquip = Set(defaultGym?.availableEquipment ?? Equipment.allCases)
-
-            var orderCounter = 0
-            for slot in pw.sortedSlots {
-                guard let baseEx = slot.exercise else { continue }
-                let swappedBlueprint = ProgramGeneratorEngine.autoSwapIfNeeded(
-                    exercise: baseEx.asBlueprint,
-                    availableEquipment: allowedEquip,
-                    maxDumbbellKg: defaultGym?.maxDumbbellKg ?? 50,
-                    pool: allExercises.map(\.asBlueprint)
-                )
-                let targetEx = exerciseByID[swappedBlueprint.id] ?? baseEx
-                let historySamples = (targetEx.setLogs ?? [])
-                    .filter(\.isCompleted)
-                    .map { LoggedSetSample(sessionDate: $0.session?.start ?? $0.timestamp, weightKg: $0.weightKg, reps: $0.reps, rir: $0.rir, setType: $0.type) }
-
-                let inc = defaultGym?.effectiveIncrementKg(for: targetEx) ?? targetEx.loadIncrementKg
-                let suggestion = ProgressionEngine.suggestNextSession(
-                    history: historySamples,
-                    repRangeLow: slot.repRangeLow,
-                    repRangeHigh: slot.repRangeHigh,
-                    targetRIR: slot.targetRIR,
-                    loadIncrementKg: inc,
-                    personalK: targetEx.personalRepCurveK,
-                    weeklyWeightChangePercentBW: digest.weightSummary.weeklyRatePercentBW,
-                    avgProteinLast7d: digest.avgProteinLast7d,
-                    proteinFloor: digest.todayTargets.proteinFloor
-                )
-
-                for _ in 0..<slot.sets {
-                    let setLog = SetLog(
-                        order: orderCounter,
-                        session: session,
-                        exercise: targetEx,
-                        weightKg: suggestion.suggestedWeightKg,
-                        reps: suggestion.suggestedReps,
-                        rir: slot.targetRIR,
-                        type: .working,
-                        supersetGroup: slot.supersetGroup,
-                        isCompleted: false
-                    )
-                    modelContext.insert(setLog)
-                    orderCounter += 1
-                }
-            }
+            WorkoutPlannerService.populate(session: session, from: pw, gym: defaultGym, context: modelContext)
         }
 
         try? modelContext.save()

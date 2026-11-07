@@ -942,4 +942,95 @@ final class TotalFactorAlgorithmTests: XCTestCase {
         XCTAssertEqual(hardFatigue, 0.5, accuracy: 0.001)
         XCTAssertEqual(easyFatigue, 0.25, accuracy: 0.001)
     }
+
+    // MARK: - Rep Progression Schemes, Set Adjustment & Machine Stacks
+
+    func testRepSchemeTargetsAcrossBlock() {
+        func target(_ scheme: RepProgressionScheme, _ index: Int) -> (Int, Int) {
+            let t = ProgressionEngine.schemeRepTarget(scheme: scheme, baseLow: 8, baseHigh: 12, sessionIndex: index, blockLengthWeeks: 4)
+            return (t.low, t.high)
+        }
+        // Static never moves.
+        XCTAssertTrue(target(.staticReps, 3) == (8, 12))
+        XCTAssertEqual(ProgressionEngine.schemeRepTarget(scheme: .staticReps, baseLow: 8, baseHigh: 12, sessionIndex: 0, blockLengthWeeks: 4).label, "")
+        // Linear: lighter/more reps → heavier/fewer reps, then the block restarts.
+        XCTAssertTrue(target(.linear, 0) == (10, 14))
+        XCTAssertTrue(target(.linear, 1) == (9, 13))
+        XCTAssertTrue(target(.linear, 2) == (7, 11))
+        XCTAssertTrue(target(.linear, 3) == (6, 10))
+        XCTAssertTrue(target(.linear, 4) == (10, 14))
+        // Reverse linear is the mirror image.
+        XCTAssertTrue(target(.reverseLinear, 0) == (6, 10))
+        XCTAssertTrue(target(.reverseLinear, 3) == (10, 14))
+        // Undulating: heavy → medium → light.
+        XCTAssertTrue(target(.undulating, 0) == (5, 9))
+        XCTAssertTrue(target(.undulating, 1) == (8, 12))
+        XCTAssertTrue(target(.undulating, 2) == (11, 15))
+        XCTAssertTrue(target(.undulating, 3) == (5, 9))
+        XCTAssertEqual(
+            ProgressionEngine.schemeRepTarget(scheme: .linear, baseLow: 8, baseHigh: 12, sessionIndex: 1, blockLengthWeeks: 4).label,
+            "Week 2 of 4"
+        )
+    }
+
+    func testApplyRepSchemeSolvesWeightFromE1RM() {
+        let base = NextSessionSuggestion(
+            action: .addReps,
+            suggestedWeightKg: 80,
+            suggestedReps: 9,
+            targetRIR: 2,
+            estimated1RMKg: 100,
+            personalK: 30,
+            coachingNote: "",
+            isProteinGated: false,
+            isCutAdjusted: false
+        )
+        let heavyWeek = SchemeRepTarget(low: 6, high: 10, label: "Week 4 of 4", repOffset: -2)
+        let adjusted = ProgressionEngine.applyRepScheme(to: base, scheme: .linear, target: heavyWeek, loadIncrementKg: 2.5)
+        // 8 reps @ 2 RIR from a 100 kg e1RM (k = 30): 100 / (1 + 10/30) = 75 kg.
+        XCTAssertEqual(adjusted.suggestedReps, 8)
+        XCTAssertEqual(adjusted.suggestedWeightKg, 75, accuracy: 0.001)
+        XCTAssertEqual(adjusted.action, .targetFromE1RM)
+
+        // Static leaves the suggestion untouched.
+        let untouched = ProgressionEngine.applyRepScheme(to: base, scheme: .staticReps, target: heavyWeek, loadIncrementKg: 2.5)
+        XCTAssertEqual(untouched, base)
+    }
+
+    func testSetToSetAdjustmentWeightFirstAndRepsFirst() {
+        // Planned 100 × 8 @ 2 RIR, but the lifter got 12 reps @ 2 RIR.
+        func adjust(_ mode: SetAdjustmentMode, high: Int = 10, reps: Int = 12) -> SetAdjustment? {
+            ProgressionEngine.adjustRemainingSet(
+                completedWeightKg: 100, completedReps: reps, completedRIR: 2,
+                plannedWeightKg: 100, plannedReps: 8, targetRIR: 2,
+                repRangeLow: 6, repRangeHigh: high,
+                mode: mode, loadIncrementKg: 2.5, k: 30
+            )
+        }
+        // Weight first: keep 8 reps, weight from the new e1RM (146.67 / 1.333 = 110).
+        XCTAssertEqual(adjust(.weightFirst), SetAdjustment(weightKg: 110, reps: 8))
+        // Reps first: 12 reps would leave the 6–10 range, so cap at 10 and solve weight (146.67 / 1.4 ≈ 104.8 → 105).
+        XCTAssertEqual(adjust(.repsFirst), SetAdjustment(weightKg: 105, reps: 10))
+        // Reps first with room in the range: keep 100 kg, target 12 reps.
+        XCTAssertEqual(adjust(.repsFirst, high: 12), SetAdjustment(weightKg: 100, reps: 12))
+        // On plan, or switched off → no change.
+        XCTAssertNil(adjust(.weightFirst, reps: 8))
+        XCTAssertNil(adjust(.off))
+    }
+
+    func testMachineStackSnappingAndJumps() {
+        let stack = ProgressionEngine.machineStack(startKg: 10, stepKg: 7.5, count: 3, addOnsKg: [2.5])
+        XCTAssertEqual(stack, [10, 12.5, 17.5, 20, 25, 27.5])
+
+        let uneven: [Double] = [10, 17.5, 25]
+        XCTAssertEqual(ProgressionEngine.snapToAvailable(15, available: uneven, increment: 2.5), 17.5, accuracy: 0.001)
+        XCTAssertEqual(ProgressionEngine.snapToAvailable(12, available: uneven, increment: 2.5), 10, accuracy: 0.001)
+        XCTAssertEqual(ProgressionEngine.snapToAvailable(12, available: uneven, increment: 2.5, roundingUp: true), 17.5, accuracy: 0.001)
+        // No list → plain increment rounding.
+        XCTAssertEqual(ProgressionEngine.snapToAvailable(101, available: [], increment: 2.5), 100, accuracy: 0.001)
+        XCTAssertEqual(ProgressionEngine.snapToAvailable(101, available: [], increment: 2.5, roundingUp: true), 102.5, accuracy: 0.001)
+
+        XCTAssertEqual(ProgressionEngine.nextJumpKg(from: 17.5, available: stack, fallbackIncrement: 5), 2.5, accuracy: 0.001)
+        XCTAssertEqual(ProgressionEngine.nextJumpKg(from: 27.5, available: stack, fallbackIncrement: 5), 5, accuracy: 0.001)
+    }
 }

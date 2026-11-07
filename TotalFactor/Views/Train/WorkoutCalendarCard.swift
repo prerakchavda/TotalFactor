@@ -3,9 +3,24 @@ import Charts
 
 /// Strong-style training calendar: month grid with workout days filled in, week/month/streak stats,
 /// and a workouts-per-week bar chart for the last 12 weeks. Tapping a workout day opens that session.
+/// Cardio days are marked with a teal dot (and a teal tint when there was no lifting that day).
 struct WorkoutCalendarCard: View {
     let sessions: [WorkoutSession]
+    let cardioSessions: [CardioSession]
     let onSelect: (WorkoutSession) -> Void
+    let onSelectCardio: ((CardioSession) -> Void)?
+
+    init(
+        sessions: [WorkoutSession],
+        cardioSessions: [CardioSession] = [],
+        onSelect: @escaping (WorkoutSession) -> Void,
+        onSelectCardio: ((CardioSession) -> Void)? = nil
+    ) {
+        self.sessions = sessions
+        self.cardioSessions = cardioSessions
+        self.onSelect = onSelect
+        self.onSelectCardio = onSelectCardio
+    }
 
     @State private var monthOffset: Int = 0
 
@@ -20,6 +35,7 @@ struct WorkoutCalendarCard: View {
     var body: some View {
         let finished = sessions.filter(\.isFinished)
         let sessionsByDay = Dictionary(grouping: finished, by: \.dayKey)
+        let cardioByDay = Dictionary(grouping: cardioSessions, by: \.dayKey)
         let month = displayedMonthStart
 
         VStack(alignment: .leading, spacing: 14) {
@@ -33,11 +49,16 @@ struct WorkoutCalendarCard: View {
                 let cells = monthCells(for: month)
                 ForEach(cells.indices, id: \.self) { idx in
                     if let day = cells[idx] {
-                        dayCell(day, sessions: sessionsByDay[DayKey.from(day)] ?? [])
+                        let key = DayKey.from(day)
+                        dayCell(day, sessions: sessionsByDay[key] ?? [], cardio: cardioByDay[key] ?? [])
                     } else {
                         Color.clear.frame(height: 34)
                     }
                 }
+            }
+
+            if !cardioSessions.isEmpty {
+                calendarLegend
             }
 
             Rectangle()
@@ -156,28 +177,68 @@ struct WorkoutCalendarCard: View {
         return cells
     }
 
-    private func dayCell(_ day: Date, sessions daySessions: [WorkoutSession]) -> some View {
+    private var calendarLegend: some View {
+        HStack(spacing: 14) {
+            HStack(spacing: 5) {
+                Circle().fill(AppleTheme.exercise).frame(width: 8, height: 8)
+                Text("Lifting")
+            }
+            HStack(spacing: 5) {
+                Circle().fill(AppleTheme.trend).frame(width: 8, height: 8)
+                Text("Cardio")
+            }
+            Spacer()
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+
+    private func dayCell(_ day: Date, sessions daySessions: [WorkoutSession], cardio dayCardio: [CardioSession] = []) -> some View {
         let trained = !daySessions.isEmpty
+        let didCardio = !dayCardio.isEmpty
+        let cardioOnly = didCardio && !trained
         let isToday = calendar.isDateInToday(day)
         let isFuture = day > Date.now
+
+        let fill: Color = trained ? AppleTheme.exercise : (cardioOnly ? AppleTheme.trend.opacity(0.35) : Color.clear)
+        let textColor: Color = trained ? Color.black : (isFuture ? Color.secondary : Color.primary)
+
+        var label = day.formatted(date: .complete, time: .omitted)
+        if trained {
+            label += ", \(daySessions.count) workout"
+        }
+        if didCardio {
+            label += ", \(dayCardio.count) cardio"
+        }
 
         return Button {
             if let first = daySessions.min(by: { $0.start < $1.start }) {
                 onSelect(first)
+            } else if let firstCardio = dayCardio.min(by: { $0.start < $1.start }), let onSelectCardio {
+                onSelectCardio(firstCardio)
             }
         } label: {
             Text("\(calendar.component(.day, from: day))")
-                .font(.footnote.weight(trained ? .bold : .regular))
+                .font(.footnote.weight(trained || didCardio ? .bold : .regular))
                 .monospacedDigit()
-                .foregroundStyle(trained ? Color.black : (isFuture ? Color.secondary : Color.primary))
+                .foregroundStyle(textColor)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(trained ? AppleTheme.exercise : Color.clear))
+                .background(Circle().fill(fill))
                 .overlay(Circle().stroke(isToday ? Color.primary : Color.clear, lineWidth: 1.5))
+                .overlay(alignment: .bottom) {
+                    if didCardio {
+                        Circle()
+                            .fill(AppleTheme.trend)
+                            .frame(width: 6, height: 6)
+                            .overlay(Circle().stroke(AppleTheme.cardSurface, lineWidth: 1))
+                            .offset(y: 3)
+                    }
+                }
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(day.formatted(date: .complete, time: .omitted) + (trained ? ", \(daySessions.count) workout" : ""))
+        .accessibilityLabel(label)
     }
 
     // MARK: - Weekly Chart

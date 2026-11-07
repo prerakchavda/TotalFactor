@@ -746,3 +746,217 @@ public enum ProgressionEngine {
         }
     }
 }
+
+// MARK: - Rep Progression Schemes, Set-to-Set Adjustment & Equipment Snapping
+
+/// The rep range a slot should use for one specific session of its block.
+public struct SchemeRepTarget: Equatable, Sendable {
+    public var low: Int
+    public var high: Int
+    /// Short context such as "Week 2 of 4" or "Heavy day"; empty for static schemes.
+    public var label: String
+    /// How many reps the base range was shifted by (negative = heavier).
+    public var repOffset: Int
+
+    public init(low: Int, high: Int, label: String, repOffset: Int) {
+        self.low = low
+        self.high = high
+        self.label = label
+        self.repOffset = repOffset
+    }
+}
+
+/// New targets for a not-yet-completed set after the previous set went better or worse than planned.
+public struct SetAdjustment: Equatable, Sendable {
+    public var weightKg: Double
+    public var reps: Int
+
+    public init(weightKg: Double, reps: Int) {
+        self.weightKg = weightKg
+        self.reps = reps
+    }
+}
+
+extension ProgressionEngine {
+    /// Shifts a slot's base rep range for the given session of a block.
+    /// - Linear: +2 reps in week 1 → −2 reps in the last week (lighter → heavier).
+    /// - Reverse linear: −2 → +2 (heavier → lighter).
+    /// - Undulating: heavy (−3) → medium (0) → light (+3), rotating every session.
+    /// - Parameter sessionIndex: How many times this workout has already been completed (0 = first time).
+    public static func schemeRepTarget(
+        scheme: RepProgressionScheme,
+        baseLow: Int,
+        baseHigh: Int,
+        sessionIndex: Int,
+        blockLengthWeeks: Int
+    ) -> SchemeRepTarget {
+        let low = max(1, baseLow)
+        let high = max(low, baseHigh)
+        let index = max(0, sessionIndex)
+        let offset: Int
+        let label: String
+
+        switch scheme {
+        case .staticReps:
+            return SchemeRepTarget(low: low, high: high, label: "", repOffset: 0)
+        case .linear, .reverseLinear:
+            let weeks = max(2, blockLengthWeeks)
+            let week = index % weeks
+            let progress = Double(week) / Double(weeks - 1)
+            let linearOffset = Int((2.0 - 4.0 * progress).rounded())
+            offset = scheme == .linear ? linearOffset : -linearOffset
+            label = "Week \(week + 1) of \(weeks)"
+        case .undulating:
+            let phase = index % 3
+            offset = [-3, 0, 3][phase]
+            label = ["Heavy day", "Medium day", "Light day"][phase]
+        }
+
+        let newLow = max(min(low, 2), low + offset)
+        let newHigh = max(newLow, high + offset)
+        return SchemeRepTarget(low: newLow, high: newHigh, label: label, repOffset: offset)
+    }
+
+    /// Re-targets a normal next-session suggestion onto a periodized rep range:
+    /// reps go to the middle of the session's range and the weight is solved from the estimated 1RM.
+    public static func applyRepScheme(
+        to suggestion: NextSessionSuggestion,
+        scheme: RepProgressionScheme,
+        target: SchemeRepTarget,
+        loadIncrementKg: Double
+    ) -> NextSessionSuggestion {
+        guard scheme != .staticReps else { return suggestion }
+        var adjusted = suggestion
+        let midReps = max(1, (target.low + target.high) / 2)
+
+        switch suggestion.action {
+        case .establishBaseline:
+            adjusted.suggestedReps = midReps
+            adjusted.coachingNote = "\(target.label): pick a load you can lift for \(target.low)–\(target.high) reps with ~\(suggestion.targetRIR) in reserve."
+            return adjusted
+        case .deload:
+            adjusted.suggestedReps = target.low
+            return adjusted
+        default:
+            break
+        }
+
+        guard suggestion.estimated1RMKg > 0 else {
+            adjusted.suggestedReps = midReps
+            return adjusted
+        }
+
+        let solved = weightForTarget(
+            estimated1RM: suggestion.estimated1RMKg,
+            reps: midReps,
+            rir: suggestion.targetRIR,
+            k: suggestion.personalK
+        )
+        adjusted.suggestedWeightKg = max(loadIncrementKg, roundToIncrement(solved, increment: loadIncrementKg))
+        adjusted.suggestedReps = midReps
+        adjusted.action = .targetFromE1RM
+        adjusted.coachingNote = "\(target.label) (\(scheme.displayName.lowercased()) block): \(target.low)–\(target.high) reps at ~\(suggestion.targetRIR) RIR."
+        return adjusted
+    }
+
+    /// Set-to-set auto-regulation. Compares the set just completed with what was planned for the next set
+    /// and, when the difference is more than `tolerance` in estimated 1RM, returns new targets.
+    /// - `weightFirst`: keep planned reps, change the weight.
+    /// - `repsFirst`: keep the weight, change reps; change weight only if reps would leave the rep range.
+    public static func adjustRemainingSet(
+        completedWeightKg: Double,
+        completedReps: Int,
+        completedRIR: Int,
+        plannedWeightKg: Double,
+        plannedReps: Int,
+        targetRIR: Int,
+        repRangeLow: Int,
+        repRangeHigh: Int,
+        mode: SetAdjustmentMode,
+        loadIncrementKg: Double,
+        availableWeightsKg: [Double] = [],
+        k: Double = defaultEpleyK,
+        tolerance: Double = 0.03
+    ) -> SetAdjustment? {
+        guard mode != .off,
+              completedWeightKg > 0, completedReps > 0,
+              plannedWeightKg > 0, plannedReps > 0 else { return nil }
+
+        let actual = e1RM(weight: completedWeightKg, reps: completedReps, rir: completedRIR, k: k)
+        let planned = e1RM(weight: plannedWeightKg, reps: plannedReps, rir: targetRIR, k: k)
+        guard planned > 0, abs(actual - planned) / planned > tolerance else { return nil }
+
+        let low = max(1, min(repRangeLow, repRangeHigh))
+        let high = max(low, repRangeHigh)
+
+        switch mode {
+        case .off:
+            return nil
+        case .weightFirst:
+            let weight = snapToAvailable(
+                weightForTarget(estimated1RM: actual, reps: plannedReps, rir: targetRIR, k: k),
+                available: availableWeightsKg,
+                increment: loadIncrementKg
+            )
+            guard weight > 0, abs(weight - plannedWeightKg) > 0.01 else { return nil }
+            return SetAdjustment(weightKg: weight, reps: plannedReps)
+        case .repsFirst:
+            let safeK = max(12.0, min(60.0, k))
+            let solvedReps = Int((safeK * (actual / plannedWeightKg - 1.0) - Double(max(0, targetRIR))).rounded())
+            if solvedReps >= low && solvedReps <= high {
+                guard solvedReps != plannedReps else { return nil }
+                return SetAdjustment(weightKg: plannedWeightKg, reps: solvedReps)
+            }
+            let clampedReps = solvedReps < low ? low : high
+            let weight = snapToAvailable(
+                weightForTarget(estimated1RM: actual, reps: clampedReps, rir: targetRIR, k: k),
+                available: availableWeightsKg,
+                increment: loadIncrementKg
+            )
+            guard weight > 0 else { return nil }
+            if abs(weight - plannedWeightKg) < 0.01 && clampedReps == plannedReps { return nil }
+            return SetAdjustment(weightKg: weight, reps: clampedReps)
+        }
+    }
+
+    /// Snaps a weight to what the equipment can actually do. With an explicit list of available weights
+    /// (e.g. a machine stack of 10, 15, 22.5 …) it picks the closest one (or the closest one at or above the
+    /// target when `roundingUp`); otherwise it rounds to the increment.
+    public static func snapToAvailable(
+        _ weightKg: Double,
+        available: [Double],
+        increment: Double,
+        roundingUp: Bool = false
+    ) -> Double {
+        let options = available.filter { $0 > 0 }.sorted()
+        guard !options.isEmpty else {
+            if roundingUp {
+                let step = max(0.25, increment)
+                return (weightKg / step - 0.001).rounded(.up) * step
+            }
+            return roundToIncrement(weightKg, increment: increment)
+        }
+        if roundingUp, let above = options.first(where: { $0 >= weightKg - 0.01 }) {
+            return above
+        }
+        return options.min(by: { abs($0 - weightKg) < abs($1 - weightKg) }) ?? weightKg
+    }
+
+    /// The real jump to the next heavier available weight (for machines whose stack steps aren't even).
+    public static func nextJumpKg(from weightKg: Double, available: [Double], fallbackIncrement: Double) -> Double {
+        guard let next = available.filter({ $0 > weightKg + 0.01 }).min() else { return fallbackIncrement }
+        return next - weightKg
+    }
+
+    /// Builds a machine weight stack: `count` plates starting at `startKg`, each `stepKg` apart,
+    /// plus optional add-on weights (e.g. a 2.5 kg magnet plate) that can sit on top of any stack weight.
+    public static func machineStack(startKg: Double, stepKg: Double, count: Int, addOnsKg: [Double] = []) -> [Double] {
+        guard startKg >= 0, stepKg > 0, count > 0 else { return [] }
+        let base = (0..<min(count, 200)).map { startKg + Double($0) * stepKg }
+        var all = Set(base.map { ($0 * 100).rounded() / 100 })
+        for addOn in addOnsKg where addOn > 0 {
+            for w in base { all.insert(((w + addOn) * 100).rounded() / 100) }
+        }
+        return all.filter { $0 > 0 }.sorted()
+    }
+}

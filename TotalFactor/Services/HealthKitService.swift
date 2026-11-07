@@ -131,7 +131,12 @@ public final class HealthKitService {
             .dietaryMagnesium,
             .dietaryZinc,
             .dietaryCholesterol,
-            .dietaryFatSaturated
+            .dietaryFatSaturated,
+            // Cardio logging: distance + active energy attached to manually logged cardio workouts
+            .distanceWalkingRunning,
+            .distanceCycling,
+            .distanceSwimming,
+            .activeEnergyBurned
         ]
 
         var toShare: Set<HKSampleType> = [HKObjectType.workoutType()]
@@ -671,6 +676,181 @@ public final class HealthKitService {
         #endif
     }
 
+    // MARK: - Write Cardio Workouts (Run, Walk, Cycling, Rowing, ...)
+
+    #if canImport(HealthKit)
+    /// Maps a Total Factor cardio kind to its Apple Health workout activity type.
+    public static func workoutActivityType(for kind: CardioKind) -> HKWorkoutActivityType {
+        switch kind {
+        case .run: return .running
+        case .walk, .inclineWalk: return .walking
+        case .cycling: return .cycling
+        case .elliptical: return .elliptical
+        case .stairClimber: return .stairClimbing
+        case .rowing: return .rowing
+        case .swimming: return .swimming
+        case .other: return .other
+        }
+    }
+
+    /// Distance quantity type Apple Health uses for this kind, or nil when HealthKit has no
+    /// iOS 17 distance type for it (elliptical, stair climber, rowing, other).
+    public static func distanceQuantityIdentifier(for kind: CardioKind) -> HKQuantityTypeIdentifier? {
+        switch kind {
+        case .run, .walk, .inclineWalk: return .distanceWalkingRunning
+        case .cycling: return .distanceCycling
+        case .swimming: return .distanceSwimming
+        case .elliptical, .stairClimber, .rowing, .other: return nil
+        }
+    }
+
+    private static func addSamples(_ samples: [HKSample], to builder: HKWorkoutBuilder) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.add(samples) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private static func addMetadata(_ metadata: [String: Any], to builder: HKWorkoutBuilder) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            builder.addMetadata(metadata) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    #endif
+
+    /// Writes a manually logged cardio session to Apple Health as a workout (with distance and
+    /// active energy samples when provided) and stores the resulting workout UUID on the session.
+    /// Callers re-writing an edited session should `deleteCardioWorkout(uuid:)` the old UUID first.
+    public func saveCardioWorkout(_ session: CardioSession) async {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable(),
+              session.durationSeconds > 0,
+              store.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else { return }
+
+        let kind = session.kind
+        let start = session.start
+        let end = session.end
+        let distanceID = Self.distanceQuantityIdentifier(for: kind)
+        let distanceMeters = session.distanceMeters ?? 0
+        let calories = session.activeCalories ?? 0
+
+        var distanceType: HKQuantityType? = nil
+        if let distanceID, distanceMeters > 0 {
+            distanceType = HKQuantityType.quantityType(forIdentifier: distanceID)
+        }
+        var energyType: HKQuantityType? = nil
+        if calories > 0 {
+            energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
+        }
+
+        // Users who granted Health access before cardio shipped haven't been asked about the
+        // distance / energy types yet; ask once for just those (no UI if already determined).
+        var undetermined: Set<HKSampleType> = []
+        for type in [distanceType, energyType].compactMap({ $0 }) where store.authorizationStatus(for: type) == .notDetermined {
+            undetermined.insert(type)
+        }
+        if !undetermined.isEmpty {
+            try? await store.requestAuthorization(toShare: undetermined, read: [])
+        }
+
+        let config = HKWorkoutConfiguration()
+        config.activityType = Self.workoutActivityType(for: kind)
+        switch kind {
+        case .inclineWalk, .elliptical, .stairClimber, .rowing:
+            config.locationType = .indoor
+        case .swimming:
+            config.locationType = .indoor
+            config.swimmingLocationType = .pool
+        case .run, .walk, .cycling, .other:
+            config.locationType = .unknown
+        }
+
+        var samples: [HKSample] = []
+        if let distanceType, store.authorizationStatus(for: distanceType) == .sharingAuthorized {
+            samples.append(HKQuantitySample(
+                type: distanceType,
+                quantity: HKQuantity(unit: .meter(), doubleValue: distanceMeters),
+                start: start,
+                end: end
+            ))
+        }
+        if let energyType, store.authorizationStatus(for: energyType) == .sharingAuthorized {
+            samples.append(HKQuantitySample(
+                type: energyType,
+                quantity: HKQuantity(unit: .kilocalorie(), doubleValue: calories),
+                start: start,
+                end: end
+            ))
+        }
+
+        var metadata: [String: Any] = ["TotalFactorCardioKind": kind.rawValue]
+        if config.locationType == .indoor {
+            metadata[HKMetadataKeyIndoorWorkout] = true
+        }
+        if let hr = session.avgHeartRate, hr > 0 {
+            // Stored as metadata only: a single manual HR sample would pollute Health's heart-rate charts.
+            metadata["TotalFactorAverageHeartRateBPM"] = hr
+        }
+        let trimmedNotes = session.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedNotes.isEmpty {
+            metadata["TotalFactorNotes"] = trimmedNotes
+        }
+
+        let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: .local())
+        do {
+            try await builder.beginCollection(at: start)
+            if !samples.isEmpty {
+                try await Self.addSamples(samples, to: builder)
+            }
+            try await Self.addMetadata(metadata, to: builder)
+            try await builder.endCollection(at: end)
+            if let workout = try await builder.finishWorkout() {
+                session.healthKitWorkoutUUID = workout.uuid
+            }
+        } catch {
+            // Permission not granted or Simulator unavailable
+        }
+        #endif
+    }
+
+    /// Removes a cardio workout written by `saveCardioWorkout` plus its associated distance / energy samples.
+    public func deleteCardioWorkout(uuid: UUID) async {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let workoutPredicate = HKQuery.predicateForObjects(with: [uuid])
+
+        let workouts: [HKWorkout] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: workoutPredicate, limit: 1, sortDescriptors: nil) { _, samples, _ in
+                continuation.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            self.store.execute(query)
+        }
+
+        if let workout = workouts.first {
+            let associated = HKQuery.predicateForObjects(from: workout)
+            let ids: [HKQuantityTypeIdentifier] = [.distanceWalkingRunning, .distanceCycling, .distanceSwimming, .activeEnergyBurned]
+            for id in ids {
+                if let type = HKQuantityType.quantityType(forIdentifier: id) {
+                    _ = try? await store.deleteObjects(of: type, predicate: associated)
+                }
+            }
+        }
+
+        _ = try? await store.deleteObjects(of: HKObjectType.workoutType(), predicate: workoutPredicate)
+        #endif
+    }
+
     // MARK: - Full History Sync to Apple Health (v1.5.3)
 
     public func syncAllHistoryToAppleHealth(context: ModelContext) async -> (foodSynced: Int, weighInsSynced: Int, workoutsSynced: Int) {
@@ -705,6 +885,15 @@ public final class HealthKitService {
         for session in sessions where session.isFinished && session.healthKitWorkoutUUID == nil {
             await saveStrengthWorkout(session)
             if session.healthKitWorkoutUUID != nil {
+                workoutCount += 1
+            }
+        }
+
+        // 4. Logged cardio sessions without HK UUID
+        let cardioSessions = (try? context.fetch(FetchDescriptor<CardioSession>())) ?? []
+        for cardio in cardioSessions where cardio.healthKitWorkoutUUID == nil && cardio.durationSeconds > 0 {
+            await saveCardioWorkout(cardio)
+            if cardio.healthKitWorkoutUUID != nil {
                 workoutCount += 1
             }
         }
