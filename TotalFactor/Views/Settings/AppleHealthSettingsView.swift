@@ -49,7 +49,7 @@ struct AppleHealthSettingsView: View {
                         Text("• Exported to Health: \(summary.foodExported) meals, \(summary.weighInsExported) weigh-ins, \(summary.workoutsExported) workouts")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text("• Imported from Health: \(summary.foodImported) external meals, \(summary.weighInsImported) weigh-ins")
+                        Text("• Imported from Health: \(summary.foodImported) external meals, \(summary.weighInsImported) weigh-ins, \(summary.cardioImported) cardio workouts")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

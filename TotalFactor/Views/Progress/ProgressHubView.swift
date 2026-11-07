@@ -2,6 +2,23 @@ import SwiftUI
 import SwiftData
 import Charts
 
+/// Progress tab sections, so the screen shows one focused area instead of one long scroll.
+private enum ProgressSubTab: String, CaseIterable, Identifiable {
+    case weight
+    case body
+    case strength
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .weight: return "Weight"
+        case .body: return "Body"
+        case .strength: return "Strength"
+        }
+    }
+}
+
 struct ProgressHubView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppState.self) private var appState
@@ -20,9 +37,26 @@ struct ProgressHubView: View {
     @State private var showingAddMetricSheet: Bool = false
     @State private var showingPhotosSheet: Bool = false
     @State private var newMetricValue: Double = 32.0
+    /// Last-viewed Progress sub-tab (raw value of `ProgressSubTab`).
+    @AppStorage("totalfactor.progressSubTab") private var subTabRaw: String = ProgressSubTab.weight.rawValue
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
+    }
+
+    private var currentSubTab: ProgressSubTab {
+        ProgressSubTab(rawValue: subTabRaw) ?? .weight
+    }
+
+    private var subTabBinding: Binding<ProgressSubTab> {
+        Binding<ProgressSubTab>(
+            get: { ProgressSubTab(rawValue: subTabRaw) ?? .weight },
+            set: { newValue in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    subTabRaw = newValue.rawValue
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -36,45 +70,48 @@ struct ProgressHubView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    Picker("Range", selection: $selectedRange) {
-                        ForEach(ProgressChartRange.allCases) { r in
-                            Text(r.rawValue).tag(r)
+                    switch currentSubTab {
+                    case .weight:
+                        rangePicker
+
+                        weightTrendCard(points: filteredWeights, summary: digest.weightSummary)
+
+                        expenditureCard(estimates: filteredExpenditure, latest: digest.expenditure)
+
+                    case .body:
+                        rangePicker
+
+                        leanBodyMassCard(
+                            points: filteredLBM,
+                            latestOverall: allLBM.last,
+                            currentTrendWeightKg: digest.weightSummary.latestTrendKg
+                        )
+
+                        bodyMetricsCard
+
+                        photosButton
+
+                    case .strength:
+                        exerciseTrendsSection
+
+                        MuscleVolumeMapView(sessions: sessions)
+
+                        VStack(spacing: 10) {
+                            rangePicker
+                            combinedWeightStrengthCard(points: filteredCombined)
                         }
                     }
-                    .pickerStyle(.segmented)
-
-                    weightTrendCard(points: filteredWeights, summary: digest.weightSummary)
-
-                    leanBodyMassCard(
-                        points: filteredLBM,
-                        latestOverall: allLBM.last,
-                        currentTrendWeightKg: digest.weightSummary.latestTrendKg
-                    )
-
-                    combinedWeightStrengthCard(points: filteredCombined)
-
-                    expenditureCard(estimates: filteredExpenditure, latest: digest.expenditure)
-
-                    MuscleVolumeMapView(sessions: sessions)
-
-                    bodyMetricsCard
-
-                    Button {
-                        showingPhotosSheet = true
-                    } label: {
-                        HStack {
-                            Label("Progress Photos & Pose Slider", systemImage: "photo.on.rectangle.angled")
-                                .font(.headline)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                        }
-                        .padding(16)
-                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding()
                 .padding(.bottom, 70)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                SubTabBar(
+                    tabs: ProgressSubTab.allCases,
+                    selection: subTabBinding,
+                    title: { tab in tab.title }
+                )
+                .background(AppleTheme.background)
             }
             .navigationTitle("PROGRESS")
             .toolbar {
@@ -124,6 +161,52 @@ struct ProgressHubView: View {
                 }
                 .presentationDetents([.height(280)])
             }
+        }
+    }
+
+    // MARK: - Sub-tab building blocks
+
+    private var rangePicker: some View {
+        Picker("Range", selection: $selectedRange) {
+            ForEach(ProgressChartRange.allCases) { r in
+                Text(r.rawValue).tag(r)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var photosButton: some View {
+        Button {
+            showingPhotosSheet = true
+        } label: {
+            HStack {
+                Label("Progress Photos & Pose Slider", systemImage: "photo.on.rectangle.angled")
+                    .font(.headline)
+                Spacer()
+                Image(systemName: "chevron.right")
+            }
+            .padding(16)
+            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Strength sub-tab: most recently trained lifts with est. 1RM sparklines; each row opens the exercise's full analytics.
+    private var exerciseTrendsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                AppleIconBadge(icon: "dumbbell.fill", color: AppleTheme.exercise, size: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Exercise Trends")
+                        .font(.headline.weight(.bold))
+                    Text("Estimated 1RM per session • tap a lift for full history")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            ExerciseProgressListView(unitSystem: profile.unitSystem, limit: 6)
         }
     }
 

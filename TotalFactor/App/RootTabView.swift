@@ -26,11 +26,18 @@ struct RootTabView: View {
                     .toolbar(.hidden, for: .tabBar)
                     .tag(AppTab.today)
 
-                if foodTrackingEnabled {
-                    FoodTimelineView()
-                        .toolbar(.hidden, for: .tabBar)
-                        .tag(AppTab.food)
+                // Keep the same number of tab pages whether food tracking is on or off: inserting/removing a
+                // TabView child while another tab is showing (e.g. flipping the switch in Settings) blanks the
+                // current screen until relaunch. The custom tab bar below hides the Food tab when it's off.
+                Group {
+                    if foodTrackingEnabled {
+                        FoodTimelineView()
+                    } else {
+                        Color.clear
+                    }
                 }
+                .toolbar(.hidden, for: .tabBar)
+                .tag(AppTab.food)
 
                 TrainHubView()
                     .toolbar(.hidden, for: .tabBar)

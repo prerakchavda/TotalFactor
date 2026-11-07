@@ -112,6 +112,23 @@ public enum CardioDistanceUnit: String, Sendable {
     }
 }
 
+// MARK: - Apple Health Cardio Import
+
+/// Apple Health workouts the user deleted from Total Factor, so the automatic import doesn't bring them back.
+public enum CardioImportPreference {
+    public static let dismissedKey = "totalfactor.dismissedHealthCardioUUIDs"
+
+    public static var dismissedUUIDs: Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: dismissedKey) ?? [])
+    }
+
+    public static func dismiss(_ uuid: UUID) {
+        var all = dismissedUUIDs
+        all.insert(uuid.uuidString)
+        UserDefaults.standard.set(Array(all), forKey: dismissedKey)
+    }
+}
+
 // MARK: - Cardio Session
 
 @Model
@@ -127,6 +144,11 @@ public final class CardioSession {
     public var notes: String = ""
     public var dayKey: String = ""
     public var healthKitWorkoutUUID: UUID? = nil
+    /// True when this session was pulled in from Apple Health (Apple Watch Workout app, Fitness, Strava…)
+    /// instead of being logged in Total Factor. Imported sessions are never written back to Health.
+    public var importedFromHealth: Bool = false
+    /// Name of the app that recorded an imported workout (e.g. "Workout", "Strava"); empty when logged here.
+    public var sourceName: String = ""
 
     public init(
         kind: CardioKind = .run,
@@ -154,6 +176,12 @@ public final class CardioSession {
 
     public var end: Date {
         start.addingTimeInterval(TimeInterval(max(0, durationSeconds)))
+    }
+
+    /// e.g. "Apple Health · Workout" for imported sessions, nil for sessions logged in Total Factor.
+    public var sourceLabel: String? {
+        guard importedFromHealth else { return nil }
+        return sourceName.isEmpty ? "Apple Health" : "Apple Health · \(sourceName)"
     }
 
     public var durationMinutes: Double {

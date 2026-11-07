@@ -6,6 +6,56 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.11.0 — Build 28 (2026-11-07) — Sub-Tabs: Less Scrolling
+
+### 1. Workouts Sub-Tabs (`TrainHubView.swift`, `SubTabBar.swift`)
+- The Workouts tab is split into **Train · Recovery · History · Exercises** with a switcher pinned at the top; it remembers the last one you used.
+- **Train**: gym, resume/start, your program and tools. **Recovery**: muscle recovery map and weekly volume. **History**: calendar, past workouts and cardio.
+
+### 2. Exercises: Strength Trends (`ExerciseProgressListView.swift`)
+- New **Exercises** sub-tab lists every lift you've logged with a trend line of your estimated 1RM, your last best set, and how much it went up or down over the last 8 weeks.
+- Search, and sort by Recent, Most Improved, Most Trained or A–Z. Tap an exercise for the full charts (est. 1RM, heaviest, volume, most reps) and history.
+
+### 3. Progress Sub-Tabs (`ProgressHubView.swift`)
+- **Weight · Body · Strength**. Weight: trend chart and expenditure. Body: lean mass, measurements and progress photos. Strength: your top exercise trends, muscle volume map and body weight × strength index.
+
+### 4. Today Sub-Tabs (`TodayDashboardView.swift`, `TodayLoggedActivityCard.swift`)
+- **Overview · Nutrition · Activity** (Nutrition is hidden when food tracking is off). The header and day picker stay pinned.
+- Overview: workout-in-progress banner with Resume, a compact nutrition snapshot (tap for Nutrition), weight trend, fasting and today's workout. With food tracking off, the weight trend card now shows on its own.
+- Nutrition: macro zones, nudges, a new meals-by-meal breakdown with a Log Food button, and energy balance.
+- Activity: a new card with today's logged lifting and cardio (training or rest day), Apple Fitness workouts and Health stats.
+
+### 5. Fixes
+- Turning **Food Tracking** off or on no longer blanks the app until it's reopened.
+
+### 6. Build
+- Bumped to v1.11.0 (Build 28) across app, widgets, and Watch.
+
+---
+
+## v1.10.1 — Build 27 (2026-11-07) — Apple Health Cardio Import
+
+### 1. Runs & Cardio From Apple Watch / Fitness (`HealthKitService.swift`, `CardioModels.swift`)
+- Cardio workouts recorded by other apps — the Apple Watch Workout app, Fitness, Strava, Nike Run Club and others — are now pulled into your cardio log automatically.
+- Imports happen when the app opens or comes back to the foreground, and as soon as Apple Health gets a new workout (e.g. when a Watch run ends), including in the background.
+- Brings in type, time, duration, distance, average heart rate and active calories. Runs, walks, hikes (as incline walks), rides, elliptical, stairs, rowing and swimming map to their cardio types; HIIT, sports and other cardio come in as Other with the activity name as a note. Strength, yoga and similar workouts are skipped.
+- Total Factor's own workouts are never imported back, and nothing is imported twice.
+
+### 2. Cardio Card & Sheet (`CardioLogSheet.swift`, `TrainHubView.swift`)
+- New **Sync** button on the Cardio card: asks for any missing Apple Health access (workout distance) and imports the last 90 days.
+- Imported sessions show their source app (e.g. "Workout") under the date.
+- Editing an imported session changes it in Total Factor only; the original Apple Health workout is never rewritten.
+- Deleting an imported session removes it from Total Factor and remembers not to import it again; the workout stays in Apple Health.
+
+### 3. Apple Health Sync (`AppleHealthSettingsView.swift`)
+- **Settings → Apple Health → Sync** also imports cardio from the last 90 days and reports how many cardio workouts were added.
+- Total Factor now asks to read walking/running, cycling and swimming distance so imported workouts include distance.
+
+### 4. Build
+- Bumped to v1.10.1 (Build 27) across app, widgets, and Watch.
+
+---
+
 ## v1.10.0 — Build 26 (2026-11-07) — MacroFactor Workouts Parity: Rep Schemes, Cardio, Machine Stacks
 
 ### 1. Rep Progression Schemes (`ProgressionEngine.swift`, `WorkoutPlannerService.swift`, `ProgramBuilderView.swift`)

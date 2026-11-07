@@ -25,6 +25,8 @@ struct TrainHubView: View {
     @State private var selectedHistorySession: WorkoutSession? = nil
     @State private var showingCardioLog: Bool = false
     @State private var selectedCardioSession: CardioSession? = nil
+    @State private var isSyncingCardio: Bool = false
+    @AppStorage("totalfactor.workoutsSubTab") private var subTabRaw: String = "train"
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -40,98 +42,25 @@ struct TrainHubView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    gymSelectorStrip
+            VStack(spacing: 0) {
+                SubTabBar(tabs: WorkoutsSubTab.allCases, selection: subTab) { $0.title }
 
-                    if let openSession = sessions.first(where: { !$0.isFinished }) {
-                        Button {
-                            appState.activeWorkoutSessionID = openSession.id
-                            appState.showingActiveWorkoutFullScreen = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                    .font(.title3.weight(.bold))
-                                VStack(alignment: .leading) {
-                                    Text("Resume \(openSession.title)")
-                                        .font(.headline.weight(.bold))
-                                    Text("Started \(openSession.start, style: .relative) ago")
-                                        .font(.caption)
-                                        .opacity(0.7)
-                                }
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                            }
-                            .foregroundStyle(AppleTheme.background)
-                            .padding(16)
-                            .background(Color.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        switch subTab.wrappedValue {
+                        case .train:
+                            trainSection
+                        case .recovery:
+                            recoverySection
+                        case .history:
+                            historySection
+                        case .exercises:
+                            ExerciseProgressListView(unitSystem: profile.unitSystem)
                         }
-                        .buttonStyle(.plain)
                     }
-
-                    MFSectionTitle("Program")
-
-                    activeProgramCard
-
-                    Group {
-                        MFSectionTitle("Muscle Recovery")
-
-                        MuscleRecoveryCard(sessions: sessions)
-                    }
-
-                    Group {
-                        MFSectionTitle("Weekly Volume")
-
-                        let volumeEntries: [HypertrophyVolumeEngine.VolumeSetEntry] = sessions.flatMap { s in
-                            (s.sets ?? []).compactMap { set in
-                                guard let ex = set.exercise else { return nil }
-                                return HypertrophyVolumeEngine.VolumeSetEntry(
-                                    timestamp: s.start,
-                                    primaryMuscles: ex.primaryMuscles,
-                                    secondaryMuscles: ex.secondaryMuscles,
-                                    isCompleted: set.isCompleted,
-                                    setType: set.type
-                                )
-                            }
-                        }
-                        let volumeStatuses = HypertrophyVolumeEngine.evaluateWeeklyVolume(entries: volumeEntries)
-                        HypertrophyVolumeCardView(statuses: volumeStatuses)
-                    }
-
-                    MFSectionTitle("Tools")
-
-                    quickToolsGrid
-
-                    Group {
-                        MFSectionTitle("History")
-
-                        WorkoutCalendarCard(
-                            sessions: sessions,
-                            cardioSessions: cardioSessions,
-                            onSelect: { session in
-                                selectedHistorySession = session
-                            },
-                            onSelectCardio: { cardio in
-                                selectedCardioSession = cardio
-                            }
-                        )
-
-                        recentSessionsCard
-
-                        MFSectionTitle("Cardio")
-
-                        CardioHistoryCard(
-                            sessions: cardioSessions,
-                            unitSystem: profile.unitSystem,
-                            onLog: { showingCardioLog = true },
-                            onSelect: { cardio in
-                                selectedCardioSession = cardio
-                            }
-                        )
-                    }
+                    .padding()
+                    .padding(.bottom, 16)
                 }
-                .padding()
-                .padding(.bottom, 16)
             }
             .background(AppleTheme.background)
             .navigationTitle("WORKOUTS")
@@ -231,6 +160,130 @@ struct TrainHubView: View {
                 startWorkout(from: match)
             }
         }
+    }
+
+    // MARK: - Sub-tabs
+
+    private enum WorkoutsSubTab: String, CaseIterable, Identifiable {
+        case train
+        case recovery
+        case history
+        case exercises
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .train: return "Train"
+            case .recovery: return "Recovery"
+            case .history: return "History"
+            case .exercises: return "Exercises"
+            }
+        }
+    }
+
+    private var subTab: Binding<WorkoutsSubTab> {
+        Binding(
+            get: { WorkoutsSubTab(rawValue: subTabRaw) ?? .train },
+            set: { subTabRaw = $0.rawValue }
+        )
+    }
+
+    /// Train: gym, resume/start, active program and tools.
+    @ViewBuilder
+    private var trainSection: some View {
+        gymSelectorStrip
+
+        if let openSession = sessions.first(where: { !$0.isFinished }) {
+            Button {
+                appState.activeWorkoutSessionID = openSession.id
+                appState.showingActiveWorkoutFullScreen = true
+            } label: {
+                HStack {
+                    Image(systemName: "play.fill")
+                        .font(.title3.weight(.bold))
+                    VStack(alignment: .leading) {
+                        Text("Resume \(openSession.title)")
+                            .font(.headline.weight(.bold))
+                        Text("Started \(openSession.start, style: .relative) ago")
+                            .font(.caption)
+                            .opacity(0.7)
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                }
+                .foregroundStyle(AppleTheme.background)
+                .padding(16)
+                .background(Color.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+
+        MFSectionTitle("Program")
+
+        activeProgramCard
+
+        MFSectionTitle("Tools")
+
+        quickToolsGrid
+    }
+
+    /// Recovery: muscle recovery map and weekly set volume.
+    @ViewBuilder
+    private var recoverySection: some View {
+        MFSectionTitle("Muscle Recovery")
+
+        MuscleRecoveryCard(sessions: sessions)
+
+        MFSectionTitle("Weekly Volume")
+
+        HypertrophyVolumeCardView(statuses: weeklyVolumeStatuses)
+    }
+
+    private var weeklyVolumeStatuses: [HypertrophyVolumeEngine.MuscleVolumeStatus] {
+        let volumeEntries: [HypertrophyVolumeEngine.VolumeSetEntry] = sessions.flatMap { s in
+            (s.sets ?? []).compactMap { set in
+                guard let ex = set.exercise else { return nil }
+                return HypertrophyVolumeEngine.VolumeSetEntry(
+                    timestamp: s.start,
+                    primaryMuscles: ex.primaryMuscles,
+                    secondaryMuscles: ex.secondaryMuscles,
+                    isCompleted: set.isCompleted,
+                    setType: set.type
+                )
+            }
+        }
+        return HypertrophyVolumeEngine.evaluateWeeklyVolume(entries: volumeEntries)
+    }
+
+    /// History: calendar, recent workouts and cardio.
+    @ViewBuilder
+    private var historySection: some View {
+        WorkoutCalendarCard(
+            sessions: sessions,
+            cardioSessions: cardioSessions,
+            onSelect: { session in
+                selectedHistorySession = session
+            },
+            onSelectCardio: { cardio in
+                selectedCardioSession = cardio
+            }
+        )
+
+        recentSessionsCard
+
+        MFSectionTitle("Cardio")
+
+        CardioHistoryCard(
+            sessions: cardioSessions,
+            unitSystem: profile.unitSystem,
+            onLog: { showingCardioLog = true },
+            onSelect: { cardio in
+                selectedCardioSession = cardio
+            },
+            onSyncHealth: { syncCardioFromHealth() },
+            isSyncing: isSyncingCardio
+        )
     }
 
     private var gymSelectorStrip: some View {
@@ -521,6 +574,21 @@ struct TrainHubView: View {
             } else {
                 importResultMessage = "All workouts in this CSV are already in your history (0 new sessions added)."
             }
+        }
+    }
+
+    /// Cardio card → Sync: asks for any missing Health read access (distance), then imports the last 90 days.
+    private func syncCardioFromHealth() {
+        guard !isSyncingCardio else { return }
+        isSyncingCardio = true
+        Task { @MainActor in
+            let health = HealthKitService.shared
+            _ = await health.requestPermissions()
+            let added = await health.importExternalCardioWorkouts(context: modelContext, daysBack: 90)
+            isSyncingCardio = false
+            importResultMessage = added > 0
+                ? "Added \(added) cardio workout\(added == 1 ? "" : "s") from Apple Health."
+                : "You're up to date. No new cardio workouts in Apple Health from the last 90 days."
         }
     }
 

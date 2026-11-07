@@ -1,5 +1,56 @@
 [
   {
+    "version": "1.11.0",
+    "build": "28",
+    "date": "2026-11-07",
+    "headline": "Sub-Tabs: Less Scrolling",
+    "sections": [
+      {
+        "title": "Sub-Tabs Everywhere",
+        "icon": "rectangle.split.3x1",
+        "items": [
+          "Workouts: Train · Recovery · History · Exercises.",
+          "Progress: Weight · Body · Strength.",
+          "Today: Overview · Nutrition · Activity (Nutrition hides when food tracking is off).",
+          "Each screen remembers the section you last used."
+        ]
+      },
+      {
+        "title": "Exercise Strength Trends",
+        "icon": "chart.line.uptrend.xyaxis",
+        "items": [
+          "Every lift you've logged with a trend line, last best set and 8-week change.",
+          "Search and sort by Recent, Most Improved, Most Trained or A–Z; tap for full charts."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "icon": "wrench.and.screwdriver.fill",
+        "items": [
+          "Turning Food Tracking off or on no longer blanks the app until it's reopened."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.10.1",
+    "build": "27",
+    "date": "2026-11-07",
+    "headline": "Apple Health Cardio Import",
+    "sections": [
+      {
+        "title": "Cardio From Apple Watch & Fitness",
+        "icon": "heart.text.square.fill",
+        "items": [
+          "Runs, walks, rides and other cardio from the Apple Watch Workout app, Fitness, Strava and more now show up in your cardio log automatically.",
+          "New workouts are pulled in as soon as Apple Health has them, with distance, heart rate and calories.",
+          "Sync on the Cardio card imports the last 90 days.",
+          "Imported sessions show their source app; editing or deleting them never changes Apple Health."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.10.0",
     "build": "26",
     "date": "2026-11-07",

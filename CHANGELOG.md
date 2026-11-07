@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.11.0] - 2026-11-07
+
+### Added — Sub-tabs (Build 28)
+- `SubTabBar` (segmented section switcher) used by Workouts (`WorkoutsSubTab`: train / recovery / history / exercises), Progress (`ProgressSubTab`: weight / body / strength) and Today (`TodaySubTab`: overview / nutrition / activity); selections persisted in `@AppStorage`.
+- `ExerciseProgressListView`: per-exercise session-best e1RM sparklines, last best set, 8-week change, search and sort; reused (limit 6) in Progress → Strength.
+- Today: `TodayLoggedActivityCard`, nutrition snapshot, meal breakdown, workout-in-progress banner.
+
+### Fixed
+- `RootTabView` keeps a constant number of `TabView` pages (Food page becomes `Color.clear` when food tracking is off) — inserting/removing a page blanked the visible tab.
+
+---
+
+## [1.10.1] - 2026-11-07
+
+### Added — Apple Health cardio import (Build 27)
+- `HealthKitService.importExternalCardioWorkouts(context:daysBack:)`: imports non-Total Factor `HKWorkout`s as `CardioSession`s (distance / active energy / average heart rate via `HKWorkout.statistics(for:)`), deduplicated by workout UUID; `cardioKind(for:)` activity mapping.
+- `HealthKitService.startObservingWorkouts(context:)`: `HKObserverQuery` + background delivery on the workout type; import also runs on foreground and in `performFullTwoWaySync` (90 days).
+- `CardioSession.importedFromHealth`, `sourceName`, `sourceLabel`; `CardioImportPreference` remembers deleted imports.
+- `HealthSyncSummary.cardioImported`; distance types added to Health read authorization.
+- Cardio card Sync button; imported-session source label and banner.
+
+### Changed
+- Imported sessions are never written back to or deleted from Apple Health.
+
+---
+
 ## [1.10.0] - 2026-11-07
 
 ### Added — MacroFactor Workouts parity (Build 26)

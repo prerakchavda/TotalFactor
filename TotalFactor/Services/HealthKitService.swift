@@ -57,23 +57,26 @@ public struct HealthSyncSummary: Equatable, Sendable {
     public var workoutsExported: Int = 0
     public var foodImported: Int = 0
     public var weighInsImported: Int = 0
+    public var cardioImported: Int = 0
 
     public init(
         foodExported: Int = 0,
         weighInsExported: Int = 0,
         workoutsExported: Int = 0,
         foodImported: Int = 0,
-        weighInsImported: Int = 0
+        weighInsImported: Int = 0,
+        cardioImported: Int = 0
     ) {
         self.foodExported = foodExported
         self.weighInsExported = weighInsExported
         self.workoutsExported = workoutsExported
         self.foodImported = foodImported
         self.weighInsImported = weighInsImported
+        self.cardioImported = cardioImported
     }
 
     public var totalEvents: Int {
-        foodExported + weighInsExported + workoutsExported + foodImported + weighInsImported
+        foodExported + weighInsExported + workoutsExported + foodImported + weighInsImported + cardioImported
     }
 }
 
@@ -92,6 +95,7 @@ public final class HealthKitService {
     #if canImport(HealthKit)
     private let store = HKHealthStore()
     private var observerRegistered = false
+    private var workoutObserverRegistered = false
     private var liveHRObserverQuery: HKQuery? = nil
     #endif
 
@@ -156,6 +160,10 @@ public final class HealthKitService {
             .basalEnergyBurned,
             .heartRate,
             .restingHeartRate,
+            // Cardio import: distance totals of Apple Watch / Fitness workouts
+            .distanceWalkingRunning,
+            .distanceCycling,
+            .distanceSwimming,
             .heartRateVariabilitySDNN,
             .dietaryEnergyConsumed,
             .dietaryProtein,
@@ -497,6 +505,123 @@ public final class HealthKitService {
         }
     }
     #endif
+
+    // MARK: - Import Apple Health Cardio (Apple Watch Workout app, Fitness, Strava, Nike Run Club…)
+
+    #if canImport(HealthKit)
+    /// Maps an Apple Health workout type to a cardio kind; nil for strength, yoga and other non-cardio types.
+    public static func cardioKind(for activity: HKWorkoutActivityType) -> CardioKind? {
+        switch activity {
+        case .running: return .run
+        case .walking: return .walk
+        case .hiking: return .inclineWalk
+        case .cycling, .handCycling: return .cycling
+        case .elliptical: return .elliptical
+        case .stairClimbing, .stairs, .stepTraining: return .stairClimber
+        case .rowing, .paddleSports: return .rowing
+        case .swimming: return .swimming
+        case .highIntensityIntervalTraining, .mixedCardio, .crossTraining, .jumpRope, .cardioDance,
+             .kickboxing, .boxing, .soccer, .basketball, .tennis, .pickleball, .racquetball, .squash,
+             .badminton, .volleyball, .hockey, .americanFootball, .rugby, .crossCountrySkiing,
+             .climbing, .waterFitness:
+            return .other
+        default:
+            return nil
+        }
+    }
+    #endif
+
+    /// Pulls cardio workouts recorded by other apps (Apple Watch Workout app, Fitness, Strava…) from the last
+    /// `daysBack` days into the cardio log. Skips Total Factor's own workouts, ones already imported, and ones
+    /// the user deleted here. Returns how many new sessions were added.
+    @discardableResult
+    public func importExternalCardioWorkouts(context: ModelContext, daysBack: Int = 30) async -> Int {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return 0 }
+        let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: .now) ?? .distantPast
+        let pred = HKQuery.predicateForSamples(withStart: startDate, end: .now, options: .strictStartDate)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+
+        let workouts: [HKWorkout] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: pred, limit: 500, sortDescriptors: [sort]) { _, samples, _ in
+                continuation.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            self.store.execute(query)
+        }
+        guard !workouts.isEmpty else { return 0 }
+
+        let myBundleID = Bundle.main.bundleIdentifier ?? "com.prerak.totalfactor"
+        let existing = (try? context.fetch(FetchDescriptor<CardioSession>())) ?? []
+        let knownUUIDs = Set(existing.compactMap(\.healthKitWorkoutUUID))
+        let dismissed = CardioImportPreference.dismissedUUIDs
+        let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
+
+        var imported = 0
+        for workout in workouts {
+            if workout.sourceRevision.source.bundleIdentifier.hasPrefix(myBundleID) { continue }
+            if knownUUIDs.contains(workout.uuid) || dismissed.contains(workout.uuid.uuidString) { continue }
+            guard let kind = Self.cardioKind(for: workout.workoutActivityType), workout.duration >= 60 else { continue }
+
+            let distance: Double? = Self.distanceQuantityIdentifier(for: kind)
+                .flatMap { HKObjectType.quantityType(forIdentifier: $0) }
+                .flatMap { workout.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .meter()) }
+            let calories: Double? = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)
+                .flatMap { workout.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .kilocalorie()) }
+            let heartRate: Double? = HKObjectType.quantityType(forIdentifier: .heartRate)
+                .flatMap { workout.statistics(for: $0)?.averageQuantity()?.doubleValue(for: beatsPerMinute) }
+
+            let session = CardioSession(
+                kind: kind,
+                start: workout.startDate,
+                durationSeconds: Int(workout.duration.rounded()),
+                distanceMeters: (distance ?? 0) > 0 ? distance : nil,
+                avgHeartRate: (heartRate ?? 0) > 0 ? heartRate?.rounded() : nil,
+                activeCalories: (calories ?? 0) > 0 ? calories?.rounded() : nil,
+                notes: kind == .other ? Self.displayMetadata(for: workout.workoutActivityType).name : ""
+            )
+            session.healthKitWorkoutUUID = workout.uuid
+            session.importedFromHealth = true
+            session.sourceName = workout.sourceRevision.source.name
+            context.insert(session)
+            imported += 1
+        }
+
+        if imported > 0 {
+            try? context.save()
+        }
+        return imported
+        #else
+        return 0
+        #endif
+    }
+
+    /// Imports new cardio as soon as Apple Health gets a workout (e.g. when an Apple Watch run ends),
+    /// including in the background.
+    public func startObservingWorkouts(context: ModelContext) {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable(), !workoutObserverRegistered else { return }
+
+        workoutObserverRegistered = true
+        let container = context.container
+        let workoutType = HKObjectType.workoutType()
+        let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
+            guard error == nil else {
+                completionHandler()
+                return
+            }
+            Task { @MainActor [weak self] in
+                guard let self else {
+                    completionHandler()
+                    return
+                }
+                await self.importExternalCardioWorkouts(context: container.mainContext)
+                completionHandler()
+            }
+        }
+        store.execute(query)
+        store.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { _, _ in }
+        #endif
+    }
 
     // MARK: - Write / Sync Food Correlation (§3)
 
@@ -1152,6 +1277,7 @@ public final class HealthKitService {
         let weighImported = max(0, finalWeighCount - initialWeighCount)
 
         let foodImported = await importExternalDietaryIntake(context: context)
+        let cardioImported = await importExternalCardioWorkouts(context: context, daysBack: 90)
         await refreshTodayDashboardTelemetry()
         lastSyncDate = .now
 
@@ -1160,7 +1286,8 @@ public final class HealthKitService {
             weighInsExported: weighOut,
             workoutsExported: workoutsOut,
             foodImported: foodImported,
-            weighInsImported: weighImported
+            weighInsImported: weighImported,
+            cardioImported: cardioImported
         )
         #else
         return HealthSyncSummary()

@@ -14,10 +14,12 @@ struct TodayDashboardView: View {
     @Query private var gymProfiles: [GymProfile]
     @Query private var customNutrientTargets: [NutrientTarget]
     @Query private var goals: [Goal]
+    @Query(filter: #Predicate<WorkoutSession> { $0.end == nil }) private var openWorkoutSessions: [WorkoutSession]
 
     @State private var showingMicronutrients: Bool = false
     @State private var previewGuideWorkout: ProgramWorkout? = nil
     @AppStorage(FoodTrackingPreference.key) private var foodTrackingEnabled: Bool = true
+    @AppStorage("totalfactor.todaySubTab") private var storedSubTabRaw: String = TodaySubTab.overview.rawValue
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -57,87 +59,84 @@ struct TodayDashboardView: View {
         return (daysSince >= 7 && todayWeekday == profile.checkInWeekday && latest.dayKey != DayKey.today) || daysSince >= 10
     }
 
+    // MARK: - Sub-tabs (Overview · Nutrition · Activity)
+
+    /// Sub-tabs shown at the top of the dashboard. Nutrition is hidden when food tracking is off.
+    private var visibleSubTabs: [TodaySubTab] {
+        foodTrackingEnabled ? [.overview, .nutrition, .activity] : [.overview, .activity]
+    }
+
+    /// The remembered sub-tab, falling back to Overview when it isn't currently available
+    /// (e.g. Nutrition was last selected but food tracking has since been turned off).
+    private var effectiveSubTab: TodaySubTab {
+        let stored = TodaySubTab(rawValue: storedSubTabRaw) ?? .overview
+        return visibleSubTabs.contains(stored) ? stored : .overview
+    }
+
+    private var subTabSelection: Binding<TodaySubTab> {
+        Binding(
+            get: { effectiveSubTab },
+            set: { storedSubTabRaw = $0.rawValue }
+        )
+    }
+
+    private func selectSubTab(_ tab: TodaySubTab) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            storedSubTabRaw = tab.rawValue
+        }
+    }
+
     var body: some View {
         let digest = CoachingCoordinator.cachedOrComputeDigest(forDayKey: activeDayKey, context: modelContext)
         let targets = digest.todayTargets
         let eaten = totalNutrients(for: dayEntries)
+        let currentTab = effectiveSubTab
 
         NavigationStack {
-            ScrollView {
+            VStack(spacing: 0) {
+                // Pinned header: title, day switcher and sub-tab picker stay visible while content scrolls.
                 VStack(alignment: .leading, spacing: 14) {
                     dashboardHeader
 
                     dayHeaderBar(isComplete: dayNote?.isComplete ?? false)
-
-                    if foodTrackingEnabled {
-                        if yesterdayUnmarkedWithFood {
-                            yesterdayCompleteBanner
-                        }
-
-                        if isCheckInDue {
-                            checkInReadyBanner
-                        }
-
-                        MFSectionTitle("Nutrition", actionTitle: "Micros") {
-                            showingMicronutrients = true
-                        }
-
-                        macroZonesCard(eaten: eaten, targets: targets, isTrainingDay: digest.isTodayTrainingDay)
-
-                        if let snackNudge = digest.preWorkoutSnackNudge {
-                            nudgeCard(
-                                icon: "bolt.badge.clock.fill",
-                                color: AppleTheme.calories,
-                                title: "Pre-Workout Fuel Nudge",
-                                message: snackNudge,
-                                actionTitle: "Log Snack"
-                            ) {
-                                appState.openQuickAdd(tab: 0)
-                            }
-                        }
-
-                        if digest.isProteinGateActive {
-                            nudgeCard(
-                                icon: "shield.lefthalf.filled",
-                                color: AppleTheme.protein,
-                                title: "Protein Gate Active",
-                                message: "Last 7 days averaged \(Int((digest.avgProteinLast7d ?? 0).rounded()))g protein vs. your \(Int(targets.proteinFloor))g floor. Aggressive load jumps are paused until protein rebounds.",
-                                actionTitle: nil,
-                                action: nil
-                            )
-                        }
-
-                        MFSectionTitle("Insights & Analytics")
-
-                        coachingMetricsRow(digest: digest)
-
-                        energyBalanceCard(digest: digest)
-                    }
-
-                    if profile.enableIntermittentFasting {
-                        intermittentFastingCard
-                    }
-
-                    MFSectionTitle("Training")
-
-                    todayWorkoutCard(digest: digest)
-
-                    externalWorkoutsSection
-
-                    MFSectionTitle("Health")
-
-                    healthTelemetryCard
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 24)
+                .padding(.bottom, 10)
+
+                SubTabBar(tabs: visibleSubTabs, selection: subTabSelection) { tab in
+                    tab.title
+                }
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        switch currentTab {
+                        case .overview:
+                            overviewTab(digest: digest, targets: targets, eaten: eaten)
+                        case .nutrition:
+                            nutritionTab(digest: digest, targets: targets, eaten: eaten)
+                        case .activity:
+                            activityTab(digest: digest)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
+                }
+                .id(currentTab)
+                .refreshable {
+                    await healthService.refreshTodayDashboardTelemetry()
+                }
             }
             .background(AppleTheme.background)
-            .refreshable {
-                await healthService.refreshTodayDashboardTelemetry()
-            }
             .task {
                 await healthService.refreshTodayDashboardTelemetry()
                 healthService.startLiveHeartRateObserver()
+            }
+            .onAppear {
+                normalizeStoredSubTab()
+            }
+            .onChange(of: foodTrackingEnabled) { _, _ in
+                normalizeStoredSubTab()
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingMicronutrients) {
@@ -148,6 +147,116 @@ struct TodayDashboardView: View {
                     startWorkoutSession(from: workout)
                 }
             }
+        }
+    }
+
+    // MARK: - Sub-tab Content
+
+    /// Overview: banners, at-a-glance nutrition & weight, and today's planned workout.
+    @ViewBuilder
+    private func overviewTab(digest: CoachingDashboardDigest, targets: MacroTargets, eaten: NutrientsPer100g) -> some View {
+        if let openSession = openWorkoutSessions.first {
+            activeWorkoutBanner(openSession)
+        }
+
+        if foodTrackingEnabled {
+            if yesterdayUnmarkedWithFood {
+                yesterdayCompleteBanner
+            }
+
+            if isCheckInDue {
+                checkInReadyBanner
+            }
+
+            MFSectionTitle("Today", actionTitle: "Nutrition") {
+                selectSubTab(.nutrition)
+            }
+
+            nutritionSnapshotCard(eaten: eaten, targets: targets)
+
+            coachingMetricsRow(digest: digest)
+        } else {
+            MFSectionTitle("Today")
+
+            weightTrendCard(digest: digest)
+        }
+
+        if profile.enableIntermittentFasting {
+            intermittentFastingCard
+        }
+
+        MFSectionTitle("Training", actionTitle: "Activity") {
+            selectSubTab(.activity)
+        }
+
+        todayWorkoutCard(digest: digest)
+    }
+
+    /// Nutrition: full macro detail, coaching nudges, meal breakdown and energy balance.
+    @ViewBuilder
+    private func nutritionTab(digest: CoachingDashboardDigest, targets: MacroTargets, eaten: NutrientsPer100g) -> some View {
+        MFSectionTitle("Nutrition", actionTitle: "Micros") {
+            showingMicronutrients = true
+        }
+
+        macroZonesCard(eaten: eaten, targets: targets, isTrainingDay: digest.isTodayTrainingDay)
+
+        if let snackNudge = digest.preWorkoutSnackNudge {
+            nudgeCard(
+                icon: "bolt.badge.clock.fill",
+                color: AppleTheme.calories,
+                title: "Pre-Workout Fuel Nudge",
+                message: snackNudge,
+                actionTitle: "Log Snack"
+            ) {
+                appState.openQuickAdd(tab: 0)
+            }
+        }
+
+        if digest.isProteinGateActive {
+            nudgeCard(
+                icon: "shield.lefthalf.filled",
+                color: AppleTheme.protein,
+                title: "Protein Gate Active",
+                message: "Last 7 days averaged \(Int((digest.avgProteinLast7d ?? 0).rounded()))g protein vs. your \(Int(targets.proteinFloor))g floor. Aggressive load jumps are paused until protein rebounds.",
+                actionTitle: nil,
+                action: nil
+            )
+        }
+
+        MFSectionTitle("Meals")
+
+        mealBreakdownCard
+
+        MFSectionTitle("Insights & Analytics")
+
+        energyBalanceCard(digest: digest)
+    }
+
+    /// Activity: what was trained/logged today, Apple Fitness workouts and Apple Health telemetry.
+    @ViewBuilder
+    private func activityTab(digest: CoachingDashboardDigest) -> some View {
+        MFSectionTitle("Training")
+
+        TodayLoggedActivityCard(
+            dayKey: activeDayKey,
+            unitSystem: profile.unitSystem,
+            isTrainingDay: digest.isTodayTrainingDay,
+            scheduledWorkoutName: digest.scheduledWorkoutName
+        )
+
+        externalWorkoutsSection
+
+        MFSectionTitle("Health")
+
+        healthTelemetryCard
+    }
+
+    /// Falls back to Overview when the remembered sub-tab isn't available (Nutrition with food tracking off).
+    private func normalizeStoredSubTab() {
+        let stored = TodaySubTab(rawValue: storedSubTabRaw) ?? .overview
+        if !visibleSubTabs.contains(stored) {
+            storedSubTabRaw = TodaySubTab.overview.rawValue
         }
     }
 
@@ -372,92 +481,241 @@ struct TodayDashboardView: View {
         .mfCard(padding: 18)
     }
 
-    private func coachingMetricsRow(digest: CoachingDashboardDigest) -> some View {
-        HStack(spacing: 12) {
-            // Trend Weight Card (Apple Health Style - Clickable to Weight Detail & History)
-            NavigationLink(destination: WeightDetailView()) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Weight Trend")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.tertiary)
-                    }
+    /// Compact calories + macros summary for Overview; tapping opens the Nutrition sub-tab.
+    private func nutritionSnapshotCard(eaten: NutrientsPer100g, targets: MacroTargets) -> some View {
+        let caloriesRemaining = max(0, targets.calories - eaten.calories)
 
-                    if let trendKg = digest.weightSummary.latestTrendKg {
-                        Text(UnitsFormatter.formatWeight(trendKg, system: profile.unitSystem))
-                            .font(.system(size: 24, weight: .bold))
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
+        return Button {
+            selectSubTab(.nutrition)
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(Int(caloriesRemaining.rounded()))")
+                        .font(.system(size: 28, weight: .heavy))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                    Text("Cal remaining")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(Int(eaten.calories.rounded())) / \(Int(targets.calories.rounded()))")
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                }
 
-                        if let d7 = digest.weightSummary.change7dKg {
-                            Label(
-                                "\(UnitsFormatter.formatSignedWeightDelta(d7, system: profile.unitSystem)) this week",
-                                systemImage: d7 <= 0 ? "arrow.down.right" : "arrow.up.right"
-                            )
-                            .font(.caption2.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(AppleTheme.trend)
-                        } else {
-                            Text("Log daily for velocity")
+                HStack(spacing: 12) {
+                    macroSnapshotColumn(title: "Protein", value: eaten.protein, target: targets.protein, color: AppleTheme.protein)
+                    macroSnapshotColumn(title: "Fat", value: eaten.fat, target: targets.fat, color: AppleTheme.fat)
+                    macroSnapshotColumn(title: "Carbs", value: eaten.carbs, target: targets.carbs, color: AppleTheme.carbs)
+                }
+            }
+            .mfCard(padding: 16)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Nutrition summary, \(Int(caloriesRemaining.rounded())) calories remaining")
+    }
+
+    private func macroSnapshotColumn(title: String, value: Double, target: Double, color: Color) -> some View {
+        let fraction: Double = target > 0 ? min(1.0, max(0.0, value / target)) : 0.0
+
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("\(Int(value.rounded())) / \(Int(target.rounded()))g")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundStyle(.primary)
+            ProgressView(value: fraction)
+                .tint(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Per-meal totals for the selected day (Nutrition sub-tab).
+    private var mealBreakdownCard: some View {
+        let entries = dayEntries
+        let tagsInUse: [MealTag] = MealTag.allCases.filter { tag in
+            entries.contains { $0.mealTag == tag }
+        }
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("\(entries.count) \(entries.count == 1 ? "food" : "foods") logged")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button {
+                    appState.openQuickAdd(tab: 0)
+                } label: {
+                    Label("Log Food", systemImage: "plus")
+                        .font(.caption2.weight(.semibold))
+                }
+                .buttonStyle(.mfChip)
+                .controlSize(.mini)
+            }
+
+            if tagsInUse.isEmpty {
+                Text("Nothing logged yet for this day.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(tagsInUse) { tag in
+                    let mealEntries = entries.filter { $0.mealTag == tag }
+                    let mealCalories = mealEntries.reduce(0.0) { $0 + $1.calories }
+                    let mealProtein = mealEntries.reduce(0.0) { $0 + $1.protein }
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(tag.displayName)
+                                .font(.subheadline.weight(.semibold))
+                            Text(mealEntries.map(\.foodName).joined(separator: ", "))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
-                    } else {
-                        Text("No weigh-ins")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer(minLength: 2)
-
-                    HStack {
-                        Text("View History")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(AppleTheme.trend)
                         Spacer()
-                        Button {
-                            appState.showingWeighInSheet = true
-                        } label: {
-                            Label("Log", systemImage: "plus")
-                                .font(.caption2.weight(.semibold))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("\(Int(mealCalories.rounded())) kcal")
+                                .font(.caption.weight(.bold).monospacedDigit())
+                            Text("\(Int(mealProtein.rounded()))g protein")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(AppleTheme.protein)
                         }
-                        .buttonStyle(.mfChip)
-                        .controlSize(.mini)
                     }
+                    .padding(10)
+                    .background(AppleTheme.cardSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .appleHealthCard(padding: 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
+        }
+        .appleHealthCard(padding: 16)
+    }
 
-            // Adaptive Expenditure Card (Apple Health Style)
+    /// Shown on Overview while a workout is still open, so it can be resumed in one tap.
+    private func activeWorkoutBanner(_ session: WorkoutSession) -> some View {
+        Button {
+            appState.activeWorkoutSessionID = session.id
+            appState.showingActiveWorkoutFullScreen = true
+        } label: {
+            HStack(spacing: 12) {
+                AppleIconBadge(icon: "figure.strengthtraining.traditional", color: AppleTheme.exercise, size: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Workout in Progress")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.primary)
+                    Text("\(session.title) • \(session.completedSetCount) sets done")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Text("Resume")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppleTheme.background)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.primary))
+            }
+            .appleHealthCard(padding: 14)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func coachingMetricsRow(digest: CoachingDashboardDigest) -> some View {
+        HStack(spacing: 12) {
+            weightTrendCard(digest: digest)
+
+            expenditureCard(digest: digest)
+        }
+    }
+
+    /// Trend Weight Card (Apple Health Style - Clickable to Weight Detail & History)
+    private func weightTrendCard(digest: CoachingDashboardDigest) -> some View {
+        NavigationLink(destination: WeightDetailView()) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Expenditure")
+                    Text("Weight Trend")
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.primary)
                     Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.tertiary)
                 }
 
-                Text("\(Int(digest.expenditure.expenditureKcal.rounded())) kcal")
-                    .font(.system(size: 24, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
+                if let trendKg = digest.weightSummary.latestTrendKg {
+                    Text(UnitsFormatter.formatWeight(trendKg, system: profile.unitSystem))
+                        .font(.system(size: 24, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
 
-                ConfidencePill(confidence: digest.expenditure.confidence)
-
-                Text(digest.expenditure.method == .adaptive ? "Adaptive Daily TDEE" : "Mifflin-St Jeor")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    if let d7 = digest.weightSummary.change7dKg {
+                        Label(
+                            "\(UnitsFormatter.formatSignedWeightDelta(d7, system: profile.unitSystem)) this week",
+                            systemImage: d7 <= 0 ? "arrow.down.right" : "arrow.up.right"
+                        )
+                        .font(.caption2.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(AppleTheme.trend)
+                    } else {
+                        Text("Log daily for velocity")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("No weigh-ins")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer(minLength: 2)
+
+                HStack {
+                    Text("View History")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(AppleTheme.trend)
+                    Spacer()
+                    Button {
+                        appState.showingWeighInSheet = true
+                    } label: {
+                        Label("Log", systemImage: "plus")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .buttonStyle(.mfChip)
+                    .controlSize(.mini)
+                }
             }
             .appleHealthCard(padding: 16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .buttonStyle(.plain)
+    }
+
+    /// Adaptive Expenditure Card (Apple Health Style)
+    private func expenditureCard(digest: CoachingDashboardDigest) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Expenditure")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+
+            Text("\(Int(digest.expenditure.expenditureKcal.rounded())) kcal")
+                .font(.system(size: 24, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+
+            ConfidencePill(confidence: digest.expenditure.confidence)
+
+            Text(digest.expenditure.method == .adaptive ? "Adaptive Daily TDEE" : "Mifflin-St Jeor")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 2)
+        }
+        .appleHealthCard(padding: 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func energyBalanceCard(digest: CoachingDashboardDigest) -> some View {
@@ -855,5 +1113,22 @@ struct TodayDashboardView: View {
         appState.activeWorkoutSessionID = session.id
         appState.showingActiveWorkoutFullScreen = true
         PhoneWatchSyncService.shared.pushCurrentState(context: modelContext)
+    }
+}
+
+/// Sub-tabs inside the Today dashboard so each focused section fits without a long scroll.
+private enum TodaySubTab: String, CaseIterable, Identifiable {
+    case overview
+    case nutrition
+    case activity
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .overview: return "Overview"
+        case .nutrition: return "Nutrition"
+        case .activity: return "Activity"
+        }
     }
 }

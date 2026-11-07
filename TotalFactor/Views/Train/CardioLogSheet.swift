@@ -95,6 +95,14 @@ struct CardioLogSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let source = session?.sourceLabel {
+                    Section {
+                        Label("Imported from \(source)", systemImage: "heart.text.square.fill")
+                            .font(.subheadline.weight(.semibold))
+                    } footer: {
+                        Text("Edits stay in Total Factor; the original workout in Apple Health isn't changed.")
+                    }
+                }
                 activitySection
                 whenSection
                 detailsSection
@@ -140,7 +148,9 @@ struct CardioLogSheet: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This can't be undone. The matching Apple Health workout is removed too.")
+                Text(session?.importedFromHealth == true
+                     ? "It's removed from Total Factor and won't be imported again. The workout stays in Apple Health."
+                     : "This can't be undone. The matching Apple Health workout is removed too.")
             }
         }
     }
@@ -324,6 +334,9 @@ struct CardioLogSheet: View {
 
         UserDefaults.standard.set(kind.rawValue, forKey: Self.lastKindDefaultsKey)
 
+        // Imported workouts belong to the app that recorded them; edits stay local.
+        guard !target.importedFromHealth else { return }
+
         // Re-write the Apple Health workout (delete the old one first when editing).
         let context = modelContext
         Task { @MainActor in
@@ -341,14 +354,18 @@ struct CardioLogSheet: View {
         guard let session else { return }
         let context = modelContext
         let target = session
+        let wasImported = session.importedFromHealth
         let healthKitUUID = session.healthKitWorkoutUUID
+        if wasImported, let healthKitUUID {
+            CardioImportPreference.dismiss(healthKitUUID)
+        }
         dismiss()
         // Delete after the sheet closes so nothing renders a deleted model.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
             context.delete(target)
             try? context.save()
-            if let healthKitUUID {
+            if !wasImported, let healthKitUUID {
                 await HealthKitService.shared.deleteCardioWorkout(uuid: healthKitUUID)
             }
         }
@@ -400,6 +417,9 @@ struct CardioHistoryCard: View {
     let unitSystem: UnitSystem
     let onLog: () -> Void
     let onSelect: (CardioSession) -> Void
+    /// Pulls new cardio from Apple Health (Apple Watch Workout app, Fitness, Strava…).
+    var onSyncHealth: (() -> Void)? = nil
+    var isSyncing: Bool = false
 
     private let calendar = Calendar.current
 
@@ -417,6 +437,20 @@ struct CardioHistoryCard: View {
                 Text("Cardio")
                     .font(.headline)
                 Spacer()
+                if let onSyncHealth {
+                    Button {
+                        onSyncHealth()
+                    } label: {
+                        if isSyncing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Sync", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                    }
+                    .buttonStyle(.mfChip)
+                    .disabled(isSyncing)
+                }
                 Button {
                     onLog()
                 } label: {
@@ -435,7 +469,7 @@ struct CardioHistoryCard: View {
             }
 
             if recent.isEmpty {
-                Text("Log runs, walks, rides, rowing and more alongside your lifting. Sessions are saved to Apple Health as workouts.")
+                Text("Runs, walks and rides from your Apple Watch or the Fitness app show up here automatically. You can also log cardio by hand; it's saved to Apple Health.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -464,6 +498,12 @@ struct CardioHistoryCard: View {
                 Text("\(DayKey.displayTitle(for: s.dayKey)) • \(s.start.formatted(date: .omitted, time: .shortened))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if s.importedFromHealth {
+                    Label(s.sourceName.isEmpty ? "Apple Health" : s.sourceName, systemImage: "heart.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                }
             }
 
             Spacer()

@@ -94,6 +94,7 @@ struct TotalFactorApp: App {
                     watchSync.configure(container: sharedModelContainer)
                     _ = CoachingCoordinator.evaluate(context: context)
                     healthService.startObservingBodyMass(context: context)
+                    healthService.startObservingWorkouts(context: context)
                     NotificationService.shared.rescheduleAll()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
@@ -104,6 +105,7 @@ struct TotalFactorApp: App {
                         watchSync.pushCurrentState(context: context)
                         Task {
                             await healthService.importExternalBodyMetrics(context: context)
+                            await healthService.importExternalCardioWorkouts(context: context)
                             await healthService.refreshTodayDashboardTelemetry()
                             _ = CoachingCoordinator.evaluate(context: context)
                         }
