@@ -9,6 +9,8 @@ struct AppleHealthSettingsView: View {
     @State private var healthSyncSummary: HealthSyncSummary? = nil
     @State private var isHealthSyncing: Bool = false
     @State private var statusAlertMessage: String? = nil
+    @State private var isRequestingAccess: Bool = false
+    @State private var accessChecked: Bool = false
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -18,6 +20,53 @@ struct AppleHealthSettingsView: View {
         @Bindable var bindableProfile = profile
 
         Form {
+            Section {
+                Button {
+                    isRequestingAccess = true
+                    Task {
+                        let granted = await healthService.requestPermissions()
+                        await MainActor.run {
+                            isRequestingAccess = false
+                            accessChecked = true
+                            if !granted {
+                                statusAlertMessage = healthService.lastAuthError ?? "Apple Health didn't respond."
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Label("Check Apple Health Access", systemImage: "heart.text.square")
+                        Spacer()
+                        if isRequestingAccess {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if accessChecked {
+                            Image(systemName: healthService.lastAuthError == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                .foregroundStyle(healthService.lastAuthError == nil ? Color.green : Color.orange)
+                        }
+                    }
+                }
+                .disabled(isRequestingAccess)
+
+                if let error = healthService.lastAuthError {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(error)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                        if error.localizedCaseInsensitiveContains("entitlement") {
+                            Text("This copy of Total Factor was installed without Apple Health permission. Install a build made with the updated Scripts/build_ipa.sh (or run it from Xcode) to fix it.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            } header: {
+                Text("Access")
+            } footer: {
+                Text("Shows the Apple Health permission sheet if anything is missing. Once access works, Total Factor appears in Settings → Health → Data Access & Devices.")
+            }
+
             Section {
                 Button {
                     isHealthSyncing = true

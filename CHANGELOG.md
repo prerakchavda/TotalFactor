@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.11.1] - 2026-11-08
+
+### Fixed — Build 29
+- `Scripts/build_ipa.sh`: ad-hoc signs nested code, the widget extension and the app with their `.entitlements` (`codesign --force --sign - --entitlements`) before packaging, and verifies `com.apple.developer.healthkit` is embedded. Previously `CODE_SIGNING_ALLOWED=NO` produced an entitlement-less binary, so SideStore re-signed it without HealthKit and every HealthKit call failed.
+
+### Added
+- `AppleHealthSettingsView`: Access section (`requestPermissions()` + `lastAuthError` display, entitlement hint).
+
+---
+
 ## [1.11.0] - 2026-11-07
 
 ### Added — Sub-tabs (Build 28)

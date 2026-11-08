@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.11.1",
+    "build": "29",
+    "date": "2026-11-08",
+    "headline": "Apple Health Access Fix",
+    "sections": [
+      {
+        "title": "Apple Health on SideStore",
+        "icon": "heart.text.square.fill",
+        "items": [
+          "SideStore installs now include Apple Health permission, so Total Factor shows up in Settings → Health → Data Access & Devices and can import your runs.",
+          "New Check Apple Health Access button in Settings → Apple Health & Cloud shows whether access works, or the exact error if it doesn't."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.11.0",
     "build": "28",
     "date": "2026-11-07",

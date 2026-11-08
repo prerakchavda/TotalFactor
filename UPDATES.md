@@ -6,6 +6,20 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.11.1 — Build 29 (2026-11-08) — Apple Health Access Fix (SideStore)
+
+### 1. SideStore Builds Get Apple Health Access (`Scripts/build_ipa.sh`)
+- The SideStore `.ipa` was built with code signing off, so it carried no HealthKit entitlement. SideStore keeps only the entitlements it finds in the app, so Total Factor never got Apple Health access and didn't appear in **Settings → Health → Data Access & Devices** (no cardio import, no weigh-in or workout sync).
+- The packager now ad-hoc signs the app and widget extension with their entitlements before zipping, and stops with an error if the HealthKit entitlement is missing.
+
+### 2. Check Apple Health Access (`AppleHealthSettingsView.swift`)
+- New **Access** section in **Settings → Apple Health & Cloud** with a **Check Apple Health Access** button. It shows the Health permission sheet if anything is missing, then a green check or the exact error (with an explanation when the install is missing Health permission).
+
+### 3. Build
+- Bumped to v1.11.1 (Build 29) across app, widgets, and Watch.
+
+---
+
 ## v1.11.0 — Build 28 (2026-11-07) — Sub-Tabs: Less Scrolling
 
 ### 1. Workouts Sub-Tabs (`TrainHubView.swift`, `SubTabBar.swift`)

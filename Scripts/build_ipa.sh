@@ -74,6 +74,27 @@ rm -rf "$STAGING_DIR/Payload/TotalFactor.app/Watch"
 rm -f "$STAGING_DIR/Payload/TotalFactor.app/__preview.dylib"
 rm -f "$STAGING_DIR/Payload/TotalFactor.app/PlugIns/TotalFactorWidgetsExtension.appex/__preview.dylib" 2>/dev/null || true
 
+# 4. Ad-hoc sign WITH entitlements. The build above runs with code signing off, which leaves no
+#    entitlements in the binary. SideStore copies the entitlements it finds in the binary when it re-signs,
+#    so without this step the installed app has no HealthKit access and never appears in
+#    Settings → Health → Data Access & Devices.
+STAGED_APP="$STAGING_DIR/Payload/TotalFactor.app"
+echo "    Signing nested code (ad-hoc)..."
+find "$STAGED_APP" -depth \( -name "*.dylib" -o -name "*.framework" \) -print0 | while IFS= read -r -d '' nested; do
+  codesign --force --sign - "$nested" >/dev/null 2>&1 || true
+done
+WIDGET_APPEX="$STAGED_APP/PlugIns/TotalFactorWidgetsExtension.appex"
+if [[ -d "$WIDGET_APPEX" ]]; then
+  codesign --force --sign - --entitlements TotalFactorWidgets/TotalFactorWidgets.entitlements "$WIDGET_APPEX"
+fi
+codesign --force --sign - --entitlements TotalFactor/Resources/TotalFactor.entitlements "$STAGED_APP"
+if codesign -d --entitlements - "$STAGED_APP" 2>/dev/null | grep -q "com.apple.developer.healthkit"; then
+  echo "    ✓ HealthKit entitlement embedded (Apple Health access will work after SideStore re-signs)"
+else
+  echo "Error: HealthKit entitlement is missing from the signed app; Apple Health would not work."
+  exit 1
+fi
+
 rm -f "$IPA_DEST"
 (cd "$STAGING_DIR" && zip -qry "$IPA_DEST" Payload)
 rm -rf "$STAGING_DIR"
