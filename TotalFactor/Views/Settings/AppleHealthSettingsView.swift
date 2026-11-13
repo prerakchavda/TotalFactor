@@ -3,6 +3,7 @@ import SwiftData
 
 struct AppleHealthSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
     @Environment(HealthKitService.self) private var healthService
     @Query private var profiles: [UserProfile]
 
@@ -11,6 +12,12 @@ struct AppleHealthSettingsView: View {
     @State private var statusAlertMessage: String? = nil
     @State private var isRequestingAccess: Bool = false
     @State private var accessChecked: Bool = false
+    @State private var shareShortcutItem: IdentifiableURL? = nil
+
+    private struct IdentifiableURL: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
 
     private var profile: UserProfile {
         profiles.first ?? CoachingCoordinator.fetchOrCreateProfile(context: modelContext)
@@ -54,7 +61,7 @@ struct AppleHealthSettingsView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.orange)
                         if error.localizedCaseInsensitiveContains("entitlement") {
-                            Text("This copy of Total Factor was installed without Apple Health permission. Install a build made with the updated Scripts/build_ipa.sh (or run it from Xcode) to fix it.")
+                            Text("Apple blocks direct HealthKit entitlements on Free Apple ID / SideStore installs. Use the free Apple Shortcuts Bridge below to sync Steps, Calories, Heart Rate, Weight & Workouts.")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -64,7 +71,59 @@ struct AppleHealthSettingsView: View {
             } header: {
                 Text("Access")
             } footer: {
-                Text("Shows the Apple Health permission sheet if anything is missing. Once access works, Total Factor appears in Settings → Health → Data Access & Devices.")
+                Text("Direct HealthKit requires a Paid Apple Developer account. On Free / SideStore builds, use Apple Shortcuts Bridge below.")
+            }
+
+            Section {
+                Button {
+                    if let url = ShortcutsHealthBridge.syncShortcutURL {
+                        openURL(url)
+                    }
+                } label: {
+                    Label("Run Health Sync Shortcut Now", systemImage: "bolt.heart.fill")
+                        .fontWeight(.semibold)
+                }
+
+                Button {
+                    if let url = ShortcutsHealthBridge.workoutShortcutURL {
+                        openURL(url)
+                    }
+                } label: {
+                    Label("Log / Import Workout via Shortcut", systemImage: "figure.run.circle")
+                }
+
+                Button {
+                    installBundledShortcut(named: ShortcutsHealthBridge.healthSyncShortcutName)
+                } label: {
+                    Label("Install \"\(ShortcutsHealthBridge.healthSyncShortcutName)\" Shortcut", systemImage: "square.and.arrow.down")
+                }
+
+                Button {
+                    installBundledShortcut(named: ShortcutsHealthBridge.workoutShortcutName)
+                } label: {
+                    Label("Install \"\(ShortcutsHealthBridge.workoutShortcutName)\" Shortcut", systemImage: "square.and.arrow.down")
+                }
+
+                if let syncDate = healthService.lastShortcutsSyncDate {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text("Last Shortcuts Sync")
+                            Spacer()
+                            Text(syncDate.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        if let summary = healthService.lastShortcutsSyncSummary, !summary.isEmpty {
+                            Text(summary)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Apple Shortcuts Bridge (Free / SideStore)")
+            } footer: {
+                Text("1. Tap Install (or open the synced shortcut in Apple Shortcuts).\n2. Tap Run to sync Steps, Active/Resting Calories, RHR, HRV, HR & Weight.\n3. Optional: In iPhone Shortcuts → Automation → +, create a Daily or \"When I end any workout\" trigger to run automatically.")
             }
 
             Section {
@@ -178,5 +237,26 @@ struct AppleHealthSettingsView: View {
         } message: {
             Text(statusAlertMessage ?? "")
         }
+        .sheet(item: $shareShortcutItem) { item in
+            ShortcutShareSheet(activityItems: [item.url])
+        }
     }
+
+    private func installBundledShortcut(named name: String) {
+        if let url = ShortcutsHealthBridge.bundledShortcutURL(named: name) {
+            shareShortcutItem = IdentifiableURL(url: url)
+        } else {
+            statusAlertMessage = "Shortcut file \"\(name).shortcut\" was not found in app resources."
+        }
+    }
+}
+
+private struct ShortcutShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

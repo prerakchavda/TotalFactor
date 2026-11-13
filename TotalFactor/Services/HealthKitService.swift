@@ -4,7 +4,7 @@ import SwiftData
 import HealthKit
 #endif
 
-public struct ExternalFitnessWorkout: Identifiable, Equatable, Sendable {
+public struct ExternalFitnessWorkout: Identifiable, Equatable, Codable, Sendable {
     public let id: UUID
     public let title: String
     public let sfSymbol: String
@@ -38,7 +38,7 @@ public struct ExternalFitnessWorkout: Identifiable, Equatable, Sendable {
     }
 }
 
-public struct HealthDisplayDashboardStats: Equatable, Sendable {
+public struct HealthDisplayDashboardStats: Equatable, Codable, Sendable {
     public var stepsToday: Int = 0
     /// Ground Rule 3: Watch active calories are strictly DISPLAY-ONLY and NEVER feed targets or expenditure!
     public var activeCaloriesDisplayOnly: Double = 0
@@ -91,6 +91,8 @@ public final class HealthKitService {
     public var todayExternalWorkouts: [ExternalFitnessWorkout] = []
     public var currentLiveHeartRateBPM: Double? = nil
     public var lastSyncDate: Date? = nil
+    public var lastShortcutsSyncDate: Date? = nil
+    public var lastShortcutsSyncSummary: String? = nil
 
     #if canImport(HealthKit)
     private let store = HKHealthStore()
@@ -99,7 +101,14 @@ public final class HealthKitService {
     private var liveHRObserverQuery: HKQuery? = nil
     #endif
 
-    public init() {}
+    public init() {
+        ShortcutsHealthBridge.restoreCachedTodayTelemetry(
+            into: &todayStats,
+            workouts: &todayExternalWorkouts,
+            lastShortcutsSyncDate: &lastShortcutsSyncDate,
+            lastShortcutsSyncSummary: &lastShortcutsSyncSummary
+        )
+    }
 
     public var isHealthDataAvailable: Bool {
         #if canImport(HealthKit)
@@ -367,6 +376,7 @@ public final class HealthKitService {
         }
 
         todayStats = stats
+        ShortcutsHealthBridge.mergeCachedTelemetry(into: &todayStats)
         await fetchTodayExternalWorkouts()
         #endif
     }
@@ -460,6 +470,7 @@ public final class HealthKitService {
             )
         }
         self.todayExternalWorkouts = mapped
+        ShortcutsHealthBridge.mergeCachedWorkouts(into: &self.todayExternalWorkouts)
         #endif
     }
 

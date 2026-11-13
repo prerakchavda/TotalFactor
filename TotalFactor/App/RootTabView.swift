@@ -120,11 +120,31 @@ struct RootTabView: View {
             }
         }
         .onOpenURL { url in
-            guard url.scheme == "totalfactor" else { return }
+            guard url.scheme?.lowercased() == "totalfactor" else { return }
+            if ShortcutsHealthBridge.isBridgeURL(url) {
+                let defaultUnit = profiles.first?.unitSystem ?? .imperial
+                if let payload = ShortcutsHealthBridge.parseURL(url, defaultUnitSystem: defaultUnit) {
+                    let summary = ShortcutsHealthBridge.apply(payload, context: modelContext)
+                    state.selectedTab = .today
+                    state.shortcutSyncToastMessage = summary
+                }
+                return
+            }
             let tabKey = url.host ?? url.pathComponents.dropFirst().first ?? ""
             if let tab = AppTab(rawValue: tabKey), tab != .food || foodTrackingEnabled {
                 state.selectedTab = tab
             }
+        }
+        .alert(
+            "Apple Health Shortcuts Sync",
+            isPresented: Binding(
+                get: { state.shortcutSyncToastMessage != nil },
+                set: { if !$0 { state.shortcutSyncToastMessage = nil } }
+            )
+        ) {
+            Button("Done", role: .cancel) { state.shortcutSyncToastMessage = nil }
+        } message: {
+            Text(state.shortcutSyncToastMessage ?? "")
         }
     }
 

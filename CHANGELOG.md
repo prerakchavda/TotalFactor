@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.11.2] - 2026-11-12
+
+### Added — Apple Shortcuts Health & Workout Bridge (Build 30)
+- `ShortcutsHealthBridge` (`totalfactor://health-sync` & `totalfactor://workout-sync`): parses grouped numbers, flexible weights/units, heart metrics, sleep, and cardio workouts into SwiftData (`WeighIn`, `CardioSession`) and persists same-day telemetry/workout overlays.
+- `TotalFactorShortcuts.swift`: added `SyncHealthBridgeIntent`, `ImportCardioWorkoutIntent`, `SiriCardioKind`, and `SiriWeightUnit` AppIntents for silent Personal Automations.
+- `Scripts/generate_shortcuts.py` + `TotalFactor/Resources/Shortcuts/`: generated and signed `Total Factor Health Sync.shortcut` and `Total Factor Log Cardio Workout.shortcut`.
+- `AppleHealthSettingsView`, `TodayDashboardView`, and `TrainHubView`: added Shortcuts bridge controls, share-sheet installers, 1-tap Sync button, and clear Free Apple ID fallback guidance.
+- `TotalFactorTests/ShortcutsHealthBridgeTests.swift`: added URL parsing and workout deduplication tests.
+
+### Fixed
+- `SharedSnapshotStore.sharedDefaults`: falls back to `UserDefaults.standard` when the App Group container is absent (Free Apple ID / SideStore).
+- `HealthKitService.refreshTodayDashboardTelemetry()` / `fetchTodayExternalWorkouts()`: overlays persisted Shortcuts bridge cache so foreground refreshes never overwrite bridged stats with zeroes.
+
+---
+
 ## [1.11.1] - 2026-11-08
 
 ### Fixed — Build 29

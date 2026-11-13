@@ -583,7 +583,12 @@ struct TrainHubView: View {
         isSyncingCardio = true
         Task { @MainActor in
             let health = HealthKitService.shared
-            _ = await health.requestPermissions()
+            let granted = await health.requestPermissions()
+            if !granted, let err = health.lastAuthError, err.localizedCaseInsensitiveContains("entitlement") {
+                isSyncingCardio = false
+                importResultMessage = "Direct Apple Health access is blocked on Free Apple ID / SideStore installs.\n\nUse Settings → Apple Health & Cloud → Apple Shortcuts Bridge (or the \"Total Factor Log Cardio Workout\" shortcut) to sync workouts for free."
+                return
+            }
             let added = await health.importExternalCardioWorkouts(context: modelContext, daysBack: 90)
             isSyncingCardio = false
             importResultMessage = added > 0

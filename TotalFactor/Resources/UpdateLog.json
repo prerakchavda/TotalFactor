@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.11.2",
+    "build": "30",
+    "date": "2026-11-12",
+    "headline": "Apple Shortcuts Health & Workout Bridge",
+    "sections": [
+      {
+        "title": "Free Apple Health & Fitness Sync",
+        "icon": "bolt.heart.fill",
+        "items": [
+          "Added an Apple Shortcuts Bridge (totalfactor://health-sync & totalfactor://workout-sync) so Free Apple ID / SideStore installs can sync Steps, Active/Resting Calories, Heart Rate, Resting HR, HRV, Weight, and Cardio Workouts without needing a paid HealthKit developer entitlement.",
+          "Bundled ready-to-install signed Shortcuts ('Total Factor Health Sync' and 'Total Factor Log Cardio Workout') in Settings → Apple Health & Cloud, plus 1-tap Sync triggers on Today → Activity.",
+          "Added 'Sync Apple Health Snapshot' and 'Import Fitness Workout' Siri/Shortcuts AppIntents so iPhone Personal Automations (Daily or When Any Workout Ends) can push stats silently in the background."
+        ]
+      },
+      {
+        "title": "Storage & Persistence Fixes",
+        "icon": "wrench.and.screwdriver.fill",
+        "items": [
+          "Fixed SharedSnapshotStore to safely fall back to UserDefaults.standard when the App Group container is stripped on Free Apple ID / SideStore installs.",
+          "Preserved Shortcuts-synced telemetry and external workouts across foreground HealthKit refreshes.",
+          "Updated Cardio Sync alerts when direct HealthKit is blocked to point cleanly to Apple Shortcuts Bridge."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.11.1",
     "build": "29",
     "date": "2026-11-08",

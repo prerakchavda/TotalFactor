@@ -67,6 +67,13 @@ public enum CoachingCoordinator {
 
             case .skipRestTimer:
                 RestTimerService.shared.skip()
+
+            case .syncHealthBridge:
+                if let json = action.payloadJSON,
+                   let data = json.data(using: .utf8),
+                   let payload = try? JSONDecoder().decode(BridgedHealthPayload.self, from: data) {
+                    _ = ShortcutsHealthBridge.apply(payload, context: context)
+                }
             }
         }
 

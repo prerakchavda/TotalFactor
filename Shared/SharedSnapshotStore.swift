@@ -90,6 +90,7 @@ public struct PendingQuickAction: Codable, Identifiable, Sendable {
         case adjustRestSeconds
         case skipRestTimer
         case loggedFoodEntry
+        case syncHealthBridge
     }
 
     public var id: UUID
@@ -103,6 +104,7 @@ public struct PendingQuickAction: Codable, Identifiable, Sendable {
     public var grams: Double
     public var servingLabel: String
     public var mealTagRaw: String
+    public var payloadJSON: String?
 
     public init(
         id: UUID = UUID(),
@@ -115,7 +117,8 @@ public struct PendingQuickAction: Codable, Identifiable, Sendable {
         fat: Double = 0,
         grams: Double = 100,
         servingLabel: String = "1 serving",
-        mealTagRaw: String = "none"
+        mealTagRaw: String = "none",
+        payloadJSON: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -128,6 +131,7 @@ public struct PendingQuickAction: Codable, Identifiable, Sendable {
         self.grams = grams
         self.servingLabel = servingLabel
         self.mealTagRaw = mealTagRaw
+        self.payloadJSON = payloadJSON
     }
 
     public init(from decoder: Decoder) throws {
@@ -143,6 +147,7 @@ public struct PendingQuickAction: Codable, Identifiable, Sendable {
         self.grams = try container.decodeIfPresent(Double.self, forKey: .grams) ?? 100
         self.servingLabel = try container.decodeIfPresent(String.self, forKey: .servingLabel) ?? "1 serving"
         self.mealTagRaw = try container.decodeIfPresent(String.self, forKey: .mealTagRaw) ?? "none"
+        self.payloadJSON = try container.decodeIfPresent(String.self, forKey: .payloadJSON)
     }
 }
 
@@ -151,8 +156,22 @@ public enum SharedSnapshotStore {
     private static let snapshotKey = "totalfactor.dashboard.snapshot.v1"
     private static let pendingActionsKey = "totalfactor.pending.actions.v1"
 
+    /// Only use the App Group UserDefaults suite when the provisioning profile grants the
+    /// App Group entitlement; free Apple ID / SideStore installs strip App Groups and must
+    /// safely fall back to `.standard` so cfprefsd writes are not dropped.
+    public static let hasAppGroupEntitlement: Bool = {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) != nil
+    }()
+
+    public static var sharedDefaults: UserDefaults {
+        if hasAppGroupEntitlement, let suite = UserDefaults(suiteName: appGroupIdentifier) {
+            return suite
+        }
+        return .standard
+    }
+
     private static var defaults: UserDefaults {
-        UserDefaults(suiteName: appGroupIdentifier) ?? .standard
+        sharedDefaults
     }
 
     public static func load() -> WidgetDashboardSnapshot {

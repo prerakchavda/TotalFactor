@@ -51,6 +51,7 @@ public final class AppState {
     public var activeWorkoutSessionID: UUID? = nil
     public var showingActiveWorkoutFullScreen: Bool = false
     public var pendingShortcutWorkoutName: String? = nil
+    public var shortcutSyncToastMessage: String? = nil
 
     public init() {
         for arg in ProcessInfo.processInfo.arguments {

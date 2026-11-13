@@ -6,6 +6,26 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.11.2 — Build 30 (2026-11-12) — Apple Shortcuts Health & Workout Bridge
+
+### 1. Apple Shortcuts Bridge for Free Apple ID / SideStore (`ShortcutsHealthBridge.swift`, `RootTabView.swift`)
+- Free Apple ID provisioning profiles on SideStore strip the `com.apple.developer.healthkit` entitlement, blocking direct HealthKit API calls.
+- Added `totalfactor://health-sync?...` and `totalfactor://workout-sync?...` URL receivers (`ShortcutsHealthBridge`) to import Steps, Active Calories, Resting Calories, Heart Rate, Resting HR, HRV, Sleep, Weight, and Cardio Workouts directly into SwiftData and the Today telemetry dashboard with duplicate-workout prevention.
+- Added `SyncHealthBridgeIntent` and `ImportCardioWorkoutIntent` AppIntents (`TotalFactorShortcuts.swift`) so iPhone Personal Automations (*Daily* or *When I end any workout*) can run silently in the background (`openAppWhenRun = false`).
+
+### 2. Built & Bundled Signed Apple Shortcuts (`TotalFactor/Resources/Shortcuts/`)
+- Built and signed two `.shortcut` workflows with `shortcuts sign`: **Total Factor Health Sync.shortcut** (uses native `Find Health Samples` + `Calculate Statistics`) and **Total Factor Log Cardio Workout.shortcut** (quick workout logger & automation bridge).
+- Added 1-tap **Run Health Sync Shortcut Now**, **Log / Import Workout via Shortcut**, and **Install** share-sheet buttons in **Settings → Apple Health & Cloud**, plus a **Sync** pill in **Today → Activity** and a clearer Cardio sync fallback prompt in **Workouts → History**.
+
+### 3. Storage & Refresh Fixes (`SharedSnapshotStore.swift`, `HealthKitService.swift`)
+- Fixed `SharedSnapshotStore` to check `containerURL(forSecurityApplicationGroupIdentifier:)` and fall back cleanly to `UserDefaults.standard` on SideStore builds without App Group entitlements.
+- Persisted Shortcuts-synced daily telemetry and external workouts so foreground `HealthKitService.refreshTodayDashboardTelemetry()` / `fetchTodayExternalWorkouts()` calls never wipe bridged values when HealthKit is unauthorized.
+
+### 4. Build
+- Bumped to v1.11.2 (Build 30) across app, widgets, and Watch.
+
+---
+
 ## v1.11.1 — Build 29 (2026-11-08) — Apple Health Access Fix (SideStore)
 
 ### 1. SideStore Builds Get Apple Health Access (`Scripts/build_ipa.sh`)

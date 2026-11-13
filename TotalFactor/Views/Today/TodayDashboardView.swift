@@ -3,6 +3,7 @@ import SwiftData
 
 struct TodayDashboardView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
     @Environment(AppState.self) private var appState
     @Environment(HealthKitService.self) private var healthService
 
@@ -1006,12 +1007,27 @@ struct TodayDashboardView: View {
     private var healthTelemetryCard: some View {
         let stats = healthService.todayStats
         return VStack(alignment: .leading, spacing: 14) {
-            AppleSectionHeader(
-                title: "Apple Health Context",
-                icon: "heart.fill",
-                color: .pink,
-                subtitle: "Display Only • Never Alters Coaching Targets"
-            )
+            HStack(alignment: .top) {
+                AppleSectionHeader(
+                    title: "Apple Health Context",
+                    icon: "heart.fill",
+                    color: .pink,
+                    subtitle: healthService.lastShortcutsSyncDate.map {
+                        "Shortcuts Synced \($0.formatted(date: .omitted, time: .shortened)) • Display Only"
+                    } ?? "Display Only • Never Alters Coaching Targets"
+                )
+                Spacer()
+                Button {
+                    if let url = ShortcutsHealthBridge.syncShortcutURL {
+                        openURL(url)
+                    }
+                } label: {
+                    Label("Sync", systemImage: "bolt.heart.fill")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.mfChip)
+                .controlSize(.small)
+            }
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 telemetryTile(

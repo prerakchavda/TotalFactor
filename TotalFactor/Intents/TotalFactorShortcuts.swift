@@ -251,6 +251,165 @@ public struct StartWorkoutShortcutIntent: AppIntent {
     }
 }
 
+public enum SiriCardioKind: String, AppEnum {
+    case run
+    case walk
+    case inclineWalk
+    case cycling
+    case elliptical
+    case stairClimber
+    case rowing
+    case swimming
+    case other
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Workout Type"
+
+    public static var caseDisplayRepresentations: [SiriCardioKind: DisplayRepresentation] = [
+        .run: "Run",
+        .walk: "Walk",
+        .inclineWalk: "Incline Walk / Hike",
+        .cycling: "Cycling",
+        .elliptical: "Elliptical",
+        .stairClimber: "Stair Climber",
+        .rowing: "Rowing",
+        .swimming: "Swimming",
+        .other: "Other Cardio / Fitness"
+    ]
+}
+
+public enum SiriWeightUnit: String, AppEnum {
+    case lbs
+    case kg
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation = "Weight Unit"
+
+    public static var caseDisplayRepresentations: [SiriWeightUnit: DisplayRepresentation] = [
+        .lbs: "Pounds (lb)",
+        .kg: "Kilograms (kg)"
+    ]
+}
+
+public struct SyncHealthBridgeIntent: AppIntent {
+    public static var title: LocalizedStringResource = "Sync Apple Health Snapshot"
+    public static var description = IntentDescription("Imports daily steps, active calories, heart rate, HRV, sleep, or weight from Apple Shortcuts into Total Factor without needing HealthKit entitlements.")
+    public static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Steps")
+    public var steps: Int?
+
+    @Parameter(title: "Active Calories (kcal)")
+    public var activeCalories: Double?
+
+    @Parameter(title: "Resting Calories (kcal)")
+    public var restingCalories: Double?
+
+    @Parameter(title: "Resting Heart Rate (bpm)")
+    public var restingHeartRate: Double?
+
+    @Parameter(title: "HRV (ms)")
+    public var hrvMs: Double?
+
+    @Parameter(title: "Sleep Hours")
+    public var sleepHours: Double?
+
+    @Parameter(title: "Weight Value")
+    public var weightValue: Double?
+
+    @Parameter(title: "Weight Unit", default: .lbs)
+    public var weightUnit: SiriWeightUnit
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult & ProvidesDialog {
+        let snap = SharedSnapshotStore.load()
+        let weightKg: Double? = weightValue.flatMap { val in
+            guard val > 20, val < 900 else { return nil }
+            let kg = weightUnit == .lbs ? (val * 0.45359237) : val
+            var updatedSnap = snap
+            updatedSnap.latestScaleWeightKg = kg
+            SharedSnapshotStore.save(updatedSnap)
+            return kg
+        }
+
+        let payload = BridgedHealthPayload(
+            steps: steps,
+            activeCalories: activeCalories,
+            basalCalories: restingCalories,
+            restingHeartRateBPM: restingHeartRate,
+            hrvSDNNMilliseconds: hrvMs,
+            sleepHours: sleepHours,
+            weightKg: weightKg
+        )
+        let encoded = (try? JSONEncoder().encode(payload)).flatMap { String(data: $0, encoding: .utf8) }
+        SharedSnapshotStore.enqueueAction(
+            PendingQuickAction(
+                kind: .syncHealthBridge,
+                numericValue: Double(steps ?? 0),
+                label: "Apple Health Shortcuts Sync",
+                payloadJSON: encoded
+            )
+        )
+        let summary = ShortcutsHealthBridge.apply(payload, context: nil)
+        return .result(dialog: "Synced with Total Factor: \(summary).")
+    }
+}
+
+public struct ImportCardioWorkoutIntent: AppIntent {
+    public static var title: LocalizedStringResource = "Import Fitness Workout"
+    public static var description = IntentDescription("Logs a completed Apple Watch / Apple Fitness workout into Total Factor's cardio & activity log.")
+    public static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Workout Title", default: "Apple Fitness Workout")
+    public var workoutTitle: String
+
+    @Parameter(title: "Workout Type", default: .run)
+    public var activityKind: SiriCardioKind
+
+    @Parameter(title: "Duration (minutes)", default: 30)
+    public var durationMinutes: Int
+
+    @Parameter(title: "Active Calories (kcal)")
+    public var activeCalories: Double?
+
+    @Parameter(title: "Distance (km)")
+    public var distanceKm: Double?
+
+    @Parameter(title: "Average Heart Rate (bpm)")
+    public var avgHeartRate: Double?
+
+    @Parameter(title: "Source App", default: "Apple Fitness (Shortcuts)")
+    public var sourceName: String
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult & ProvidesDialog {
+        let clampedMins = max(1, durationMinutes)
+        let payload = BridgedHealthPayload(
+            workoutTitle: workoutTitle,
+            workoutKindRaw: activityKind.rawValue,
+            workoutDurationSeconds: clampedMins * 60,
+            workoutDistanceMeters: distanceKm.map { $0 * 1000.0 },
+            workoutCalories: activeCalories,
+            workoutAvgHeartRate: avgHeartRate,
+            workoutSourceName: sourceName,
+            workoutStartDate: Date.now.addingTimeInterval(-TimeInterval(clampedMins * 60))
+        )
+        let encoded = (try? JSONEncoder().encode(payload)).flatMap { String(data: $0, encoding: .utf8) }
+        SharedSnapshotStore.enqueueAction(
+            PendingQuickAction(
+                kind: .syncHealthBridge,
+                numericValue: Double(clampedMins),
+                label: workoutTitle,
+                payloadJSON: encoded
+            )
+        )
+        _ = ShortcutsHealthBridge.apply(payload, context: nil)
+        return .result(dialog: "Imported \(workoutTitle) (\(clampedMins) min) into Total Factor.")
+    }
+}
+
 public struct TotalFactorShortcutsProvider: AppShortcutsProvider {
     public static var appShortcuts: [AppShortcut] {
         AppShortcut(
@@ -301,6 +460,24 @@ public struct TotalFactorShortcutsProvider: AppShortcutsProvider {
             ],
             shortTitle: "Start Workout",
             systemImageName: "dumbbell.fill"
+        )
+        AppShortcut(
+            intent: SyncHealthBridgeIntent(),
+            phrases: [
+                "Sync Apple Health to \(.applicationName)",
+                "Update fitness stats in \(.applicationName)"
+            ],
+            shortTitle: "Sync Health Bridge",
+            systemImageName: "heart.circle.fill"
+        )
+        AppShortcut(
+            intent: ImportCardioWorkoutIntent(),
+            phrases: [
+                "Import cardio workout to \(.applicationName)",
+                "Sync workout to \(.applicationName)"
+            ],
+            shortTitle: "Import Workout",
+            systemImageName: "figure.run.circle.fill"
         )
     }
 }
