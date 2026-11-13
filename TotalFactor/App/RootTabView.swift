@@ -120,6 +120,27 @@ struct RootTabView: View {
             }
         }
         .onOpenURL { url in
+            if url.isFileURL {
+                let defaultUnit = profiles.first?.unitSystem ?? .imperial
+                Task {
+                    do {
+                        let summary = try await AppleHealthExportImporter.importFile(
+                            at: url,
+                            context: modelContext,
+                            defaultUnitSystem: defaultUnit
+                        )
+                        await MainActor.run {
+                            state.selectedTab = .today
+                            state.shortcutSyncToastMessage = "\(summary.formatDescription): \(summary.telemetrySummary)"
+                        }
+                    } catch {
+                        await MainActor.run {
+                            state.shortcutSyncToastMessage = error.localizedDescription
+                        }
+                    }
+                }
+                return
+            }
             guard url.scheme?.lowercased() == "totalfactor" else { return }
             if ShortcutsHealthBridge.isBridgeURL(url) {
                 let defaultUnit = profiles.first?.unitSystem ?? .imperial

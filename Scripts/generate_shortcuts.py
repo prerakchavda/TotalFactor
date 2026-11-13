@@ -76,9 +76,12 @@ def find_health_sample_action(
     days: int = 1,
     limit: int | None = None,
     sort_latest: bool = False,
+    group_by: str | None = None,
+    unit: str | None = None,
 ) -> tuple[dict, str]:
     action_uuid = make_uuid()
-    date_values = {"Unit": 16, "Number": days}  # 16 = NSCalendarUnitDay
+    # Operator 1002 ("is today") takes empty Values; attaching Unit/Number corrupts the predicate on iOS.
+    date_values = {} if date_operator == 1002 else {"Unit": 16, "Number": days}  # 16 = NSCalendarUnitDay
     params = {
         "UUID": action_uuid,
         "WFContentItemFilter": {
@@ -108,6 +111,11 @@ def find_health_sample_action(
             "WFSerializationType": "WFContentPredicateTableTemplate",
         },
     }
+    if group_by is not None:
+        params["WFHKSampleFilteringGroupBy"] = group_by
+        params["WFHKSampleFilteringFillMissing"] = False
+    if unit is not None:
+        params["WFHKSampleFilteringUnit"] = unit
     if sort_latest:
         params["WFContentItemSortProperty"] = "Start Date"
         params["WFContentItemSortOrder"] = "Latest First"
@@ -121,18 +129,6 @@ def find_health_sample_action(
     }, action_uuid
 
 
-def calculate_statistics_action(input_uuid: str, operation: str = "Sum") -> tuple[dict, str]:
-    stat_uuid = make_uuid()
-    return {
-        "WFWorkflowActionIdentifier": "is.workflow.actions.statistics",
-        "WFWorkflowActionParameters": {
-            "UUID": stat_uuid,
-            "WFStatisticsOperation": operation,
-            "Input": make_var_attachment(input_uuid, "Health Samples", value_agg("Value")),
-        },
-    }, stat_uuid
-
-
 def wrap_workflow(actions: list[dict], color: int = 4282601983, glyph: int = 59771) -> dict:
     return {
         "WFWorkflowClientVersion": "2605.0.5",
@@ -141,11 +137,8 @@ def wrap_workflow(actions: list[dict], color: int = 4282601983, glyph: int = 597
         "WFWorkflowHasOutputFallback": False,
         "WFWorkflowHasShortcutInputVariables": False,
         "WFWorkflowImportQuestions": [],
-        "WFWorkflowInputContentItemClasses": [
-            "WFAppStoreAppContentItem",
-            "WFStringContentItem",
-        ],
-        "WFWorkflowTypes": ["NCWidget", "WatchKit"],
+        "WFWorkflowInputContentItemClasses": ["WFStringContentItem"],
+        "WFWorkflowTypes": [],
         "WFWorkflowIcon": {
             "WFWorkflowIconStartColor": color,
             "WFWorkflowIconGlyphNumber": glyph,
@@ -165,44 +158,58 @@ def sign_and_write(doc: dict, output_path: Path):
             check=True,
         )
         shutil.copyfile(signed, output_path)
+        os.chmod(output_path, 0o644)
     print(f"Generated signed shortcut: {output_path} ({output_path.stat().st_size} bytes)")
 
 
 def build_health_sync_shortcut():
     actions = []
 
-    steps_act, steps_uuid = find_health_sample_action("Steps", date_operator=1002)
-    steps_sum_act, steps_sum_uuid = calculate_statistics_action(steps_uuid, "Sum")
-    actions.extend([steps_act, steps_sum_act])
+    # Group cumulative metrics by Day so HealthKit aggregates them in-process instead of
+    # loading thousands of raw samples into Shortcuts (which freezes iPhone Shortcuts).
+    steps_act, steps_uuid = find_health_sample_action(
+        "Steps", date_operator=1002, limit=1, sort_latest=True, group_by="Day", unit="count"
+    )
+    actions.append(steps_act)
 
-    active_act, active_uuid = find_health_sample_action("Active Energy", date_operator=1002)
-    active_sum_act, active_sum_uuid = calculate_statistics_action(active_uuid, "Sum")
-    actions.extend([active_act, active_sum_act])
+    active_act, active_uuid = find_health_sample_action(
+        "Active Energy", date_operator=1002, limit=1, sort_latest=True, group_by="Day", unit="kcal"
+    )
+    actions.append(active_act)
 
-    basal_act, basal_uuid = find_health_sample_action("Resting Energy", date_operator=1002)
-    basal_sum_act, basal_sum_uuid = calculate_statistics_action(basal_uuid, "Sum")
-    actions.extend([basal_act, basal_sum_act])
+    basal_act, basal_uuid = find_health_sample_action(
+        "Resting Energy", date_operator=1002, limit=1, sort_latest=True, group_by="Day", unit="kcal"
+    )
+    actions.append(basal_act)
 
-    rhr_act, rhr_uuid = find_health_sample_action("Resting Heart Rate", date_operator=1001, days=2, limit=1, sort_latest=True)
+    rhr_act, rhr_uuid = find_health_sample_action(
+        "Resting Heart Rate", date_operator=1001, days=2, limit=1, sort_latest=True
+    )
     actions.append(rhr_act)
 
-    hrv_act, hrv_uuid = find_health_sample_action("Heart Rate Variability", date_operator=1001, days=2, limit=1, sort_latest=True)
+    hrv_act, hrv_uuid = find_health_sample_action(
+        "Heart Rate Variability", date_operator=1001, days=2, limit=1, sort_latest=True
+    )
     actions.append(hrv_act)
 
-    hr_act, hr_uuid = find_health_sample_action("Heart Rate", date_operator=1002, limit=1, sort_latest=True)
+    hr_act, hr_uuid = find_health_sample_action(
+        "Heart Rate", date_operator=1002, limit=1, sort_latest=True
+    )
     actions.append(hr_act)
 
-    weight_act, weight_uuid = find_health_sample_action("Weight", date_operator=1001, days=30, limit=1, sort_latest=True)
+    weight_act, weight_uuid = find_health_sample_action(
+        "Weight", date_operator=1001, days=30, limit=1, sort_latest=True
+    )
     actions.append(weight_act)
 
     text_uuid = make_uuid()
     url_parts = [
         "totalfactor://health-sync?steps=",
-        (steps_sum_uuid, "Sum", None),
+        (steps_uuid, "Health Samples", value_agg("Value")),
         "&active_kcal=",
-        (active_sum_uuid, "Sum", None),
+        (active_uuid, "Health Samples", value_agg("Value")),
         "&basal_kcal=",
-        (basal_sum_uuid, "Sum", None),
+        (basal_uuid, "Health Samples", value_agg("Value")),
         "&rhr=",
         (rhr_uuid, "Health Samples", value_agg("Value")),
         "&hrv=",

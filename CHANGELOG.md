@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.11.3] - 2026-11-12
+
+### Fixed — Anti-Freeze Shortcuts Bridge (Build 31)
+- `Scripts/generate_shortcuts.py`: removed invalid `Values` on `Operator: 1002` (*is today*), switched cumulative metrics (*Steps*, *Active Energy*, *Resting Energy*) to `WFHKSampleFilteringGroupBy = "Day"` + `limit = 1`, dropped heavy `is.workflow.actions.statistics` actions, removed unsupported `WatchKit` workflow type, and enforced `0644` permissions on bundled `.shortcut` files.
+
+### Added — Direct Apple Health File Import & Manual Telemetry
+- `AppleHealthExportImporter`: streaming `export.zip` (`COMPRESSION_ZLIB`) + `export.xml` (`XMLParser`) parser plus Health Auto Export JSON and CSV importers routing cleanly through `ShortcutsHealthBridge.apply`.
+- `AppleHealthSettingsView` & `RootTabView` & `Info.plist`: added **Import Apple Health Export (.zip / .xml / .json / .csv)**, **Log Today's Health Metrics Manually** sheet, and `CFBundleDocumentTypes` Share Sheet file handling.
+- `TotalFactorTests/AppleHealthExportImporterTests.swift`: unit tests for XML (`WorkoutStatistics`), deflated `.zip`, JSON, and CSV imports.
+
+---
+
 ## [1.11.2] - 2026-11-12
 
 ### Added — Apple Shortcuts Health & Workout Bridge (Build 30)

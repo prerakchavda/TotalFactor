@@ -6,6 +6,24 @@ Every feature, performance fix, data tweak, and small polish shipped to **Total 
 
 ---
 
+## v1.11.3 — Build 31 (2026-11-12) — Anti-Freeze Shortcuts Fix & Direct Health File Import
+
+### 1. Fixed Shortcuts App Freeze in `Total Factor Health Sync.shortcut` (`Scripts/generate_shortcuts.py`)
+- Fixed `Find Health Samples` (`is.workflow.actions.filter.health.quantity`) date filter bug where `Operator 1002` (*is today*) mistakenly carried `{Unit, Number}` parameters.
+- Switched cumulative daily metrics (*Steps*, *Active Energy*, *Resting Energy*) to in-process `WFHKSampleFilteringGroupBy = "Day"` with `limit = 1` and removed heavy `Calculate Statistics` loops that loaded thousands of raw samples and froze iPhone Shortcuts.
+- Removed obsolete `WatchKit` / `NCWidget` workflow types and fixed `chmod 644` permissions on bundled `.shortcut` files.
+
+### 2. Zero-Freeze Direct Health Export Import & Manual Telemetry Sheet (`AppleHealthExportImporter.swift`, `AppleHealthSettingsView.swift`, `RootTabView.swift`)
+- Added **Import Apple Health Export (.zip / .xml / .json / .csv)** in **Settings → Apple Health & Cloud** and system Share Sheet (`CFBundleDocumentTypes` + `onOpenURL` file support) — works 100% free on SideStore without Apple Shortcuts or paid HealthKit entitlements.
+- Streaming `export.zip` decompression (`Compression` framework) + `XMLParser` extracts today's telemetry, recent weigh-ins, and recent workouts cleanly with minimal memory footprint; also supports Health Auto Export JSON and CSV exports.
+- Added **Log Today's Health Metrics Manually** sheet for instant 1-tap Steps, Active/Resting Calories, RHR, HRV, HR, and Sleep entry.
+
+### 3. Tests & Build
+- Added `AppleHealthExportImporterTests.swift` covering Apple Health XML (`WorkoutStatistics`), deflated `.zip`, Health Auto Export JSON, and CSV imports.
+- Bumped to v1.11.3 (Build 31) across app, widgets, and Watch.
+
+---
+
 ## v1.11.2 — Build 30 (2026-11-12) — Apple Shortcuts Health & Workout Bridge
 
 ### 1. Apple Shortcuts Bridge for Free Apple ID / SideStore (`ShortcutsHealthBridge.swift`, `RootTabView.swift`)

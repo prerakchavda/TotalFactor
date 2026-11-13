@@ -1,5 +1,29 @@
 [
   {
+    "version": "1.11.3",
+    "build": "31",
+    "date": "2026-11-12",
+    "headline": "Zero-Freeze Shortcuts Fix & Direct Health Export Import",
+    "sections": [
+      {
+        "title": "Direct Apple Health Export Import (No Shortcuts Needed)",
+        "icon": "doc.badge.arrow.up",
+        "items": [
+          "Added 'Import Apple Health Export (.zip / .xml / .json / .csv)' in Settings → Apple Health & Cloud plus Share Sheet 'Open in Total Factor' support — export directly from Apple Health (Profile → Export All Health Data) or third-party exporters for free with zero Shortcuts freeze.",
+          "Added 'Log Today's Health Metrics Manually' in Settings → Apple Health & Cloud for fast direct entry of Steps, Active/Resting Calories, RHR, HRV, HR, and Sleep."
+        ]
+      },
+      {
+        "title": "Apple Shortcuts Bridge Anti-Freeze Fixes",
+        "icon": "bolt.heart.fill",
+        "items": [
+          "Fixed 'Total Factor Health Sync.shortcut' to group Steps, Active Energy, and Resting Energy by Day inside HealthKit instead of pulling thousands of raw samples into Calculate Statistics.",
+          "Fixed invalid date filter parameters on 'is today' and removed obsolete WatchKit workflow metadata that stalled Shortcuts syncing."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.11.2",
     "build": "30",
     "date": "2026-11-12",

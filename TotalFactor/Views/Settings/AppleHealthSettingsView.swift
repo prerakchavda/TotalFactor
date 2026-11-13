@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct AppleHealthSettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -13,6 +14,9 @@ struct AppleHealthSettingsView: View {
     @State private var isRequestingAccess: Bool = false
     @State private var accessChecked: Bool = false
     @State private var shareShortcutItem: IdentifiableURL? = nil
+    @State private var showingHealthFileImporter: Bool = false
+    @State private var isImportingHealthFile: Bool = false
+    @State private var showingManualHealthEntry: Bool = false
 
     private struct IdentifiableURL: Identifiable {
         let id = UUID()
@@ -104,6 +108,27 @@ struct AppleHealthSettingsView: View {
                     Label("Install \"\(ShortcutsHealthBridge.workoutShortcutName)\" Shortcut", systemImage: "square.and.arrow.down")
                 }
 
+                Button {
+                    showingHealthFileImporter = true
+                } label: {
+                    HStack {
+                        Label("Import Apple Health Export (.zip / .xml / .json / .csv)", systemImage: "doc.badge.arrow.up")
+                            .fontWeight(.semibold)
+                        Spacer()
+                        if isImportingHealthFile {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                .disabled(isImportingHealthFile)
+
+                Button {
+                    showingManualHealthEntry = true
+                } label: {
+                    Label("Log Today's Health Metrics Manually", systemImage: "slider.horizontal.3")
+                }
+
                 if let syncDate = healthService.lastShortcutsSyncDate {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
@@ -121,9 +146,9 @@ struct AppleHealthSettingsView: View {
                     }
                 }
             } header: {
-                Text("Apple Shortcuts Bridge (Free / SideStore)")
+                Text("Free Sync Options (No Paid Apple Dev Account)")
             } footer: {
-                Text("1. Tap Install (or open the synced shortcut in Apple Shortcuts).\n2. Tap Run to sync Steps, Active/Resting Calories, RHR, HRV, HR & Weight.\n3. Optional: In iPhone Shortcuts → Automation → +, create a Daily or \"When I end any workout\" trigger to run automatically.")
+                Text("• Zero-Freeze File Import: In Apple Health → tap Profile → Export All Health Data, then share export.zip to Total Factor (or pick it above). Also supports Health Auto Export JSON & CSV files.\n• Shortcuts Bridge: If an earlier Health Sync shortcut froze on iPhone, delete it in Shortcuts and reinstall the updated grouped shortcut above.")
             }
 
             Section {
@@ -240,6 +265,48 @@ struct AppleHealthSettingsView: View {
         .sheet(item: $shareShortcutItem) { item in
             ShortcutShareSheet(activityItems: [item.url])
         }
+        .sheet(isPresented: $showingManualHealthEntry) {
+            ManualHealthTelemetrySheet(
+                initialStats: healthService.todayStats,
+                onSave: { payload in
+                    let summary = ShortcutsHealthBridge.apply(payload, context: modelContext, healthService: healthService)
+                    statusAlertMessage = "Saved today's health telemetry:\n\(summary)"
+                }
+            )
+        }
+        .fileImporter(
+            isPresented: $showingHealthFileImporter,
+            allowedContentTypes: [.zip, .xml, .json, .commaSeparatedText, .plainText],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                isImportingHealthFile = true
+                let defaultUnit = profile.unitSystem
+                Task {
+                    do {
+                        let summary = try await AppleHealthExportImporter.importFile(
+                            at: url,
+                            context: modelContext,
+                            healthService: healthService,
+                            defaultUnitSystem: defaultUnit
+                        )
+                        await MainActor.run {
+                            isImportingHealthFile = false
+                            statusAlertMessage = "\(summary.formatDescription) imported:\n\(summary.telemetrySummary)"
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isImportingHealthFile = false
+                            statusAlertMessage = error.localizedDescription
+                        }
+                    }
+                }
+            case .failure(let error):
+                statusAlertMessage = error.localizedDescription
+            }
+        }
     }
 
     private func installBundledShortcut(named name: String) {
@@ -248,6 +315,118 @@ struct AppleHealthSettingsView: View {
         } else {
             statusAlertMessage = "Shortcut file \"\(name).shortcut\" was not found in app resources."
         }
+    }
+}
+
+private struct ManualHealthTelemetrySheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var stepsText: String
+    @State private var activeKcalText: String
+    @State private var restingKcalText: String
+    @State private var rhrText: String
+    @State private var hrvText: String
+    @State private var hrText: String
+    @State private var sleepHoursText: String
+
+    let onSave: (BridgedHealthPayload) -> Void
+
+    init(initialStats: HealthDisplayDashboardStats, onSave: @escaping (BridgedHealthPayload) -> Void) {
+        self.onSave = onSave
+        _stepsText = State(initialValue: initialStats.stepsToday > 0 ? "\(initialStats.stepsToday)" : "")
+        _activeKcalText = State(initialValue: initialStats.activeCaloriesDisplayOnly > 0 ? "\(Int(initialStats.activeCaloriesDisplayOnly.rounded()))" : "")
+        _restingKcalText = State(initialValue: initialStats.basalCaloriesDisplayOnly > 0 ? "\(Int(initialStats.basalCaloriesDisplayOnly.rounded()))" : "")
+        _rhrText = State(initialValue: initialStats.restingHeartRateBPM.map { "\(Int($0.rounded()))" } ?? "")
+        _hrvText = State(initialValue: initialStats.hrvSDNNMilliseconds.map { "\(Int($0.rounded()))" } ?? "")
+        _hrText = State(initialValue: initialStats.currentHeartRateBPM.map { "\(Int($0.rounded()))" } ?? "")
+        _sleepHoursText = State(initialValue: initialStats.sleepHoursLastNight.map { String(format: "%.1f", $0) } ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Activity & Energy (Today)") {
+                    HStack {
+                        Text("Steps")
+                        Spacer()
+                        TextField("8,500", text: $stepsText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Active Calories (kcal)")
+                        Spacer()
+                        TextField("450", text: $activeKcalText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Resting Calories (kcal)")
+                        Spacer()
+                        TextField("1,650", text: $restingKcalText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+
+                Section("Heart & Recovery") {
+                    HStack {
+                        Text("Resting Heart Rate (bpm)")
+                        Spacer()
+                        TextField("58", text: $rhrText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("HRV SDNN (ms)")
+                        Spacer()
+                        TextField("52", text: $hrvText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Current Heart Rate (bpm)")
+                        Spacer()
+                        TextField("72", text: $hrText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Sleep Last Night (hr)")
+                        Spacer()
+                        TextField("7.5", text: $sleepHoursText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+            .navigationTitle("Log Today's Health Metrics")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        var payload = BridgedHealthPayload()
+                        if let v = parseNumber(stepsText) { payload.steps = Int(v.rounded()) }
+                        if let v = parseNumber(activeKcalText) { payload.activeCalories = v.rounded() }
+                        if let v = parseNumber(restingKcalText) { payload.basalCalories = v.rounded() }
+                        if let v = parseNumber(rhrText) { payload.restingHeartRateBPM = v.rounded() }
+                        if let v = parseNumber(hrvText) { payload.hrvSDNNMilliseconds = v.rounded() }
+                        if let v = parseNumber(hrText) { payload.currentHeartRateBPM = v.rounded() }
+                        if let v = parseNumber(sleepHoursText) { payload.sleepHours = (v * 10).rounded() / 10.0 }
+                        onSave(payload)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func parseNumber(_ s: String) -> Double? {
+        Double(s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ""))
     }
 }
 
